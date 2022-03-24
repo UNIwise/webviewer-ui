@@ -12,8 +12,9 @@
   display: flex;
   justify-content: flex-end;
   user-select: none;
-  padding-left: 15px;
-  padding-right: 10px;
+  margin-left: 15px;
+  margin-right: 10px;
+  position: relative;
 
   @include ie11 {
     // for IE11 only
@@ -26,7 +27,7 @@
     height: 28px;
     border-radius: 4px;
 
-    .Icon {
+    .Icon, .share-type-icon {
       margin: 4px;
       width: 20px;
       height: 20px;
@@ -63,6 +64,14 @@
     box-sizing: border-box;
   }
 
+  &.bottom {
+    top: calc(100% + 2px);
+  }
+
+  &.top {
+    bottom: calc(100% + 2px);
+  }
+
   .note-state-option {
     display: flex;
     flex-direction: row;
@@ -70,14 +79,15 @@
     height: 35px;
     padding: 8px;
     border-radius: 0px;
+    white-space: nowrap;
 
-    .Icon {
+    .Icon,  .share-type-icon {
       margin-right: 5px;
       width: 18px;
       height: 18px;
     }
 
-    &:hover {
+    &.selected {
       background-color: var(--popup-button-hover);
     }
 
@@ -88,7 +98,15 @@
 
     &:last-child {
       border-bottom-right-radius: 4px;
-      border-bottom-right-radius: 4px;
+      border-bottom-left-radius: 4px;
+    }
+
+    &.enabled .note-state-option {
+      cursor: pointer;
+
+      &:hover {
+        background-color: var(--popup-button-hover);
+      }
     }
   }
 }

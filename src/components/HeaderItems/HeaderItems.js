@@ -2,11 +2,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import ToolButton from 'components/ToolButton';
+import FullscreenButton from 'components/FullscreenButton';
 import ToggleElementButton from 'components/ToggleElementButton';
 import ToolGroupButton from 'components/ToolGroupButton';
 import ActionButton from 'components/ActionButton';
 import StatefulButton from 'components/StatefulButton';
 import CustomElement from 'components/CustomElement';
+import CustomStatefulElement from 'components/CustomStatefulElement';
 import ToolGroupButtonsScroll from './ToolGroupButtonsScroll';
 import ScrollGroup from './ScrollGroup';
 import useMedia from 'hooks/useMedia';
@@ -46,6 +48,10 @@ class HeaderItems extends React.PureComponent {
       }
       const key = `${type}-${dataElement || i}`;
 
+      if (dataElement === 'fullscreenButton') {
+        return <FullscreenButton />;
+      }
+
       switch (type) {
         case 'toolButton':
           return <ToolButton key={key} mediaQueryClassName={mediaQueryClassName} {...item} />;
@@ -71,6 +77,8 @@ class HeaderItems extends React.PureComponent {
           return <StatefulButton key={key} mediaQueryClassName={mediaQueryClassName} {...item} />;
         case 'customElement':
           return <CustomElement key={key} mediaQueryClassName={mediaQueryClassName} {...item} />;
+        case 'customStatefulElement':
+          return <CustomStatefulElement key={key} mediaQueryClassName={mediaQueryClassName} {...item} />;
         case 'spacer':
         case 'divider':
           return <div key={key} className={`${type} ${mediaQueryClassName}`}></div>;

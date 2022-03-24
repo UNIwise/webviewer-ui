@@ -1,7 +1,6 @@
 import React from 'react';
 import core from 'core';
 import NotePopup from './NotePopup';
-import Tooltip from 'components/Tooltip';
 import { useTranslation } from 'react-i18next';
 
 function NotePopupContainer(props) {
@@ -11,6 +10,7 @@ function NotePopupContainer(props) {
   const [canModifyContents, setCanModifyContents] = React.useState(core.canModifyContents(annotation));
   const [isOpen, setIsOpen] = React.useState(false);
   const [t] = useTranslation();
+
 
   React.useEffect(() => {
     function onUpdateAnnotationPermission() {
@@ -52,11 +52,9 @@ function NotePopupContainer(props) {
 
   // We wrap the element in a div so the tooltip works properly
   return (
-    <Tooltip content={t('formField.formFieldPopup.options')}>
-      <div>
-        <NotePopup {...props} {...passProps} />
-      </div>
-    </Tooltip>
+    <div>
+      <NotePopup {...props} {...passProps} />
+    </div>
   );
 }
 

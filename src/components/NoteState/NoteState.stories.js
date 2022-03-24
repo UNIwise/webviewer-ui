@@ -15,7 +15,7 @@ function getAnnotationWithStatus(status) {
     },
     isReply: () => {
       return false;
-    }
+    },
   };
 }
 
@@ -37,7 +37,7 @@ function rootReducer(state = initialState, action) {
 const store = createStore(rootReducer);
 
 export function Basic() {
-  const availableNoteStates = ['Accepted', 'Rejected', 'Cancelled', 'Completed', 'None', 'Marked', 'Unmarked'];
+  const availableNoteStates = ['Accepted', 'Rejected', 'Cancelled', 'Completed', 'None', 'Marked', 'Unmarked', 'Participants', 'Assessors', 'All'];
   const allStates = availableNoteStates.map((state) => {
     return (
       <Provider store={store} key={state}>
@@ -50,12 +50,13 @@ export function Basic() {
     );
   });
   return (
-    <div style={{
-      width: 150,
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      rowGap: '1em'
-    }}
+    <div
+      style={{
+        width: 150,
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        rowGap: '1em',
+      }}
     >
       {allStates}
     </div>
@@ -75,7 +76,7 @@ export function PopupOpen() {
         }}
       >
         <NoteState
-          annotation={getAnnotationWithStatus('Accepted')}
+          annotation={getAnnotationWithStatus('Private')}
           isSelected={false}
           openOnInitialLoad
           handleStateChange={handleStateChange}
