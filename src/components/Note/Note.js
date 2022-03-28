@@ -262,13 +262,13 @@ const Note = ({
               ))}
             </div>
           )}
-          {showReplyArea && (
+          {/* {showReplyArea && (
             <ReplyArea
               isUnread={lastReplyId && unreadAnnotationIdSet.has(lastReplyId)}
               onPendingReplyChange={markAllRepliesRead}
               annotation={annotation}
             />
-          )}
+          )} */}
         </React.Fragment>
       )}
       {isSelected && <AnnotationNoteConnectorLine annotation={annotation} noteContainerRef={containerRef} />}
