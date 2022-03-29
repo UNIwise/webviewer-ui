@@ -5,12 +5,13 @@ import selectors from 'selectors';
 import actions from 'actions';
 import { createPortal } from 'react-dom';
 import { getAnnotationPosition } from '../../helpers/getPopupPosition';
+import { getDataWithKey, mapAnnotationToKey } from '../../constants/map';
 
 import './AnnotationNoteConnectorLine.scss';
 
 const LineConnectorPortal = ({ children }) => {
-  const mount = document.getElementById("line-connector-root");
-  const el = document.createElement("div");
+  const mount = document.getElementById('line-connector-root');
+  const el = document.createElement('div');
   el.setAttribute('data-element', 'annotationNoteConnectorLine');
 
   useEffect(() => {
@@ -22,8 +23,17 @@ const LineConnectorPortal = ({ children }) => {
 };
 
 const AnnotationNoteConnectorLine = ({ annotation, noteContainerRef }) => {
-  const [notePanelWidth, lineIsOpen, notePanelIsOpen, isLineDisabled, documentContainerWidth, documentContainerHeight] = useSelector(
+  const [
+    iconColor,
+    notePanelWidth,
+    lineIsOpen,
+    notePanelIsOpen,
+    isLineDisabled,
+    documentContainerWidth,
+    documentContainerHeight,
+  ] = useSelector(
     state => [
+      selectors.getIconColor(state, mapAnnotationToKey(annotation)),
       selectors.getNotesPanelWidth(state),
       selectors.isElementOpen(state, 'annotationNoteConnectorLine'),
       selectors.isElementOpen(state, 'notesPanel'),
@@ -65,41 +75,77 @@ const AnnotationNoteConnectorLine = ({ annotation, noteContainerRef }) => {
     setRightHorizontalLineRight(notePanelWidth - notePanelLeftPadding);
     setRightHorizontalLineTop(noteContainerRef.current.getBoundingClientRect().top);
 
-    const lineWidth = window.innerWidth - notePanelWidth - annotationTopLeft.x + notePanelLeftPadding + scrollLeft - annotWidthInPixels;
+    const lineWidth =
+      window.innerWidth - notePanelWidth - annotationTopLeft.x + notePanelLeftPadding + scrollLeft - annotWidthInPixels;
     const rightHorizontalLineWidthRatio = 0.75;
     setRightHorizontalLineWidth(lineWidth * rightHorizontalLineWidthRatio);
     setLeftHorizontalLineWidth(lineWidth - rightHorizontalLineWidth - getAnnotationLineOffset());
 
     setLeftHorizontalLineRight(notePanelWidth - notePanelLeftPadding + rightHorizontalLineWidth);
 
-    setLeftHorizontalLineTop(annotationTopLeft.y + (annotHeightInPixels / 2) - scrollTop);
+    setLeftHorizontalLineTop(annotationTopLeft.y + annotHeightInPixels / 2 - scrollTop);
 
     const onPageNumberUpdated = () => {
-      dispatch(actions.closeElement('annotationNoteConnectorLine'))
-    }
+      dispatch(actions.closeElement('annotationNoteConnectorLine'));
+    };
 
     core.addEventListener('pageNumberUpdated', onPageNumberUpdated);
 
     return () => {
       core.removeEventListener('pageNumberUpdated', onPageNumberUpdated);
     };
-
-  }, [noteContainerRef, notePanelWidth, annotationBottomRight, annotationTopLeft, documentContainerWidth, documentContainerHeight, dispatch]);
+  }, [
+    noteContainerRef,
+    notePanelWidth,
+    annotationBottomRight,
+    annotationTopLeft,
+    documentContainerWidth,
+    documentContainerHeight,
+    dispatch,
+  ]);
 
   if (lineIsOpen && notePanelIsOpen && !isLineDisabled) {
     const verticalHeight = Math.abs(rightHorizontalLineTop - leftHorizontalLineTop);
     const horizontalLineHeight = 2;
     // Add HorizontalLineHeight of 2px when annot is above note to prevent little gap between lines
-    const verticalTop = rightHorizontalLineTop > leftHorizontalLineTop ? leftHorizontalLineTop + horizontalLineHeight : rightHorizontalLineTop;
+    const verticalTop =
+      rightHorizontalLineTop > leftHorizontalLineTop
+        ? leftHorizontalLineTop + horizontalLineHeight
+        : rightHorizontalLineTop;
 
     return (
       <LineConnectorPortal>
-        <div className="horizontalLine" style={{ width: rightHorizontalLineWidth, right: rightHorizontalLineRight, top: rightHorizontalLineTop }} />
-        <div className="verticalLine" style={{ height: verticalHeight, top: verticalTop, right: rightHorizontalLineRight + rightHorizontalLineWidth }} />
-        <div className="horizontalLine" style={{ width: leftHorizontalLineWidth, right: leftHorizontalLineRight, top: leftHorizontalLineTop }}>
+        <div
+          className="horizontalLine"
+          style={{
+            width: rightHorizontalLineWidth,
+            right: rightHorizontalLineRight,
+            top: rightHorizontalLineTop,
+            backgroundColor: annotation[iconColor]?.toHexString?.(),
+          }}
+        />
+        <div
+          className="verticalLine"
+          style={{
+            height: verticalHeight,
+            top: verticalTop,
+            right: rightHorizontalLineRight + rightHorizontalLineWidth,
+            backgroundColor: annotation[iconColor]?.toHexString?.(),
+          }}
+        />
+        <div
+          className="horizontalLine"
+          style={{
+            width: leftHorizontalLineWidth,
+            right: leftHorizontalLineRight,
+            top: leftHorizontalLineTop,
+            backgroundColor: annotation[iconColor]?.toHexString?.(),
+          }}
+        >
           <div className="arrowHead" />
         </div>
-      </LineConnectorPortal>);
+      </LineConnectorPortal>
+    );
   } else {
     return null;
   }
