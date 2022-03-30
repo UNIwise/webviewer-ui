@@ -13,7 +13,7 @@ function getAnnotationWithStatus(status) {
     },
     isReply: () => {
       return false;
-    }
+    },
   };
 }
 
@@ -33,12 +33,13 @@ export function Basic() {
     );
   });
   return (
-    <div style={{
-      width: 150,
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      rowGap: '1em'
-    }}
+    <div
+      style={{
+        width: 150,
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        rowGap: '1em',
+      }}
     >
       {allStates}
     </div>
@@ -47,13 +48,14 @@ export function Basic() {
 
 export function PopupOpen() {
   return (
-    <div style={{
-      backgroundColor: 'white',
-      width: 100,
-      display: 'flex',
-      alignContent: 'flex-end',
-      flexDirection: 'column'
-    }}
+    <div
+      style={{
+        backgroundColor: 'white',
+        width: 100,
+        display: 'flex',
+        alignContent: 'flex-end',
+        flexDirection: 'column',
+      }}
     >
       <NoteState
         annotation={getAnnotationWithStatus('Accepted')}

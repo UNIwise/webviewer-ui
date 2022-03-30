@@ -13,16 +13,11 @@ const propTypes = {
   annotation: PropTypes.object,
   isSelected: PropTypes.bool,
   openOnInitialLoad: PropTypes.bool,
-  handleStateChange: PropTypes.func
+  handleStateChange: PropTypes.func,
 };
 
 function NoteState(props) {
-  const {
-    annotation,
-    isSelected = false,
-    openOnInitialLoad = false,
-    handleStateChange,
-  } = props;
+  const { annotation, isSelected = false, openOnInitialLoad = false, handleStateChange } = props;
 
   const [t] = useTranslation();
   const [isOpen, setIsOpen] = useState(openOnInitialLoad);
@@ -68,12 +63,7 @@ function NoteState(props) {
   const noteStateButtonClassName = classNames('overflow', { active: isOpen });
 
   return (
-    <DataElementWrapper
-      className="NoteState"
-      dataElement="noteState"
-      onClick={togglePopup}
-      ref={popupRef}
-    >
+    <DataElementWrapper className="NoteState" dataElement="noteState" onClick={togglePopup} ref={popupRef}>
       <div className={noteStateButtonClassName}>
         <Icon glyph={icon} />
       </div>
@@ -81,6 +71,40 @@ function NoteState(props) {
         <button className="note-state-options" onClick={onStateOptionsButtonClick}>
           <DataElementWrapper dataElement="notePopupState">
             <DataElementWrapper
+              dataElement="notePopupStatePrivate"
+              className="note-state-option"
+              onClick={createOnStateOptionButtonClickHandler('Private')}
+            >
+              <Icon glyph="icon-colour-none" />
+              {t('option.state.private')}
+            </DataElementWrapper>
+            <DataElementWrapper
+              dataElement="notePopupStateCo-assessor"
+              className="note-state-option"
+              onClick={createOnStateOptionButtonClickHandler('Co-assessor')}
+            >
+              <Icon glyph="icon-page-insertion-insert-above" />
+              {t('option.state.co-assessor')}
+            </DataElementWrapper>
+            <DataElementWrapper
+              dataElement="notePopupStateParticipant"
+              className="note-state-option"
+              onClick={createOnStateOptionButtonClickHandler('Participant')}
+            >
+              <Icon glyph="icon-tool-stamp-fill" />
+              {t('option.state.participant')}
+            </DataElementWrapper>
+            <DataElementWrapper
+              dataElement="notePopupStateAll"
+              className="note-state-option"
+              onClick={createOnStateOptionButtonClickHandler('All')}
+            >
+              <Icon glyph="ic_annotation_apply_redact_black_24px" />
+              {t('option.state.all')}
+            </DataElementWrapper>
+
+            {/* ///////////////////////////////////////// */}
+            {/* <DataElementWrapper
               dataElement="notePopupStateAccepted"
               className="note-state-option"
               onClick={createOnStateOptionButtonClickHandler('Accepted')}
@@ -135,7 +159,7 @@ function NoteState(props) {
             >
               <Icon glyph="icon-annotation-status-unmarked" />
               {t('option.state.unmarked')}
-            </DataElementWrapper>
+            </DataElementWrapper>*/}
           </DataElementWrapper>
         </button>
       )}

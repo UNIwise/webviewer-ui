@@ -394,7 +394,11 @@
       "setBy": "set by",
       "none": "None",
       "marked": "Marked",
-      "unmarked": "Unmarked"
+      "unmarked": "Unmarked",
+      "private": "Private",
+      "co-assessor": "Co-assessor",
+      "participant": "Participant",
+      "all": "All"
     },
     "measurementOverlay": {
       "scale": "Scale Ratio",
@@ -587,38 +591,9 @@
       "November",
       "December"
     ],
-    "monthsShort": [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sept",
-      "Oct",
-      "Nov",
-      "Dec"
-    ],
-    "weekdays": [
-      "Sunday",
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday"
-    ],
-    "weekdaysShort": [
-      "Sun",
-      "Mon",
-      "Tue",
-      "Wed",
-      "Thu",
-      "Fri",
-      "Sat"
-    ]
+    "monthsShort": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"],
+    "weekdays": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+    "weekdaysShort": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
   },
   "formField": {
     "formFieldPopup": {
