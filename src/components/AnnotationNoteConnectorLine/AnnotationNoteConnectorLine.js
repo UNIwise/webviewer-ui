@@ -142,7 +142,12 @@ const AnnotationNoteConnectorLine = ({ annotation, noteContainerRef }) => {
             backgroundColor: annotation[iconColor]?.toHexString?.(),
           }}
         >
-          <div className="arrowHead" />
+          <div
+            className="arrowHead"
+            style={{
+              borderRight: `7px solid ${annotation[iconColor]?.toHexString?.()}`,
+            }}
+          />
         </div>
       </LineConnectorPortal>
     );
