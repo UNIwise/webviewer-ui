@@ -113,7 +113,7 @@ export default store => {
         'bookmarksPanelButton',
         'wildCardSearchOption',
         'readerPageTransitionButton',
-        'mathSymbolsButton',
+        // 'mathSymbolsButton',
         'threeDToolGroupButton',
         'attachmentPanelButton'
       ],
