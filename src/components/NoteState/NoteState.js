@@ -8,6 +8,7 @@ import DataElementWrapper from 'components/DataElementWrapper';
 import Icon from 'components/Icon';
 
 import './NoteState.scss';
+import setAnnotationState from 'src/apis/setAnnotationState';
 
 const propTypes = {
   annotation: PropTypes.object,
@@ -39,6 +40,7 @@ function NoteState(props) {
   function createOnStateOptionButtonClickHandler(state) {
     return function onStateOptionButtonClick() {
       if (handleStateChange) {
+        setAnnotationState(state);
         handleStateChange(state);
       }
     };
