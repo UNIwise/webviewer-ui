@@ -25,7 +25,7 @@ const RichTextPopup = () => {
       selectors.isElementOpen(state, 'richTextPopup'),
       selectors.isElementDisabled(state, 'colorPalette'),
       selectors.getCustomColors(state, 'customColors'),
-      selectors.isInDesktopOnlyMode(state)
+      selectors.isInDesktopOnlyMode(state),
     ],
     shallowEqual,
   );
@@ -47,17 +47,13 @@ const RichTextPopup = () => {
     };
 
     core.addEventListener('editorSelectionChanged', handleSelectionChange);
-    return () =>
-      core.removeEventListener('editorSelectionChanged', handleSelectionChange);
+    return () => core.removeEventListener('editorSelectionChanged', handleSelectionChange);
   }, []);
 
   useEffect(() => {
     const handleTextChange = () => {
       if (annotationRef.current?.isAutoSized() && popupRef.current) {
-        const position = getRichTextPopupPosition(
-          annotationRef.current,
-          popupRef,
-        );
+        const position = getRichTextPopupPosition(annotationRef.current, popupRef);
         setCssPosition(position);
       }
 
@@ -65,20 +61,13 @@ const RichTextPopup = () => {
     };
 
     core.addEventListener('editorTextChanged', handleTextChange);
-    return () =>
-      core.removeEventListener('editorTextChanged', handleTextChange);
+    return () => core.removeEventListener('editorTextChanged', handleTextChange);
   }, []);
 
   useEffect(() => {
     const handleEditorFocus = (editor, annotation) => {
-      if (
-        annotation instanceof window.Annotations.FreeTextAnnotation &&
-        popupRef.current
-      ) {
-        const position = getRichTextPopupPosition(
-          annotation,
-          popupRef,
-        );
+      if (annotation instanceof window.Annotations.FreeTextAnnotation && popupRef.current) {
+        const position = getRichTextPopupPosition(annotation, popupRef);
 
         setCssPosition(position);
         // when the editor is focused, we want to reset any previous drag movements so that
@@ -109,10 +98,7 @@ const RichTextPopup = () => {
 
   useEffect(() => {
     if (popupRef.current && annotationRef.current) {
-      const position = getRichTextPopupPosition(
-        annotationRef.current,
-        popupRef,
-      );
+      const position = getRichTextPopupPosition(annotationRef.current, popupRef);
       setCssPosition(position);
     }
   }, [symbolsVisible]);
@@ -121,7 +107,6 @@ const RichTextPopup = () => {
     if (!range) {
       return {};
     }
-
     const format = editorRef.current.getFormat(range.index, range.length);
 
     if (typeof format.color === 'string') {
@@ -139,10 +124,9 @@ const RichTextPopup = () => {
   const handleTextFormatChange = format => () => {
     const { index, length } = editorRef.current.getSelection();
     const currentFormat = editorRef.current.getFormat(index, length);
-
+    console.log(currentFormat);
     applyFormat(format, !currentFormat[format]);
   };
-
   const handleSymbolsClick = () => {
     setSymbolsVisible(!symbolsVisible);
   };
@@ -150,7 +134,6 @@ const RichTextPopup = () => {
   const handleColorChange = (_, color) => {
     applyFormat('color', color.toHexString());
   };
-
   const applyFormat = (formatKey, value) => {
     editorRef.current?.format(formatKey, value);
 
@@ -161,7 +144,7 @@ const RichTextPopup = () => {
     // format the entire editor doesn't trigger the editorTextChanged event, so we set the format state here
     setFormat({
       ...format,
-      [formatKey]: value
+      [formatKey]: value,
     });
   };
 
@@ -209,6 +192,13 @@ const RichTextPopup = () => {
         style={{ ...cssPosition }}
       >
         <Element className="rich-text-format" dataElement="richTextFormats">
+          <Button
+            isActive={format.subscript}
+            dataElement="richTextSubscriptButton"
+            onClick={handleTextFormatChange('subscript')}
+            img="icon-text-bold"
+            title="option.richText.subscript"
+          />
           <Button
             isActive={format.bold}
             dataElement="richTextBoldButton"

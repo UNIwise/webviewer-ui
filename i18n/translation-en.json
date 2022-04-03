@@ -466,6 +466,7 @@
     "richText": {
       "bold": "Bold",
       "italic": "Italic",
+      "subscript": "subscript",
       "underline": "Underline",
       "strikeout": "Strikeout",
       "alignLeft": "Text align left",
@@ -542,7 +543,8 @@
       "bold": "(Ctrl B)",
       "italic": "(Ctrl I)",
       "underline": "(Ctrl U)",
-      "strikeout": "(Ctrl K)"
+      "strikeout": "(Ctrl K)",
+      "subscript": "(Ctrl =)"
     },
     "rotate3D": "Shift + Drag",
     "zoom3D": "Shift + Scroll"
