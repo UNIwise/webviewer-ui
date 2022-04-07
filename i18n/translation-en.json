@@ -467,6 +467,7 @@
       "bold": "Bold",
       "italic": "Italic",
       "subscript": "subscript",
+      "superscript": "superscript",
       "underline": "Underline",
       "strikeout": "Strikeout",
       "alignLeft": "Text align left",

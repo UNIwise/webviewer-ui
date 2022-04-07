@@ -20,12 +20,13 @@
 
   // color for svgs
   &.active {
-    path[fill=default] {
+    path[fill='default'] {
       fill: var(--selected-icon-color);
     }
 
     // hack for pan tool and annot select tool
-    &[data-element="panToolButton"],&[data-element="selectToolButton"] {
+    &[data-element='panToolButton'],
+    &[data-element='selectToolButton'] {
       background: var(--view-header-button-active);
     }
   }
@@ -33,13 +34,19 @@
   &.active {
     .Icon {
       color: var(--selected-icon-color);
+      svg {
+        fill: yellow;
+      }
     }
   }
 
   &.disabled {
-    background: none!important;
+    background: none !important;
     .Icon {
       color: var(--disabled-icon);
+       svg {
+        fill: yellow;
+      }
     }
     span {
       color: var(--disabled-icon);

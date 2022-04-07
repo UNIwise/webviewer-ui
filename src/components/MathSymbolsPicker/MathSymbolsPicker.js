@@ -100,6 +100,7 @@ const symbols = [
   '\u224B',
   '\u224C',
   '\u22D8',
+  '\u22AB',
 ];
 
 const MathSymbolsPicker = ({ onClickHandler, maxHeight }) => {
