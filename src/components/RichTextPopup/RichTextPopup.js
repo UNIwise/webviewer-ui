@@ -143,15 +143,15 @@ const RichTextPopup = () => {
     if (formatKey === 'sub' || formatKey === 'sup') {
       const { index, length } = editorRef.current.getSelection();
       const fullDiv = editorRef.current.editor.container;
-      const fullText = fullDiv.querySelector('p').innerHTML;
+      const fullText = fullDiv.querySelector('p').textContent;
       const selectedText = fullText.substr(index, length);
 
       if (formatKey === 'sup')
         fullDiv.querySelector('p').innerHTML =
           fullText.slice(0, index) + '<sup>' + selectedText + '</sup>' + fullText.slice(index + length);
-      else console.log(index, fullText[index]);
-      // fullDiv.querySelector('p').innerHTML =
-      //   fullText.slice(0, index) + '<sub>' + selectedText + '</sub>' + fullText.slice(index + length);
+      else
+        fullDiv.querySelector('p').innerHTML =
+          fullText.slice(0, index) + '<sub>' + selectedText + '</sub>' + fullText.slice(index + length);
     }
 
     // format the entire editor doesn't trigger the editorTextChanged event, so we set the format state here
