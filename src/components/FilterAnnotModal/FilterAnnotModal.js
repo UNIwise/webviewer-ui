@@ -5,11 +5,13 @@ import { useTranslation } from 'react-i18next';
 
 import defaultTool from 'constants/defaultTool';
 import Events from 'constants/events';
+import ShareTypes, { ShareTypeColors } from 'constants/shareTypes';
 import { mapAnnotationToKey } from 'constants/map';
 import core from 'core';
 import actions from 'actions';
 import selectors from 'selectors';
 import fireEvent from 'helpers/fireEvent';
+import { getAnnotationShareType } from 'helpers/annotationShareType';
 import { rgbaToHex, hexToRgba } from 'helpers/color';
 import { getAnnotationClass } from 'helpers/getAnnotationClass';
 
@@ -21,7 +23,7 @@ import { FocusTrap } from '@pdftron/webviewer-react-toolkit';
 
 import './FilterAnnotModal.scss';
 
-const FilterAnnotModal = () => {
+const FilterAnnotModal = ({ coAssessors }) => {
   const [isDisabled, isOpen, colorMap] = useSelector(state => [
     selectors.isElementDisabled(state, 'filterModal'),
     selectors.isElementOpen(state, 'filterModal'),
@@ -30,39 +32,46 @@ const FilterAnnotModal = () => {
   const [t] = useTranslation();
   const dispatch = useDispatch();
 
+  // Fields to be rendered
   const [authors, setAuthors] = useState([]);
   const [annotTypes, setAnnotTypes] = useState([]);
   const [colors, setColorTypes] = useState([]);
-  const [statuses, setStatusTypes] = useState([]);
+  const [shareTypes, setShareTypes] = useState([]);
 
   const [authorFilter, setAuthorFilter] = useState([]);
   const [typesFilter, setTypesFilter] = useState([]);
   const [colorFilter, setColorFilter] = useState([]);
   const [checkRepliesForAuthorFilter, setCheckRepliesForAuthorFilter] = useState(true);
-  const [statusFilter, setStatusFilter] = useState([]);
+  // CUSTOM WISEFLOW: sharetype filter
+  const [shareTypeFilter, setShareTypeFilter] = useState([]);
+  const [coAssessorFilter, setCoAssessorFilter] = useState([]);
 
-  const getIconColor = (annot) => {
+  const getIconColor = annot => {
     const key = mapAnnotationToKey(annot);
     const iconColorProperty = colorMap[key]?.iconColor;
 
     return annot[iconColorProperty];
-  }
+  };
 
   const similarColorExist = (currColors, newColor) => {
-    const colorObject = currColors.map(c => Object.assign({
-      R: parseInt(`${c[1]}${c[2]}`, 16),
-      G: parseInt(`${c[3]}${c[4]}`, 16),
-      B: parseInt(`${c[5]}${c[6]}`, 16)
-    }));
+    const colorObject = currColors.map(c =>
+      Object.assign({
+        R: parseInt(`${c[1]}${c[2]}`, 16),
+        G: parseInt(`${c[3]}${c[4]}`, 16),
+        B: parseInt(`${c[5]}${c[6]}`, 16),
+      }),
+    );
 
     const threshold = 10;
-    const similarColors = colorObject
-    .filter(c => Math.abs(newColor.R - c.R) < threshold
-      && Math.abs(newColor.G - c.G) < threshold
-      && Math.abs(newColor.B - c.B) < threshold);
+    const similarColors = colorObject.filter(
+      c =>
+        Math.abs(newColor.R - c.R) < threshold &&
+        Math.abs(newColor.G - c.G) < threshold &&
+        Math.abs(newColor.B - c.B) < threshold,
+    );
 
     return !!similarColors.length;
-  }
+  };
 
   const filterApply = () => {
     dispatch(
@@ -70,7 +79,7 @@ const FilterAnnotModal = () => {
         let type = true;
         let author = true;
         let color = true;
-        let status = true;
+        let sharetype = true;
         if (typesFilter.length > 0) {
           type = typesFilter.includes(getAnnotationClass(annot));
         }
@@ -97,26 +106,22 @@ const FilterAnnotModal = () => {
             color = colorFilter.includes('#485056');
           }
         }
-        if (statusFilter.length > 0) {
-          if (annot.getStatus()) {
-            status = statusFilter.includes(annot.getStatus());
-          } else {
-            status = statusFilter.includes('None');
+        if (shareTypeFilter.length > 0) {
+          // CUSTOM WISEFLOW: get customData sharetype
+          if (getAnnotationShareType(annot)) {
+            sharetype = shareTypeFilter.includes(getAnnotationShareType(annot));
           }
         }
-        return type && author && color && status;
+        return type && author && color && sharetype;
       }),
     );
-    fireEvent(
-      Events.ANNOTATION_FILTER_CHANGED,
-      {
-        types: typesFilter,
-        authors: authorFilter,
-        colors: colorFilter,
-        statuses: statusFilter,
-        checkRepliesForAuthorFilter
-      }
-    );
+    fireEvent(Events.ANNOTATION_FILTER_CHANGED, {
+      types: typesFilter,
+      authors: authorFilter,
+      colors: colorFilter,
+      shareTypes: shareTypeFilter,
+      checkRepliesForAuthorFilter,
+    });
     closeModal();
   };
 
@@ -130,13 +135,14 @@ const FilterAnnotModal = () => {
     setAuthorFilter([]);
     setTypesFilter([]);
     setColorFilter([]);
-    setStatusFilter([]);
+    setShareTypeFilter([]);
     fireEvent('annotationFilterChanged', {
       types: [],
       authors: [],
       colors: [],
       statuses: [],
       checkRepliesForAuthorFilter: false,
+      shareTypes: [],
     });
   };
 
@@ -152,7 +158,7 @@ const FilterAnnotModal = () => {
     const authorsToBeAdded = new Set();
     const annotTypesToBeAdded = new Set();
     const annotColorsToBeAdded = new Set();
-    const annotStatusesToBeAdded = new Set();
+    const annotShareTypesToBeAdded = new Set();
     annots.forEach(annot => {
       const displayAuthor = core.getDisplayAuthor(annot['Author']);
       if (displayAuthor && displayAuthor !== '') {
@@ -172,17 +178,15 @@ const FilterAnnotModal = () => {
         annotColorsToBeAdded.add(rgbaToHex(iconColor.R, iconColor.G, iconColor.B, iconColor.A));
       }
 
-      if (annot.getStatus()) {
-        annotStatusesToBeAdded.add(annot.getStatus());
-      } else {
-        annotStatusesToBeAdded.add('None');
+      if (getAnnotationShareType(annot)) {
+        annotShareTypesToBeAdded.add(getAnnotationShareType(annot));
       }
     });
 
     setAuthors([...authorsToBeAdded]);
     setAnnotTypes([...annotTypesToBeAdded]);
     setColorTypes([...annotColorsToBeAdded]);
-    setStatusTypes([...annotStatusesToBeAdded]);
+    setShareTypes([...annotShareTypesToBeAdded]);
 
     core.addEventListener('documentUnloaded', closeModal);
     return () => {
@@ -193,7 +197,7 @@ const FilterAnnotModal = () => {
   const renderAuthors = () => {
     return (
       <div className="filter">
-        <div className="heading">{t('option.filterAnnotModal.commentBy')}</div>
+        <div className="heading">{t('option.filterAnnotModal.author')}</div>
         <div className="buttons">
           {[...authors].map((val, index) => {
             return (
@@ -214,7 +218,7 @@ const FilterAnnotModal = () => {
             );
           })}
         </div>
-        <div className="buttons">
+        {/* <div className="buttons">
           <Choice
             type="checkbox"
             label={t('option.filterAnnotModal.includeReplies')}
@@ -224,7 +228,7 @@ const FilterAnnotModal = () => {
             }
             id="filter-annot-modal-include-replies"
           />
-        </div>
+        </div> */}
       </div>
     );
   };
@@ -293,29 +297,64 @@ const FilterAnnotModal = () => {
     );
   };
 
-  const renderStatusTypes = () => {
-    // Hide status filter if there is only on status type
-    if (statuses.length === 1) {
-      return null;
-    }
-
+  const renderShareTypes = () => {
     return (
       <div className="filter">
-        <div className="heading">{t('option.status.status')}</div>
-        <div className="buttons">
-          {[...statuses].map((val, index) => {
+        <div className="heading">{t('option.filterAnnotModal.shareType')}</div>
+        <div className="buttons" style={{ gridTemplateColumns: `114px 100px` }}>
+          {shareTypes.map((val, index) => {
             return (
               <Choice
                 type="checkbox"
                 key={index}
-                checked={statusFilter.includes(val)}
-                label={t(`option.state.${val.toLocaleLowerCase()}`)}
+                checked={shareTypeFilter.includes(val)}
+                label={
+                  <div
+                    style={{
+                      backgroundColor: `${ShareTypeColors[val]}`,
+                      padding: `5px 10px`,
+                      borderRadius: `5px`,
+                      color: `#fff`,
+                    }}
+                  >
+                    {t(`option.state.${val.toLocaleLowerCase()}`)}
+                  </div>
+                }
                 id={val}
                 onChange={e => {
-                  if (statusFilter.indexOf(e.target.getAttribute('id')) === -1) {
-                    setStatusFilter([...statusFilter, e.target.getAttribute('id')]);
+                  if (shareTypeFilter.indexOf(e.target.getAttribute('id')) === -1) {
+                    setShareTypeFilter([...shareTypeFilter, e.target.getAttribute('id')]);
                   } else {
-                    setStatusFilter(statusFilter.filter(status => status !== e.target.getAttribute('id')));
+                    setShareTypeFilter(shareTypeFilter.filter(status => status !== e.target.getAttribute('id')));
+                  }
+                }}
+              />
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const renderCoAssessors = () => {
+    if (!coAssessors) return null;
+    return (
+      <div className="filter">
+        <div className="heading">{t('option.filterAnnotModal.coAssessor')}</div>
+        <div className="buttons">
+          {[...coAssessors].map((val, index) => {
+            return (
+              <Choice
+                type="checkbox"
+                key={index}
+                label={val.name}
+                checked={coAssessorFilter.includes(val)}
+                id={val.id}
+                onChange={e => {
+                  if (coAssessorFilter.indexOf(e.target.getAttribute('id')) === -1) {
+                    setCoAssessorFilter([...coAssessorFilter, e.target.getAttribute('id')]);
+                  } else {
+                    setCoAssessorFilter(coAssessorFilter.filter(type => type !== e.target.getAttribute('id')));
                   }
                 }}
               />
@@ -343,11 +382,13 @@ const FilterAnnotModal = () => {
                 <div className="swipe-indicator" />
                 <div className="filter-options">
                   {renderAuthors()}
+                  {renderShareTypes()}
                   {renderAnnotTypes()}
                   {renderColorTypes()}
-                  {renderStatusTypes()}
+                  {renderCoAssessors()}
                 </div>
                 <div className="footer">
+                  <Button className="filter-annot-cancel" onClick={closeModal} label={t('action.cancel')} />
                   <Button className="filter-annot-clear" onClick={filterClear} label={t('action.clear')} />
                   <Button className="filter-annot-apply" onClick={filterApply} label={t('action.apply')} />
                 </div>

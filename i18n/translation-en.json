@@ -10,6 +10,7 @@
     "undo": "Undo",
     "redo": "Redo",
     "comment": "Comment",
+    "openNotePanel": "Open annotation panel",
     "reply": "Add reply",
     "copy": "Copy",
     "delete": "Delete",
@@ -88,7 +89,9 @@
     "unselect": "Unselect",
     "addMark": "Add Mark",
     "viewFile": "View file",
-    "switchLanguage": "Language"
+    "switchLanguage": "Language",
+    "copyText": "Click to copy",
+    "copied": "Copied!"
   },
   "annotation": {
     "areaMeasurement": "Area",
@@ -137,7 +140,8 @@
     "link": "Link",
     "other": "Other",
     "3D": "3D",
-    "sound": "Sound"
+    "sound": "Sound",
+    "reference": "Reference"
   },
   "rubberStamp": {
     "Approved": "Approved",
@@ -171,7 +175,7 @@
     "searchOverlay": "Search",
     "searchPanel": "Search",
     "menuOverlay": "Menu",
-    "notesPanel": "Comments",
+    "notesPanel": "Annotations",
     "outlinesPanel": "Outlines",
     "bookmarksPanel": "Bookmarks",
     "signaturePanel": "Signatures",
@@ -273,12 +277,13 @@
       "dropdownLabel": "Sort Order List",
       "position": "Position",
       "time": "Time",
-      "status": "Status",
+      "status": "Share Type",
       "author": "Author",
       "type": "Type",
       "color": "Color",
       "createdDate": "Created Date",
-      "modifiedDate": "Modified Date"
+      "modifiedDate": "Modified Date",
+      "shareType": "Share type"
     },
     "toolbarGroup": {
       "dropdownLabel": "Toolbar Groups",
@@ -388,9 +393,12 @@
     },
     "filterAnnotModal": {
       "commentBy": "Comment by",
-      "types": "Types",
+      "types": "Annotation types",
       "color": "Color",
-      "includeReplies": "Include Replies"
+      "includeReplies": "Include Replies",
+      "shareType": "Share type",
+      "coAssessor": "Co-assessor",
+      "author": "Author"
     },
     "status": {
       "status": "Status"
@@ -402,9 +410,12 @@
       "cancelled": "Cancelled",
       "set": "Set status:",
       "setBy": "set by",
-      "none": "None",
+      "none": "Private",
       "marked": "Marked",
-      "unmarked": "Unmarked"
+      "unmarked": "Unmarked",
+      "assessors": "Assessors",
+      "participants": "Participants",
+      "all": "All"
     },
     "measurementOverlay": {
       "scale": "Scale Ratio",

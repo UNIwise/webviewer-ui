@@ -1,5 +1,5 @@
 import { hot } from 'react-hot-loader/root';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import classNames from 'classnames';
 import { useDispatch, useSelector, useStore } from 'react-redux';
 import PropTypes from 'prop-types';
@@ -68,23 +68,24 @@ const tabletBreakpoint = window.matchMedia('(min-width: 641px) and (max-width: 9
 
 const propTypes = {
   removeEventHandlers: PropTypes.func.isRequired,
+  coAssessors: PropTypes.array,
 };
 
-const App = ({ removeEventHandlers }) => {
+const App = ({ removeEventHandlers, coAssessors }) => {
   const store = useStore();
   const dispatch = useDispatch();
   let timeoutReturn;
 
-  const [isInDesktopOnlyMode] = useSelector(state => [
-    selectors.isInDesktopOnlyMode(state),
-  ]);
-
+  const [isInDesktopOnlyMode] = useSelector(state => [selectors.isInDesktopOnlyMode(state)]);
   useEffect(() => {
     fireEvent(Events.VIEWER_LOADED);
-    window.parent.postMessage({
-      type: 'viewerLoaded',
-      id: parseInt(getHashParameters('id'), 10)
-    }, '*');
+    window.parent.postMessage(
+      {
+        type: 'viewerLoaded',
+        id: parseInt(getHashParameters('id'), 10),
+      },
+      '*',
+    );
 
     function loadInitialDocument() {
       const doesAutoLoad = getHashParameters('auto_load', true);
@@ -128,9 +129,7 @@ const App = ({ removeEventHandlers }) => {
     }
 
     function messageHandler(event) {
-      if (event.isTrusted &&
-        typeof event.data === 'object' &&
-        event.data.type === 'viewerLoaded') {
+      if (event.isTrusted && typeof event.data === 'object' && event.data.type === 'viewerLoaded') {
         loadDocumentAndCleanup();
       }
     }
@@ -173,16 +172,10 @@ const App = ({ removeEventHandlers }) => {
         <div className="content">
           <LeftPanel />
           <DocumentContainer />
-          <RightPanel
-            dataElement="searchPanel"
-            onResize={width => dispatch(actions.setSearchPanelWidth(width))}
-          >
+          <RightPanel dataElement="searchPanel" onResize={width => dispatch(actions.setSearchPanelWidth(width))}>
             <SearchPanel />
           </RightPanel>
-          <RightPanel
-            dataElement="notesPanel"
-            onResize={width => dispatch(actions.setNotesPanelWidth(width))}
-          >
+          <RightPanel dataElement="notesPanel" onResize={width => dispatch(actions.setNotesPanelWidth(width))}>
             <NotesPanel />
           </RightPanel>
           <RightPanel
@@ -216,7 +209,7 @@ const App = ({ removeEventHandlers }) => {
         <PageReplacementModal />
         <LinkModal />
         <ContentEditModal />
-        <FilterAnnotModal />
+        <FilterAnnotModal coAssessors={coAssessors} />
         <CustomModal />
         <Model3DModal />
         <ColorPickerModal />
