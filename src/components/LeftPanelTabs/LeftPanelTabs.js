@@ -39,14 +39,6 @@ class LeftPanelTabs extends React.Component {
           title="component.thumbnailsPanel"
         />
         <Button
-          disabled
-          isActive={this.isActive('outlinesPanel')}
-          dataElement="outlinesPanelButton"
-          img="icon-panel-outlines"
-          onClick={() => setActiveLeftPanel('outlinesPanel')}
-          title="component.outlinesPanel"
-        />
-        <Button
           isActive={this.isActive('layersPanel')}
           dataElement="layersPanelButton"
           img="ic_layers_24px"
@@ -59,14 +51,6 @@ class LeftPanelTabs extends React.Component {
           img="ic_bookmarks_black_24px"
           onClick={() => setActiveLeftPanel('bookmarksPanel')}
           title="component.bookmarksPanel"
-        />
-        <Button
-          disabled
-          isActive={this.isActive('signaturePanel')}
-          dataElement="signaturePanelButton"
-          img="icon-tool-signature"
-          onClick={() => setActiveLeftPanel('signaturePanel')}
-          title="component.signaturePanel"
         />
         <Button
           isActive={this.isActive('attachmentPanel')}
