@@ -23,12 +23,7 @@ class LeftPanelTabs extends React.Component {
   isActive = panel => this.props.activePanel === panel;
 
   render() {
-    const {
-      customPanels,
-      isLeftPanelTabsDisabled,
-      setActiveLeftPanel,
-      notesInLeftPanel,
-    } = this.props;
+    const { customPanels, isLeftPanelTabsDisabled, setActiveLeftPanel, notesInLeftPanel } = this.props;
 
     if (isLeftPanelTabsDisabled) {
       return null;
@@ -44,6 +39,7 @@ class LeftPanelTabs extends React.Component {
           title="component.thumbnailsPanel"
         />
         <Button
+          disabled
           isActive={this.isActive('outlinesPanel')}
           dataElement="outlinesPanelButton"
           img="icon-panel-outlines"
@@ -65,6 +61,7 @@ class LeftPanelTabs extends React.Component {
           title="component.bookmarksPanel"
         />
         <Button
+          disabled
           isActive={this.isActive('signaturePanel')}
           dataElement="signaturePanelButton"
           img="icon-tool-signature"
@@ -78,15 +75,16 @@ class LeftPanelTabs extends React.Component {
           onClick={() => setActiveLeftPanel('attachmentPanel')}
           title="component.attachmentPanel"
         />
-        {notesInLeftPanel &&
+        {notesInLeftPanel && (
           <Button
             isActive={this.isActive('notesPanel')}
             dataElement="notesPanelButton"
             img="icon-header-chat-line"
             onClick={() => setActiveLeftPanel('notesPanel')}
             title="component.notesPanel"
-          />}
-        {customPanels.map(({ panel, tab }, index) =>
+          />
+        )}
+        {customPanels.map(({ panel, tab }, index) => (
           <React.Fragment key={index}>
             <Button
               key={tab.dataElement || index}
@@ -97,8 +95,8 @@ class LeftPanelTabs extends React.Component {
               title={tab.title}
             />
             {index < customPanels.length - 1 && <div className="divider" />}
-          </React.Fragment>,
-        )}
+          </React.Fragment>
+        ))}
       </Element>
     );
   }
@@ -116,7 +114,4 @@ const mapDispatchToProps = {
   setActiveLeftPanel: actions.setActiveLeftPanel,
 };
 
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps,
-)(withTranslation()(LeftPanelTabs));
+export default connect(mapStateToProps, mapDispatchToProps)(withTranslation()(LeftPanelTabs));
