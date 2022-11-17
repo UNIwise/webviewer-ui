@@ -16,6 +16,7 @@ const propTypes = {
   isEditable: PropTypes.bool,
   isDeletable: PropTypes.bool,
   isOpen: PropTypes.bool,
+  isReply: PropTypes.bool,
 };
 
 function noop() {}
