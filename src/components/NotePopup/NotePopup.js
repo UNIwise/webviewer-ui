@@ -1,12 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import useOnClickOutside from 'hooks/useOnClickOutside';
-import useOnFocusOutside from 'hooks/useOnFocusOutside';
 import DataElementWrapper from 'components/DataElementWrapper';
 import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
-
 import Icon from 'components/Icon';
+
 import './NotePopup.scss';
 
 const propTypes = {
@@ -17,6 +16,7 @@ const propTypes = {
   isEditable: PropTypes.bool,
   isDeletable: PropTypes.bool,
   isOpen: PropTypes.bool,
+  isReply: PropTypes.bool,
 };
 
 function noop() {}
@@ -40,10 +40,6 @@ function NotePopup(props) {
     closePopup();
   });
 
-  useOnFocusOutside(popupRef, () => {
-    closePopup();
-  });
-
   const togglePopup = e => {
     e.stopPropagation();
     if (isOpen) {
@@ -54,7 +50,6 @@ function NotePopup(props) {
   };
 
   function onEditButtonClick(e) {
-    console.log('click');
     e.stopPropagation();
     closePopup();
     handleEdit();
@@ -79,7 +74,7 @@ function NotePopup(props) {
         className={notePopupButtonClass}
         onClick={togglePopup}
         onKeyDown={e => {
-          if (e.key === 'Enter' || e.key === ' ') {
+          if (e.key === 'Enter') {
             togglePopup(e);
           }
         }}
@@ -90,31 +85,20 @@ function NotePopup(props) {
         <div className={optionsClass}>
           {isEditable && (
             <DataElementWrapper
-              tabIndex={0}
               type="button"
-              role="button"
               className="option note-popup-option"
               dataElement="notePopupEdit"
               onClick={onEditButtonClick}
-              // Needed because safari otherwise loses focus on the button
-              // and the useOnFocusOutside hook triggers
-              onMouseDown={e => e.preventDefault()}
-              onMouseUp={e => e.preventDefault()}
             >
               {t('action.edit')}
             </DataElementWrapper>
           )}
           {isDeletable && (
             <DataElementWrapper
-              tabIndex={0}
               type="button"
               className="option note-popup-option"
               dataElement="notePopupDelete"
               onClick={onDeleteButtonClick}
-              // Needed because safari otherwise loses focus on the button
-              // and the useOnFocusOutside hook triggers
-              onMouseDown={e => e.preventDefault()}
-              onMouseUp={e => e.preventDefault()}
             >
               {t('action.delete')}
             </DataElementWrapper>
