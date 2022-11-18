@@ -55,7 +55,6 @@ function NotePopup(props) {
   };
 
   function onEditButtonClick(e) {
-    console.log('click');
     e.stopPropagation();
     closePopup();
     handleEdit();
