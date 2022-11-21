@@ -17,6 +17,7 @@ const propTypes = {
   isEditable: PropTypes.bool,
   isDeletable: PropTypes.bool,
   isOpen: PropTypes.bool,
+  isReply: PropTypes.bool,
 };
 
 function noop() {}
@@ -89,20 +90,31 @@ function NotePopup(props) {
         <div className={optionsClass}>
           {isEditable && (
             <DataElementWrapper
+              tabIndex={0}
               type="button"
+              role="button"
               className="option note-popup-option"
               dataElement="notePopupEdit"
               onClick={onEditButtonClick}
+              // Needed because safari otherwise loses focus on the button
+              // and the useOnFocusOutside hook triggers
+              onMouseDown={e => e.preventDefault()}
+              onMouseUp={e => e.preventDefault()}
             >
               {t('action.edit')}
             </DataElementWrapper>
           )}
           {isDeletable && (
             <DataElementWrapper
+              tabIndex={0}
               type="button"
               className="option note-popup-option"
               dataElement="notePopupDelete"
               onClick={onDeleteButtonClick}
+              // Needed because safari otherwise loses focus on the button
+              // and the useOnFocusOutside hook triggers
+              onMouseDown={e => e.preventDefault()}
+              onMouseUp={e => e.preventDefault()}
             >
               {t('action.delete')}
             </DataElementWrapper>
