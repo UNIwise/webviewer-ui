@@ -74,7 +74,7 @@ function NotePopup(props) {
         className={notePopupButtonClass}
         onClick={togglePopup}
         onKeyDown={e => {
-          if (e.key === 'Enter') {
+          if (e.key === 'Enter' || e.key === ' ') {
             togglePopup(e);
           }
         }}
