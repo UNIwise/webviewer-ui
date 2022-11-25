@@ -1,11 +1,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import useOnClickOutside from 'hooks/useOnClickOutside';
+import useOnFocusOutside from 'hooks/useOnFocusOutside';
 import DataElementWrapper from 'components/DataElementWrapper';
 import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
-import Icon from 'components/Icon';
 
+import Icon from 'components/Icon';
 import './NotePopup.scss';
 
 const propTypes = {
@@ -37,6 +38,10 @@ function NotePopup(props) {
   const popupRef = React.useRef();
 
   useOnClickOutside(popupRef, () => {
+    closePopup();
+  });
+
+  useOnFocusOutside(popupRef, () => {
     closePopup();
   });
 
@@ -74,7 +79,7 @@ function NotePopup(props) {
         className={notePopupButtonClass}
         onClick={togglePopup}
         onKeyDown={e => {
-          if (e.key === 'Enter') {
+          if (e.key === 'Enter' || e.key === ' ') {
             togglePopup(e);
           }
         }}
@@ -85,22 +90,32 @@ function NotePopup(props) {
         <div className={optionsClass}>
           {isEditable && (
             <DataElementWrapper
+              tabIndex={0}
               type="button"
               role="button"
               className="option note-popup-option"
               dataElement="notePopupEdit"
               onClick={onEditButtonClick}
+              // Needed because safari otherwise loses focus on the button
+              // and the useOnFocusOutside hook triggers
+              onMouseDown={e => e.preventDefault()}
+              onMouseUp={e => e.preventDefault()}
             >
               {t('action.edit')}
             </DataElementWrapper>
           )}
           {isDeletable && (
             <DataElementWrapper
+              tabIndex={0}
               type="button"
               role="button"
               className="option note-popup-option"
               dataElement="notePopupDelete"
               onClick={onDeleteButtonClick}
+              // Needed because safari otherwise loses focus on the button
+              // and the useOnFocusOutside hook triggers
+              onMouseDown={e => e.preventDefault()}
+              onMouseUp={e => e.preventDefault()}
             >
               {t('action.delete')}
             </DataElementWrapper>
