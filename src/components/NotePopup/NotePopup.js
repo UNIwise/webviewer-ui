@@ -86,6 +86,7 @@ function NotePopup(props) {
           {isEditable && (
             <DataElementWrapper
               type="button"
+              role="button"
               className="option note-popup-option"
               dataElement="notePopupEdit"
               onClick={onEditButtonClick}
@@ -96,6 +97,7 @@ function NotePopup(props) {
           {isDeletable && (
             <DataElementWrapper
               type="button"
+              role="button"
               className="option note-popup-option"
               dataElement="notePopupDelete"
               onClick={onDeleteButtonClick}
