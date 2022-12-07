@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import ToolButton from 'components/ToolButton';
+import FullscreenButton from 'components/FullscreenButton';
 import ToggleElementButton from 'components/ToggleElementButton';
 import ToolGroupButton from 'components/ToolGroupButton';
 import ActionButton from 'components/ActionButton';
@@ -45,6 +46,10 @@ class HeaderItems extends React.PureComponent {
         mediaQueryClassName += ' hide-in-mobile hide-in-small-mobile';
       }
       const key = `${type}-${dataElement || i}`;
+
+      if (dataElement === 'fullscreenButton') {
+        return <FullscreenButton />;
+      }
 
       switch (type) {
         case 'toolButton':
