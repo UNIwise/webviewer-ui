@@ -37,12 +37,17 @@ const Tooltip = forwardRef(({ content = '', translatedContent, children, hideSho
   useEffect(() => {
     const showToolTip = () => {
       timeoutRef.current = setTimeout(() => {
-        setShow(true);
+        if (timeoutRef.current) {
+          setShow(true);
+        }
       }, delayShow - opacityTimeout);
     };
 
     const hideTooltip = () => {
-      clearTimeout(timeoutRef.current);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
       setShow(false);
     };
 
