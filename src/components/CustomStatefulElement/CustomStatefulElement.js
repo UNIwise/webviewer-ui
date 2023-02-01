@@ -17,6 +17,7 @@ const propTypes = {
   mediaQueryClassName: PropTypes.string,
   title: PropTypes.string,
   renderTitle: PropTypes.func,
+  dataElementDivProps: PropTypes.object,
 };
 
 const isReactElement = element => React.isValidElement(element);
@@ -39,6 +40,7 @@ const CustomElement = ({
   mediaQueryClassName,
   title,
   renderTitle,
+  dataElementDivProps,
 }) => {
   const [reactComponent, setReactComponent] = useState(null);
   const [tooltip, setTooltip] = useState(title);
@@ -114,13 +116,14 @@ const CustomElement = ({
       ref={wrapperRef}
       data-element={dataElement}
       style={{ display }}
+      {...dataElementDivProps}
     >
       {reactComponent}
     </div>
   );
 
   return tooltip ? (
-    <Tooltip content={tooltip} ref={toolTipWrapperRef}>
+    <Tooltip content={tooltip} ref={toolTipWrapperRef} showOnKeyboardFocus>
       {children}
     </Tooltip>
   ) : (
