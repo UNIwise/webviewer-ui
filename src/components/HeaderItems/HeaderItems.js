@@ -8,6 +8,7 @@ import ToolGroupButton from 'components/ToolGroupButton';
 import ActionButton from 'components/ActionButton';
 import StatefulButton from 'components/StatefulButton';
 import CustomElement from 'components/CustomElement';
+import CustomStatefulElement from 'components/CustomStatefulElement';
 import ToolGroupButtonsScroll from './ToolGroupButtonsScroll';
 import useMedia from 'hooks/useMedia';
 import { isMobileDeviceFunc } from 'helpers/device';
@@ -70,6 +71,8 @@ class HeaderItems extends React.PureComponent {
           return <StatefulButton key={key} mediaQueryClassName={mediaQueryClassName} {...item} />;
         case 'customElement':
           return <CustomElement key={key} mediaQueryClassName={mediaQueryClassName} {...item} />;
+        case 'customStatefulElement':
+          return <CustomStatefulElement key={key} mediaQueryClassName={mediaQueryClassName} {...item} />;
         case 'spacer':
         case 'divider':
           return <div key={key} className={`${type} ${mediaQueryClassName}`}></div>;
