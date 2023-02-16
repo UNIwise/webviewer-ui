@@ -1,9 +1,10 @@
-import React, { useState, useRef } from 'react';
-import PropTypes from 'prop-types';
+import classNames from 'classnames';
 import useOnClickOutside from 'hooks/useOnClickOutside';
 import useOnFocusOutside from 'hooks/useOnFocusOutside';
+import useOverflowContainer from 'hooks/useOverflowContainer';
+import PropTypes from 'prop-types';
+import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import classNames from 'classnames';
 import Tooltip from '../Tooltip';
 
 import core from 'core';
@@ -37,15 +38,16 @@ function NoteState(props) {
   const [t] = useTranslation();
   const [isOpen, setIsOpen] = useState(openOnInitialLoad);
   const popupRef = useRef();
+  const { popupMenuRef, location } = useOverflowContainer('.normal-notes-container', 'bottom', isOpen);
 
   const isOwnedByCurrentUser = annotation.Author === core.getCurrentUser();
 
   useOnClickOutside(popupRef, () => {
-    setIsOpen(false);
+    // setIsOpen(false);
   });
 
   useOnFocusOutside(popupRef, () => {
-    setIsOpen(false);
+    // setIsOpen(false);
   });
 
   const togglePopup = e => {
@@ -111,7 +113,8 @@ function NoteState(props) {
         <div className={noteStateButtonClassName}>{icon}</div>
         {isOpen && (
           <div
-            className={`note-state-options ${isOwnedByCurrentUser ? 'enabled' : 'disabled'}`}
+            className={`note-state-options ${isOwnedByCurrentUser ? 'enabled' : 'disabled'} ${location}`}
+            ref={popupMenuRef}
             onKeyDown={e => {
               if (e.key === 'Escape') {
                 closeOptionsMenu();
