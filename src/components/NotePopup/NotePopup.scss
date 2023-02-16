@@ -7,8 +7,7 @@
   user-select: none;
   width: 28px;
   height: 28px;
-  right: -10px;
-  top: -8px;
+  position: relative;
 
   .overflow {
     width: 28px;
@@ -44,7 +43,14 @@
     }
     border-radius: 4px;
     background: var(--component-background);
-    top: 40px;
+
+    &.bottom {
+      top: calc(100% + 2px);
+    }
+
+    &.top {
+      bottom: calc(100% + 2px);
+    }
 
     .note-popup-option{
       @include button-reset;

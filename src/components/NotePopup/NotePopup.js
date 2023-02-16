@@ -1,6 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import useOnClickOutside from 'hooks/useOnClickOutside';
+import useOnFocusOutside from 'hooks/useOnFocusOutside';
+import useOverflowContainer from 'hooks/useOverflowContainer';
 import DataElementWrapper from 'components/DataElementWrapper';
 import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
@@ -36,7 +38,13 @@ function NotePopup(props) {
   const [t] = useTranslation();
   const popupRef = React.useRef();
 
+  const { popupMenuRef, location } = useOverflowContainer('.normal-notes-container', 'bottom', isOpen);
+
   useOnClickOutside(popupRef, () => {
+    closePopup();
+  });
+
+  useOnFocusOutside(popupRef, () => {
     closePopup();
   });
 
@@ -82,7 +90,7 @@ function NotePopup(props) {
         <Icon glyph="icon-tools-more" />
       </div>
       {isOpen && (
-        <div className={optionsClass}>
+        <div className={`${optionsClass} ${location}`} ref={popupMenuRef}>
           {isEditable && (
             <DataElementWrapper
               type="button"
