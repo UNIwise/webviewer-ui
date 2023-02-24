@@ -43,11 +43,11 @@ function NoteState(props) {
   const isOwnedByCurrentUser = annotation.Author === core.getCurrentUser();
 
   useOnClickOutside(popupRef, () => {
-    // setIsOpen(false);
+    setIsOpen(false);
   });
 
   useOnFocusOutside(popupRef, () => {
-    // setIsOpen(false);
+    setIsOpen(false);
   });
 
   const togglePopup = e => {
