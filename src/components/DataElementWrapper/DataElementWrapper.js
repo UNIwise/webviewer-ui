@@ -1,4 +1,4 @@
-import PropTypes from 'prop-types';
+import PropTypes, { oneOfType } from 'prop-types';
 import React from 'react';
 import { useSelector } from 'react-redux';
 import selectors from 'selectors';
@@ -10,6 +10,9 @@ const propTypes = {
   type: PropTypes.string,
   /** Accessibility */
   ariaLabel: PropTypes.string,
+  /** Set tab index if type != "button" */
+  tabbable: oneOfType([PropTypes.bool, PropTypes.number]),
+  onClick: PropTypes.func,
 };
 
 /*
@@ -29,21 +32,37 @@ function useIsDisabledWithDefaultValue(selector, defaultValue = false) {
   return defaultValue;
 }
 
-const DataElementWrapper = React.forwardRef(({ type = 'div', children, dataElement, ariaLabel, ...props }, ref) => {
+const DataElementWrapper = React.forwardRef(({ tabbable = false, type = 'div', children, dataElement, ariaLabel, ...props }, ref) => {
   const isDisabled = useIsDisabledWithDefaultValue((state) => selectors.isElementDisabled(state, dataElement));
   if (isDisabled) {
     return null;
   }
 
+  const tabIndex = tabbable ? (typeof tabbable === "number" ? tabbable : 0) : undefined;
+
   if (type === 'button') {
     return (
-      <button ref={ref} data-element={dataElement} aria-label={ariaLabel} {...props}>
+      <button tabIndex={tabIndex} ref={ref} data-element={dataElement} aria-label={ariaLabel} {...props}>
         {children}
       </button>
     );
   }
+
+  const onKeyPress = e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      props.onClick(e);
+    }
+  };
+  
   return (
-    <div ref={ref} data-element={dataElement} {...props}>
+    <div
+      tabIndex={tabIndex}
+      ref={ref}
+      data-element={dataElement}
+      role="button"
+      onKeyDown={tabbable ? onKeyPress : undefined}
+      {...props}
+    >
       {children}
     </div>
   );

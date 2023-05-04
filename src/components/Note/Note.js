@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import NoteContext from 'components/Note/Context';
 import NoteContent from 'components/NoteContent';
-import ReplyArea from 'components/Note/ReplyArea';
+// import ReplyArea from 'components/Note/ReplyArea';
 import NoteGroupSection from 'components/Note/NoteGroupSection';
 import Button from 'components/Button';
 
@@ -21,6 +21,9 @@ import { mapAnnotationToKey, annotationMapKeys } from 'constants/map';
 import { OfficeEditorEditMode, OFFICE_EDITOR_TRACKED_CHANGE_KEY } from 'constants/officeEditor';
 
 import './Note.scss';
+import { getAnnotationShareType } from 'src/helpers/annotationShareType';
+import { ShareTypeColors } from 'src/constants/shareTypes';
+import getWiseflowCustomValues from 'helpers/getWiseflowCustomValues';
 
 const propTypes = {
   annotation: PropTypes.object.isRequired,
@@ -54,6 +57,13 @@ const Note = ({
   const containerRef = useRef();
   const containerHeightRef = useRef();
   const [isEditingMap, setIsEditingMap] = useState({});
+
+  const getAnnotationStatusColor = () => {
+    return ShareTypeColors[getAnnotationShareType(annotation)] ?? ShareTypeColors.NONE;
+  };
+
+  const showShareType = getWiseflowCustomValues().showShareType;
+
   const ids = useRef([]);
   const dispatch = useDispatch();
   const [t] = useTranslation();
@@ -82,9 +92,7 @@ const Note = ({
     shallowEqual,
   );
 
-  const replies = annotation
-    .getReplies()
-    .sort((a, b) => a['DateCreated'] - b['DateCreated']);
+  const replies = annotation.getReplies().sort((a, b) => a['DateCreated'] - b['DateCreated']);
 
   replies.filter((r) => unreadAnnotationIdSet.has(r.Id)).forEach((r) => unreadReplyIdSet.add(r.Id));
 
@@ -152,11 +160,10 @@ const Note = ({
 
   useEffect(() => {
     // If this is not a new one, rebuild the isEditing map
-    const pendingText = pendingEditTextMap[annotation.Id];
-    if (pendingText !== '' && isContentEditable && !isDocumentReadOnly) {
+    if (annotation.getContents() === undefined && isContentEditable && !isDocumentReadOnly) {
       setIsEditing(true, 0);
     }
-  }, [isDocumentReadOnly, isContentEditable, setIsEditing, annotation, isMultiSelectMode]);
+  }, [isDocumentReadOnly, isContentEditable, setIsEditing, annotation, isMultiSelectMode, pendingEditTextMap]);
 
   useDidUpdate(() => {
     if (isDocumentReadOnly || !isContentEditable) {
@@ -225,7 +232,7 @@ const Note = ({
         }
       });
     }
-  }, [isSelected, isMultiSelectMode]);
+  }, [isSelected, isMultiSelectMode, pendingEditTextMap, setIsEditing, replies]);
 
   useEffect(() => {
     if (isMultiSelectMode) {
@@ -233,15 +240,24 @@ const Note = ({
     }
   }, [isMultiSelectMode]);
 
-  const showReplyArea = !Object.values(isEditingMap).some((val) => val);
+  // const showReplyArea = !Object.values(isEditingMap).some((val) => val);
 
-  const handleReplyClicked = (reply) => {
-    // set clicked reply as read
-    if (unreadReplyIdSet.has(reply.Id)) {
-      dispatch(actions.setAnnotationReadState({ isRead: true, annotationId: reply.Id }));
-      core.getAnnotationManager(documentViewerKey).selectAnnotation(reply);
+  const handleNoteKeydown = (e) => {
+    // Click if enter or space is pressed and is current target.
+    const isNote = e.target === e.currentTarget;
+    if (isNote && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault(); // Stop from being entered in field
+      handleNoteClick();
     }
   };
+
+  // const handleReplyClicked = (reply) => {
+  //   // set clicked reply as read
+  //   if (unreadReplyIdSet.has(reply.Id)) {
+  //     dispatch(actions.setAnnotationReadState({ isRead: true, annotationId: reply.Id }));
+  //     core.getAnnotationManager(documentViewerKey).selectAnnotation(reply);
+  //   }
+  // };
 
   const markAllRepliesRead = () => {
     // set all replies to read state if user starts to type in reply textarea
@@ -266,13 +282,21 @@ const Note = ({
   const isGroup = groupAnnotations.length > 1;
   const isTrackedChange = mapAnnotationToKey(annotation) === annotationMapKeys.TRACKED_CHANGE;
   // apply unread reply style to replyArea if the last reply is unread
-  const lastReplyId = replies.length > 0 ? replies[replies.length - 1].Id : null;
+  // const lastReplyId = replies.length > 0 ? replies[replies.length - 1].Id : null;
 
   return (
     <div
       ref={containerRef}
       className={noteClass}
       id={`note_${annotation.Id}`}
+      style={
+        showShareType
+          ? {
+              borderBottom: `4px solid ${getAnnotationStatusColor()}`,
+              borderTop: `4px solid ${getAnnotationStatusColor()}`,
+            }
+          : undefined
+      }
     >
       <Button
         className='note-button'
@@ -297,7 +321,7 @@ const Note = ({
       />
       {(isSelected || isExpandedFromSearch || shouldExpandCommentThread) && !isTrackedChange && (
         <>
-          {replies.length > 0 && (
+          {/* {replies.length > 0 && (
             <div className={repliesClass}>
               {hasUnreadReplies && (
                 <Button
@@ -324,19 +348,19 @@ const Note = ({
                 </div>
               ))}
             </div>
-          )}
+          )} */}
           {isGroup &&
             <NoteGroupSection
               groupAnnotations={groupAnnotations}
               isMultiSelectMode={isMultiSelectMode}
             />}
-          {showReplyArea && !isMultiSelectMode && (
+          {/* {showReplyArea && !isMultiSelectMode && (
             <ReplyArea
               isUnread={lastReplyId && unreadAnnotationIdSet.has(lastReplyId)}
               onPendingReplyChange={markAllRepliesRead}
               annotation={annotation}
             />
-          )}
+          )} */}
         </>
       )}
       {isSelected && (isInNotesPanel || isCustomPanelOpen) && !shouldHideConnectorLine && (

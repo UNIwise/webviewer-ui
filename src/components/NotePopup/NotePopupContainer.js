@@ -15,6 +15,7 @@ function NotePopupContainer(props) {
   const [canModify, setCanModify] = React.useState(core.canModify(annotation));
   const [canModifyContents, setCanModifyContents] = React.useState(core.canModifyContents(annotation));
 
+
   React.useEffect(() => {
     function onUpdateAnnotationPermission() {
       setCanModify(core.canModify(annotation, activeDocumentViewerKey));
@@ -52,7 +53,9 @@ function NotePopupContainer(props) {
   };
 
   return (
-    <NotePopup {...props} {...passProps} />
+    <div>
+      <NotePopup {...props} {...passProps} />
+    </div>
   );
 }
 

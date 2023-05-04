@@ -15,6 +15,7 @@ import './Tooltip.scss';
 const propTypes = {
   children: PropTypes.element.isRequired,
   content: PropTypes.string,
+  translatedContent: PropTypes.string,
   hideShortcut: PropTypes.bool,
   forcePosition: PropTypes.string,
   hideOnClick: PropTypes.bool,
@@ -52,13 +53,18 @@ const Tooltip = forwardRef(({ content = '', children, hideShortcut, forcePositio
       }
       timeoutRef.current = setTimeout(() => {
         setCloseToolTipFunc(hideByClick);
-        setShow(true);
+        if (timeoutRef.current) {
+          setShow(true);
+        }
         fireEvent(Events.TOOLTIP_OPENED);
       }, delayShow - opacityTimeout);
     };
 
     const hideTooltip = () => {
-      clearTimeout(timeoutRef.current);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
       setShow(false);
     };
 
@@ -213,13 +219,13 @@ const Tooltip = forwardRef(({ content = '', children, hideShortcut, forcePositio
     } else {
       setOpacity(0);
     }
-  }, [childRef, show]);
+  }, [childRef, show, content, translatedContent]);
 
   const isUsingMobileDevices = isIOS || isAndroid;
   const child = React.cloneElement(children, {
     ref: childRef,
   });
-  const translatedContent = t(content);
+  translatedContent = content ? t(content) : translatedContent;
   // If shortcut.xxx exists in translation-en.json file
   // method t will return the shortcut, otherwise it will return shortcut.xxx
   let shortcutKey = content.slice(content.indexOf('.') + 1);

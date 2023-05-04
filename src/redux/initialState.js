@@ -1971,6 +1971,7 @@ export default {
       rubberStampTab: 'standardStampPanelButton',
       filterAnnotModal: DataElements.ANNOTATION_USER_FILTER_PANEL_BUTTON,
       [DataElements.SETTINGS_MODAL]: DataElements.SETTINGS_GENERAL_BUTTON,
+      settingsModal: DataElements.SETTINGS_KEYBOARD_BUTTON, // As others are disabled, set initial settings to keyboard tab
       savedSignatures: DataElements.SAVED_SIGNATURES_PANEL_BUTTON,
       openFileModal: 'urlInputPanelButton',
       insertPageModal: 'insertBlankPagePanelButton',
@@ -2070,12 +2071,11 @@ export default {
     dateTimeFormats: defaultDateTimeFormats,
     thumbnailSelectionMode: 'checkbox',
     annotationFilters: {
-      includeReplies: true,
       isDocumentFilterActive: false,
       authorFilter: [],
       colorFilter: [],
       typeFilter: [],
-      statusFilter: [],
+      shareTypesFilter: [],
     },
     zoomStepFactors: [
       {
