@@ -1,9 +1,8 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { useSelector } from 'react-redux';
-
+import NoteShareType from 'components/NoteShareType';
 import NotePopup from 'components/NotePopup';
-import NoteState from 'components/NoteState';
 import Icon from 'components/Icon';
 import NoteUnpostedCommentIndicator from 'components/NoteUnpostedCommentIndicator';
 import Choice from 'components/Choice';
@@ -23,6 +22,10 @@ import { COMMON_COLORS } from 'constants/commonColors';
 import selectors from 'selectors';
 
 import './NoteHeader.scss';
+import getAnnotationReference from 'src/helpers/getAnnotationReference';
+import getWiseflowCustomValues from 'helpers/getWiseflowCustomValues';
+
+import Tooltip from '../Tooltip';
 
 const { Annotations } = window.Core;
 
@@ -37,12 +40,14 @@ const propTypes = {
   isSelected: PropTypes.bool,
   setIsEditing: PropTypes.func,
   notesShowLastUpdatedDate: PropTypes.bool,
+  isReply: PropTypes.bool,
   isUnread: PropTypes.bool,
   renderAuthorName: PropTypes.func,
   isNoteStateDisabled: PropTypes.bool,
   isEditing: PropTypes.bool,
   editingKey: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   sortStrategy: PropTypes.string,
+  renderAnnotationReference: PropTypes.func,
   activeTheme: PropTypes.string,
   isMultiSelected: PropTypes.bool,
   isMultiSelectMode: PropTypes.bool,
@@ -161,6 +166,7 @@ function NoteHeader(props) {
     isEditing,
     editingKey,
     sortStrategy,
+    renderAnnotationReference,
     activeTheme,
     isMultiSelected,
     isMultiSelectMode,
@@ -196,14 +202,16 @@ function NoteHeader(props) {
   const annotationAssociatedNumber = annotation.getAssociatedNumber();
   const annotationDisplayedAssociatedNumber = `#${annotationAssociatedNumber} - `;
 
+  const showShareType = getWiseflowCustomValues().showShareType;
+
   const authorAndDateClass = classNames('author-and-date', { isReply });
   const noteHeaderClass = classNames('NoteHeader', { parent: !isReply && !isGroupMember });
 
-  const acceptTrackedChange = (trackedChangeAnnot) => {
+  const acceptTrackedChange = trackedChangeAnnot => {
     const trackedChangeId = trackedChangeAnnot.getCustomData(OFFICE_EDITOR_TRACKED_CHANGE_KEY);
     core.getOfficeEditor().acceptTrackedChange(trackedChangeId);
   };
-  const rejectTrackedChange = (trackedChangeAnnot) => {
+  const rejectTrackedChange = trackedChangeAnnot => {
     const trackedChangeId = trackedChangeAnnot.getCustomData(OFFICE_EDITOR_TRACKED_CHANGE_KEY);
     core.getOfficeEditor().rejectTrackedChange(trackedChangeId);
   };
@@ -212,23 +220,41 @@ function NoteHeader(props) {
   const showNotePopup = !isEditing && isSelected && !isMultiSelectMode && !isGroupMember && !isTrackedChange && !isOfficeEditorViewOnly;
   const flyoutId = flyoutIdSuffix ? `${annotation.Id}-${flyoutIdSuffix}` : annotation.Id;
 
+  const pageNumber = annotation.getPageNumber();
+
+  // CUSTOM WISEFLOW: get hash of the annotation information
+  const annotationReference = useMemo(() => {
+    return getAnnotationReference(annotation);
+  }, [annotation, pageNumber]);
+
+  const [copied, setCopied] = useState(false);
+
+  const copyTooltipText = `${t('option.notesPanel.noteHeader.copyReferenceButton')} ${annotationReference}`;
+
+  const handleCopyAnnotId = e => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(annotationReference);
+    setCopied(true);
+    setTimeout(() => {
+      setCopied(false);
+    }, 3000);
+  };
+
   return (
     <div className={noteHeaderClass}>
-      {!isReply &&
+      {!isReply && (
         <div className="type-icon-container">
-          {isUnread &&
-            <div className="unread-notification"></div>
-          }
+          {isUnread && <div className="unread-notification"></div>}
           <Icon className="type-icon" glyph={icon} color={color} fillColor={fillColor} />
         </div>
-      }
-      <div className={authorAndDateClass}>
+      )}
+      <div className={authorAndDateClass} style={{ paddingBottom: '6px' }}>
         <div className="author-and-overflow">
           <div className="author-and-time">
             <div className="author">
-              {showAnnotationNumbering && annotationAssociatedNumber !== undefined &&
+              {showAnnotationNumbering && annotationAssociatedNumber !== undefined && (
                 <span className="annotation-number">{annotationDisplayedAssociatedNumber}</span>
-              }
+              )}
               {renderAuthorName(annotation)}
             </div>
             <div className="date-and-num-replies">
@@ -236,20 +262,16 @@ function NoteHeader(props) {
                 {noteDateAndTime}
                 {isGroupMember && ` (Page ${annotation.PageNumber})`}
               </div>
-              {numberOfReplies > 0 && !isSelected &&
-                <div className="num-replies-container">
-                  <Icon className="num-reply-icon" glyph='icon-chat-bubble' />
-                  <div className="num-replies">{numberOfReplies}</div>
-                </div>}
             </div>
           </div>
+
           <div className="state-and-overflow">
-            {isMultiSelectMode && !isGroupMember && !isReply &&
+            {isMultiSelectMode && !isGroupMember && !isReply && (
               <Choice
                 id={`note-multi-select-toggle_${annotation.Id}`}
                 aria-label={`${renderAuthorName(annotation)} ${t('option.notesPanel.toggleMultiSelect')}`}
                 checked={isMultiSelected}
-                onClick={(e) => {
+                onClick={e => {
                   e.preventDefault();
                   e.stopPropagation();
                   handleMultiSelect(!isMultiSelected);
@@ -267,6 +289,12 @@ function NoteHeader(props) {
                 flyoutId={flyoutId}
               />
             }
+            {!isNoteStateDisabled &&
+              !isReply &&
+              !isMultiSelectMode &&
+              !isGroupMember &&
+              !isTrackedChange &&
+              showShareType && <NoteShareType annotation={annotation} />}
             {showNotePopup &&
               <NotePopup
                 editingKey={editingKey}
@@ -293,8 +321,16 @@ function NoteHeader(props) {
                   iconClassName="tracked-change-icon"
                 />
               </>
-            }
+            )}
           </div>
+        </div>
+        <div className="annotId">
+          <span>{renderAnnotationReference(annotation)}</span>
+          <Tooltip content={copied ? t('action.copied') : copyTooltipText} showOnKeyboardFocus>
+            <button onClick={handleCopyAnnotId} className={'copy-reference-button'} aria-label={copyTooltipText}>
+              <Icon glyph="icon-header-page-manipulation-page-transition-reader" />
+            </button>
+          </Tooltip>
         </div>
       </div>
     </div>

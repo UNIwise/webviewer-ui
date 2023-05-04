@@ -33,6 +33,7 @@ import DataElements from 'constants/dataElement';
 import DataElementWrapper from '../DataElementWrapper';
 import { COMMON_COLORS } from 'constants/commonColors';
 import Button from 'components/Button';
+import getAnnotationReference from 'src/helpers/getAnnotationReference';
 
 import './NoteContent.scss';
 
@@ -134,13 +135,17 @@ const NoteContent = ({
     (annotation) => {
       const name = core.getDisplayAuthor(annotation['Author']);
 
-      return name ? (
-        highlightSearchInput(name, searchInput)
-      ) : (
-        t('option.notesPanel.noteContent.noName')
-      );
+      return name ? highlightSearchInput(name, searchInput) : t('option.notesPanel.noteContent.noName');
     },
     [searchInput],
+  );
+
+  const renderAnnotationReference = useCallback(
+    (annotation) => {
+      const annotationReference = getAnnotationReference(annotation);
+      return highlightSearchInput(annotationReference, searchInput);
+    },
+    [searchInput, annotation.getPageNumber()],
   );
 
   const skipAutoLink = annotation.getSkipAutoLink && annotation.getSkipAutoLink();
@@ -225,50 +230,24 @@ const NoteContent = ({
         if (strIdx < start) {
           contentToRender.push(
             <span key={`span_${forIdx}`}>
-              {
-                highlightSearchInput(
-                  contents,
-                  searchInput,
-                  richTextStyle,
-                  strIdx,
-                  start
-                )
-              }
-            </span>
+              {highlightSearchInput(contents, searchInput, richTextStyle, strIdx, start)}
+            </span>,
           );
         }
         contentToRender.push(
-          <a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            key={`a_${forIdx}`}
-          >
-            {
-              highlightSearchInput(
-                contents,
-                searchInput,
-                richTextStyle,
-                start,
-                end
-              )
-            }
-          </a>
+          <a href={href} target="_blank" rel="noopener noreferrer" key={`a_${forIdx}`}>
+            {highlightSearchInput(contents, searchInput, richTextStyle, start, end)}
+          </a>,
         );
         strIdx = end;
       });
       // Ensure any content after the last link is accounted for
       if (strIdx < contents.length - 1) {
-        contentToRender.push(highlightSearchInput(
-          contents,
-          searchInput,
-          richTextStyle,
-          strIdx
-        ));
+        contentToRender.push(highlightSearchInput(contents, searchInput, richTextStyle, strIdx));
       }
       return contentToRender;
     },
-    [searchInput]
+    [searchInput],
   );
 
   const icon = isTrackedChange && annotation['TrackedChangeType'] === 3 ?
@@ -348,12 +327,11 @@ const NoteContent = ({
     'modular-ui': customizableUI,
   });
 
-  const content = useMemo(
-    () => {
-      const contentStyle = {};
-      if (textColor) {
-        contentStyle.color = textColor.toHexString();
-      }
+  const content = useMemo(() => {
+    const contentStyle = {};
+    if (textColor) {
+      contentStyle.color = textColor.toHexString();
+    }
 
       return (
         <>
@@ -386,11 +364,10 @@ const NoteContent = ({
   );
 
   const text = annotation.getCustomData('trn-annot-preview');
-  const textPreview = useMemo(
-    () => {
-      if (text === '') {
-        return null;
-      }
+  const textPreview = useMemo(() => {
+    if (text === '') {
+      return null;
+    }
 
       const highlightSearchResult = highlightSearchInput(text, searchInput);
       const shouldCollapseAnnotationText = !isReply && canCollapseTextPreview;
@@ -408,6 +385,7 @@ const NoteContent = ({
           </DataElementWrapper>
         );
       }
+      
       return (
         <div className="selected-text-preview" style={{ paddingRight: '12px' }}>
           {highlightSearchResult}
@@ -430,6 +408,7 @@ const NoteContent = ({
           isReply={isReply}
           isUnread={isUnread}
           renderAuthorName={renderAuthorName}
+          renderAnnotationReference={renderAnnotationReference}
           isNoteStateDisabled={isNoteStateDisabled}
           isEditing={isEditing}
           editingKey={editingKey}
@@ -451,7 +430,7 @@ const NoteContent = ({
   return (
     <div className={noteContentClass} onClick={handleNoteContentClicked}>
       {header}
-      {textPreview}
+      {/* {textPreview} */}
       {content}
     </div>
   );
@@ -611,9 +590,9 @@ const ContentArea = ({
         contents: textAreaValue,
         ids,
       }));
-      annotation.setContents(plainTextValue);
+      annotation.setContents(plainTextValue ?? '');
     } else {
-      annotation.setContents(textAreaValue);
+      annotation.setContents(textAreaValue ?? '');
     }
 
     await setAnnotationAttachments(annotation, pendingAttachmentMap[annotation.Id]);
@@ -682,8 +661,7 @@ const ContentArea = ({
           }}
         />
         <Button
-          className={`save-button${!textAreaValue ? ' disabled' : ''}`}
-          disabled={!textAreaValue}
+          className={`save-button`}
           label={t('action.save')}
           onClick={(e) => {
             e.stopPropagation();
@@ -709,13 +687,15 @@ const getRichTextSpan = (text, richTextStyle, key) => {
     fontWeight: richTextStyle['font-weight'],
     fontStyle: richTextStyle['font-style'],
     textDecoration: richTextStyle['text-decoration'],
-    color: richTextStyle['color']
+    color: richTextStyle['color'],
   };
   if (style.textDecoration) {
     style.textDecoration = style.textDecoration.replace('word', 'underline');
   }
   return (
-    <span style={style} key={key}>{text}</span>
+    <span style={style} key={key}>
+      {text}
+    </span>
   );
 };
 
@@ -725,7 +705,9 @@ const renderRichText = (text, richTextStyle, start) => {
   }
 
   const styles = {};
-  const indices = Object.keys(richTextStyle).map(Number).sort((a, b) => a - b);
+  const indices = Object.keys(richTextStyle)
+    .map(Number)
+    .sort((a, b) => a - b);
   for (let i = 0; i < indices.length; i++) {
     let index = indices[i] - start;
     index = Math.min(Math.max(index, 0), text.length);
@@ -736,13 +718,17 @@ const renderRichText = (text, richTextStyle, start) => {
   }
 
   const contentToRender = [];
-  const styleIndices = Object.keys(styles).map(Number).sort((a, b) => a - b);
+  const styleIndices = Object.keys(styles)
+    .map(Number)
+    .sort((a, b) => a - b);
   for (let i = 1; i < styleIndices.length; i++) {
-    contentToRender.push(getRichTextSpan(
-      text.slice(styleIndices[i - 1], styleIndices[i]),
-      styles[styleIndices[i - 1]],
-      `richtext_span_${i}`
-    ));
+    contentToRender.push(
+      getRichTextSpan(
+        text.slice(styleIndices[i - 1], styleIndices[i]),
+        styles[styleIndices[i - 1]],
+        `richtext_span_${i}`,
+      ),
+    );
   }
 
   return contentToRender;
@@ -780,25 +766,26 @@ const highlightSearchInput = (fullText, searchInput, richTextStyle, start = 0, e
     }
     contentToRender.push(
       <span className="highlight" key={`highlight_span_${idx}`}>
-        {
-          renderRichText(
-            text.substring(position, position + loweredSearchInput.length),
-            richTextStyle,
-            start + position)
-        }
-      </span>
+        {renderRichText(
+          text.substring(position, position + loweredSearchInput.length),
+          richTextStyle,
+          start + position,
+        )}
+      </span>,
     );
     if (
       // Ensure that we do not try to make an out-of-bounds access
-      position + loweredSearchInput.length < loweredText.length
+      position + loweredSearchInput.length < loweredText.length &&
       // Ensure that this is the end of the allFoundPositions array
-      && position + loweredSearchInput.length !== allFoundPositions[idx + 1]
+      position + loweredSearchInput.length !== allFoundPositions[idx + 1]
     ) {
-      contentToRender.push(renderRichText(
-        text.substring(position + loweredSearchInput.length, allFoundPositions[idx + 1]),
-        richTextStyle,
-        start + position + loweredSearchInput.length
-      ));
+      contentToRender.push(
+        renderRichText(
+          text.substring(position + loweredSearchInput.length, allFoundPositions[idx + 1]),
+          richTextStyle,
+          start + position + loweredSearchInput.length,
+        ),
+      );
     }
   });
   return contentToRender;

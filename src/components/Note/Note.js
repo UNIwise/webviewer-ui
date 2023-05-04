@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import NoteContext from 'components/Note/Context';
 import NoteContent from 'components/NoteContent';
-import ReplyArea from 'components/Note/ReplyArea';
+// import ReplyArea from 'components/Note/ReplyArea';
 import NoteGroupSection from 'components/Note/NoteGroupSection';
 import Button from 'components/Button';
 
@@ -23,6 +23,9 @@ import { OfficeEditorEditMode, OFFICE_EDITOR_TRACKED_CHANGE_KEY } from 'constant
 
 import './Note.scss';
 import { isAnnotationRenderedInDisplayMode } from 'src/helpers/isAnnotationRenderedInDisplayMode';
+import { getAnnotationShareType } from 'src/helpers/annotationShareType';
+import { ShareTypeColors } from 'src/constants/shareTypes';
+import getWiseflowCustomValues from 'helpers/getWiseflowCustomValues';
 
 const propTypes = {
   annotation: PropTypes.object.isRequired,
@@ -57,6 +60,13 @@ const Note = ({
   const containerRef = useRef();
   const containerHeightRef = useRef();
   const [isEditingMap, setIsEditingMap] = useState({});
+
+  const getAnnotationStatusColor = () => {
+    return ShareTypeColors[getAnnotationShareType(annotation)] ?? ShareTypeColors.NONE;
+  };
+
+  const showShareType = getWiseflowCustomValues().showShareType;
+
   const ids = useRef([]);
   const dispatch = useDispatch();
   const [t] = useTranslation();
@@ -169,7 +179,7 @@ const Note = ({
     if (pendingText !== '' && isContentEditable && !isDocumentReadOnly) {
       setIsEditing(true, annotation.Id);
     }
-  }, [isDocumentReadOnly, isContentEditable, setIsEditing, annotation, isMultiSelectMode]);
+  }, [isDocumentReadOnly, isContentEditable, setIsEditing, annotation, isMultiSelectMode, pendingEditTextMap]);
 
   useDidUpdate(() => {
     if (isDocumentReadOnly || !isContentEditable) {
@@ -252,7 +262,7 @@ const Note = ({
         }
       });
     }
-  }, [isSelected, isMultiSelectMode]);
+  }, [isSelected, isMultiSelectMode, pendingEditTextMap, setIsEditing, replies]);
 
   useEffect(() => {
     if (isMultiSelectMode) {
@@ -264,13 +274,22 @@ const Note = ({
   const isNoteOrReplyBeingEdited = isEditingMap[annotation.Id] || replies.some((reply) => isEditingMap[reply.Id]);
   const showReplyArea = !isNoteOrReplyBeingEdited;
 
-  const handleReplyClicked = (reply) => {
-    // set clicked reply as read
-    if (unreadReplyIdSet.has(reply.Id)) {
-      dispatch(actions.setAnnotationReadState({ isRead: true, annotationId: reply.Id }));
-      core.getAnnotationManager(documentViewerKey).selectAnnotation(reply);
+  const handleNoteKeydown = (e) => {
+    // Click if enter or space is pressed and is current target.
+    const isNote = e.target === e.currentTarget;
+    if (isNote && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault(); // Stop from being entered in field
+      handleNoteClick();
     }
   };
+
+  // const handleReplyClicked = (reply) => {
+  //   // set clicked reply as read
+  //   if (unreadReplyIdSet.has(reply.Id)) {
+  //     dispatch(actions.setAnnotationReadState({ isRead: true, annotationId: reply.Id }));
+  //     core.getAnnotationManager(documentViewerKey).selectAnnotation(reply);
+  //   }
+  // };
 
   const markAllRepliesRead = () => {
     // set all replies to read state if user starts to type in reply textarea
@@ -297,6 +316,14 @@ const Note = ({
       ref={containerRef}
       className={noteClass}
       id={`note_${annotation.Id}`}
+      style={
+        showShareType
+          ? {
+              borderBottom: `4px solid ${getAnnotationStatusColor()}`,
+              borderTop: `4px solid ${getAnnotationStatusColor()}`,
+            }
+          : undefined
+      }
     >
       <Button
         className='note-button'
@@ -356,13 +383,13 @@ const Note = ({
               groupAnnotations={groupAnnotations}
               isMultiSelectMode={isMultiSelectMode}
             />}
-          {showReplyArea && !isMultiSelectMode && (
+          {/* {showReplyArea && !isMultiSelectMode && (
             <ReplyArea
               isUnread={lastReplyId && unreadAnnotationIdSet.has(lastReplyId)}
               onPendingReplyChange={markAllRepliesRead}
               annotation={annotation}
             />
-          )}
+          )} */}
         </>
       )}
       {isRenderingConnectorLine && (
