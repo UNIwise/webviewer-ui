@@ -13,12 +13,14 @@ import './Tooltip.scss';
 const propTypes = {
   children: PropTypes.element.isRequired,
   content: PropTypes.string,
+  translatedContent: PropTypes.string,
   hideShortcut: PropTypes.bool,
   forcePosition: PropTypes.string,
-  hideOnClick: PropTypes.bool
+  hideOnClick: PropTypes.bool,
+  showOnKeyboardFocus: PropTypes.bool,
 };
 
-const Tooltip = forwardRef(({ content = '', children, hideShortcut, forcePosition, hideOnClick }, ref) => {
+const Tooltip = forwardRef(({ content = '', translatedContent, children, hideShortcut, forcePosition, hideOnClick, showOnKeyboardFocus }, ref) => {
   const timeoutRef = useRef(null);
   const childRef = useRef(null);
   useImperativeHandle(ref, () => childRef.current);
@@ -39,19 +41,30 @@ const Tooltip = forwardRef(({ content = '', children, hideShortcut, forcePositio
   useEffect(() => {
     const showToolTip = () => {
       timeoutRef.current = setTimeout(() => {
-        setShow(true);
+        if (timeoutRef.current) {
+          setShow(true);
+        }
       }, delayShow - opacityTimeout);
     };
 
     const hideTooltip = () => {
-      clearTimeout(timeoutRef.current);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
       setShow(false);
     };
 
     childRef.current?.addEventListener('mouseenter', showToolTip);
     childRef.current?.addEventListener('mouseleave', hideTooltip);
+    if (showOnKeyboardFocus) {
+      childRef.current?.addEventListener('focus', showToolTip);
+      childRef.current?.addEventListener('blur', hideTooltip);
+    }
+    
     if (hideOnClick) {
       childRef.current?.addEventListener('click', hideTooltip);
+      childRef.current?.addEventListener('keypress', hideTooltip);
     }
     // only enable focus event for non popup buttons
     if (childRef.current['ariaLabel'] !== 'action.close' && content !== 'action.close' &&
@@ -76,11 +89,15 @@ const Tooltip = forwardRef(({ content = '', children, hideShortcut, forcePositio
 
       childRef.current?.removeEventListener('mouseenter', showToolTip);
       childRef.current?.removeEventListener('mouseleave', hideTooltip);
+      
       if (hideOnClick) {
         childRef.current?.removeEventListener('click', hideTooltip);
       }
-      childRef.current?.removeEventListener('focus', showToolTip);
-      childRef.current?.removeEventListener('blur', hideTooltip);
+      
+      if (showOnKeyboardFocus) {
+        childRef.current?.removeEventListener('focus', showToolTip);
+        childRef.current?.removeEventListener('blur', hideTooltip);
+      }
     };
   }, [childRef, hideOnClick]);
 
@@ -150,13 +167,13 @@ const Tooltip = forwardRef(({ content = '', children, hideShortcut, forcePositio
     } else {
       setOpacity(0);
     }
-  }, [childRef, show]);
+  }, [childRef, show, content, translatedContent]);
 
   const isUsingMobileDevices = isIOS || isAndroid;
   const child = React.cloneElement(children, {
     ref: childRef,
   });
-  const translatedContent = t(content);
+  translatedContent = content ? t(content) : translatedContent;
   // If shortcut.xxx exists in translation-en.json file
   // method t will return the shortcut, otherwise it will return shortcut.xxx
   let shortcutKey = content.slice(content.indexOf('.') + 1);

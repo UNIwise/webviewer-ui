@@ -21,7 +21,10 @@ import useMedia from 'hooks/useMedia';
 import { isIE } from 'helpers/device';
 import ReplyAttachmentPicker from './ReplyAttachmentPicker';
 
+import fireEvent from 'helpers/fireEvent';
+import { debounce } from 'lodash';
 import './NotesPanel.scss';
+import getAnnotationReference from 'helpers/getAnnotationReference';
 
 const NotesPanel = ({ currentLeftPanelWidth }) => {
   const [
@@ -57,7 +60,6 @@ const NotesPanel = ({ currentLeftPanelWidth }) => {
   const currentWidth = currentLeftPanelWidth || currentNotesPanelWidth;
 
   const dispatch = useDispatch();
-
   const isMobile = useMedia(
     // Media queries
     ['(max-width: 640px)'],
@@ -174,12 +176,16 @@ const NotesPanel = ({ currentLeftPanelWidth }) => {
     const content = note.getContents();
     const authorName = core.getDisplayAuthor(note['Author']);
     const annotationPreview = note.getCustomData('trn-annot-preview');
+    
+    /** CUSTOM WISEFLOW */
+    const reference = getAnnotationReference(note);
 
     // didn't use regex here because the search input may form an invalid regex, e.g. *
     return (
       content?.toLowerCase().includes(searchInput.toLowerCase()) ||
       authorName?.toLowerCase().includes(searchInput.toLowerCase()) ||
-      annotationPreview?.toLowerCase().includes(searchInput.toLowerCase())
+      annotationPreview?.toLowerCase().includes(searchInput.toLowerCase()) ||
+      reference?.toLowerCase().includes(searchInput.toLowerCase()) // CUSTOM WISEFLOW
     );
   };
 
@@ -196,15 +202,12 @@ const NotesPanel = ({ currentLeftPanelWidth }) => {
       // https://docs.apryse.com/api/web/Core.AnnotationManager.html#createAnnotationReply__anchor
       const noteAndReplies = [note, ...replies];
 
-      shouldRender =
-        shouldRender &&
-        noteAndReplies.some(filterNotesWithSearch);
+      shouldRender = shouldRender && noteAndReplies.some(filterNotesWithSearch);
     }
     return shouldRender;
   };
 
-  const notesToRender = getSortStrategies()[sortStrategy].getSortedNotes(notes)
-    .filter(filterNote);
+  const notesToRender = getSortStrategies()[sortStrategy].getSortedNotes(notes).filter(filterNote);
 
   useEffect(() => {
     if (Object.keys(selectedNoteIds).length && singleSelectedNoteIndex !== -1) {
@@ -235,6 +238,27 @@ const NotesPanel = ({ currentLeftPanelWidth }) => {
     },
     [setPendingEditTextMap],
   );
+
+  // CUSTOM WISEFLOW unpostedAnnotationChanged event
+
+  // debounced callback to fire unpostedAnnotationsChanged event
+  const onUnpostedAnnotationChanged = useCallback(
+    debounce(pendingEditTextMap => {
+      const unpostedAnnotationsCount = Object.values(pendingEditTextMap).reduce((count, pendingText) => {
+        if (pendingText !== undefined) {
+          return count + 1;
+        }
+        return count;
+      }, 0);
+      fireEvent('unpostedAnnotationsChanged', { pendingEditTextMap, unpostedAnnotationsCount });
+    }, 200),
+    [],
+  );
+
+  // Throw event on changed to pendingEditTextMap
+  useEffect(() => onUnpostedAnnotationChanged(pendingEditTextMap), [pendingEditTextMap]);
+
+  // CUSTOM WISEFLOW end
 
   const [pendingReplyMap, setPendingReplyMap] = useState({});
   const setPendingReply = useCallback(
@@ -293,7 +317,7 @@ const NotesPanel = ({ currentLeftPanelWidth }) => {
     // this function needs to be called by a Note component whenever its height changes
     // to clear the cache(used by react-virtualized) and recompute the height so that each note
     // can have the correct position
-    resize = () => { },
+    resize = () => {},
   ) => {
     let listSeparator = null;
     const { shouldRenderSeparator, getSeparatorContent } = getSortStrategies()[sortStrategy];
@@ -438,7 +462,7 @@ const NotesPanel = ({ currentLeftPanelWidth }) => {
   }
 
   let style = {};
-  if ((isInDesktopOnlyMode || !isMobile)) {
+  if (isInDesktopOnlyMode || !isMobile) {
     style = { width: `${currentWidth}px`, minWidth: `${currentWidth}px` };
   }
 
@@ -466,10 +490,7 @@ const NotesPanel = ({ currentLeftPanelWidth }) => {
               dispatch(actions.closeElements(['notesPanel']));
             }}
           >
-            <Icon
-              glyph="ic_close_black_24px"
-              className="close-icon"
-            />
+            <Icon glyph="ic_close_black_24px" className="close-icon" />
           </div>
         </div>}
         <React.Fragment>

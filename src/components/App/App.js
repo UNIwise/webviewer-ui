@@ -92,9 +92,10 @@ const tabletBreakpoint = window.matchMedia('(min-width: 641px) and (max-width: 9
 
 const propTypes = {
   removeEventHandlers: PropTypes.func.isRequired,
+  coAssessor: PropTypes.array.isRequired,
 };
 
-const App = ({ removeEventHandlers }) => {
+const App = ({ removeEventHandlers, coAssessor }) => {
   const store = useStore();
   const dispatch = useDispatch();
   let timeoutReturn;
@@ -318,7 +319,7 @@ const App = ({ removeEventHandlers }) => {
         <PageReplacementModal />
         <LinkModal />
         <ContentEditModal />
-        <FilterAnnotModal />
+        <FilterAnnotModal coAssessor={[{ id: '1', 'name': 'John' }]} />
         <CustomModal />
         <Model3DModal />
         <ColorPickerModal />
