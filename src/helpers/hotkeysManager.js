@@ -31,6 +31,202 @@ import {
 
 const NOOP = () => { };
 
+/**
+ * Available hotkeys that can be passed to {@link UI.Hotkeys#on instance.UI.hotkeys.on} or {@link UI.Hotkeys#off instance.UI.hotkeys.off}. <br/><br/>
+ * @name UI.Hotkeys.Keys
+ * @enum {string}
+ * @property {string} CTRL_SHIFT_EQUAL Rotate the document clockwise
+ * @property {string} COMMAND_SHIFT_EQUAL Rotate the document clockwise
+ * @property {string} CTRL_SHIFT_MINUS Rotate the document counterclockwise
+ * @property {string} COMMAND_SHIFT_MINUS Rotate the document counterclockwise
+ * @property {string} CTRL_C Copy selected text or annotations
+ * @property {string} COMMAND_C Copy selected text or annotations
+ * @property {string} CTRL_V Paste text or annotations
+ * @property {string} COMMAND_V Paste text or annotations
+ * @property {string} CTRL_Z Undo an annotation change
+ * @property {string} COMMAND_Z Undo an annotation change
+ * @property {string} CTRL_Y Redo an annotation change
+ * @property {string} COMMAND_SHIFT_Z Redo an annotation change
+ * @property {string} CTRL_O Open the file picker
+ * @property {string} COMMAND_O Open the file picker
+ * @property {string} CTRL_F Open the search overlay
+ * @property {string} COMMAND_F Open the search overlay
+ * @property {string} CTRL_EQUAL Zoom in
+ * @property {string} COMMAND_EQUAL Zoom in
+ * @property {string} CTRL_MINUS Zoom out
+ * @property {string} COMMAND_MINUS Zoom out
+ * @property {string} CTRL_0 Fit the document to the screen width in a small screen(< 640px), otherwise fit it to its original size
+ * @property {string} COMMAND_0 Fit the document to the screen width in a small screen(< 640px), otherwise fit it to its original size
+ * @property {string} CTRL_P Print
+ * @property {string} COMMAND_P Print
+ * @property {string} CTRL_B Quickly bookmark a page and open the bookmark panel
+ * @property {string} COMMAND_B Quickly bookmark a page and open the bookmark panel
+ * @property {string} PAGE_UP Go to the previous page
+ * @property {string} PAGE_DOWN Go to the next page
+ * @property {string} UP Go to the previous page in single layout mode (ArrowUp)
+ * @property {string} DOWN Go to the next page in single layout mode (ArrowDown)
+ * @property {string} SPACE Hold to switch to Pan mode and release to return to previous tool
+ * @property {string} ESCAPE Select the AnnotationEdit tool
+ * @property {string} P Select the Pan tool
+ * @property {string} A Select the AnnotationCreateArrow tool
+ * @property {string} C Select the AnnotationCreateCallout tool
+ * @property {string} E Select the AnnotationEraser tool
+ * @property {string} F Select the AnnotationCreateFreeHand tool
+ * @property {string} I Select the AnnotationCreateStamp tool
+ * @property {string} L Select the AnnotationCreateLine tool
+ * @property {string} N Select the AnnotationCreateSticky tool
+ * @property {string} O Select the AnnotationCreateEllipse tool
+ * @property {string} R Select the AnnotationCreateRectangle tool
+ * @property {string} Q Select the AnnotationCreateRubberStamp tool
+ * @property {string} T Select the AnnotationCreateFreeText tool
+ * @property {string} S Open the signature modal or the overlay
+ * @property {string} G Select the AnnotationCreateTextSquiggly tool
+ * @property {string} H Select the AnnotationCreateTextHighlight tool
+ * @property {string} K Select the AnnotationCreateTextStrikeout tool
+ * @property {string} U Select the AnnotationCreateTextUnderline tool
+ * @property {string} X Close the current tooltip
+ */
+export const Keys = {
+  CTRL_SHIFT_EQUAL: 'ctrl+shift+=',
+  COMMAND_SHIFT_EQUAL: 'command+shift+=',
+  CTRL_SHIFT_MINUS: 'ctrl+shift+-',
+  COMMAND_SHIFT_MINUS: 'command+shift+-',
+  CTRL_SHIFT_NUM_ADD: 'ctrl+shift+num_add',
+  COMMAND_SHIFT_NUM_ADD: 'command+shift+num_add',
+  CTRL_SHIFT_NUM_SUBTRACT: 'ctrl+shift+num_subtract',
+  COMMAND_SHIFT_NUM_SUBTRACT: 'command+shift+num_subtract',
+  CTRL_C: 'ctrl+c',
+  COMMAND_C: 'command+c',
+  CTRL_V: 'ctrl+v',
+  COMMAND_V: 'command+v',
+  CTRL_Z: 'ctrl+z',
+  COMMAND_Z: 'command+z',
+  CTRL_Y: 'ctrl+y',
+  COMMAND_SHIFT_Z: 'command+shift+z',
+  CTRL_O: 'ctrl+o',
+  COMMAND_O: 'command+o',
+  CTRL_F: 'ctrl+f',
+  COMMAND_F: 'command+f',
+  CTRL_EQUAL: 'ctrl+=',
+  COMMAND_EQUAL: 'command+=',
+  CTRL_MINUS: 'ctrl+-',
+  COMMAND_MINUS: 'command+-',
+  CTRL_NUM_ADD: 'ctrl+num_add',
+  COMMAND_NUM_ADD: 'command+num_add',
+  CTRL_NUM_SUBTRACT: 'ctrl+num_subtract',
+  COMMAND_NUM_SUBTRACT: 'command+num_subtract',
+  CTRL_0: 'ctrl+0',
+  COMMAND_0: 'command+0',
+  CTRL_P: 'ctrl+p',
+  COMMAND_P: 'command+p',
+  CTRL_B: 'ctrl+b',
+  COMMAND_B: 'command+b',
+  ENTER: 'enter',
+  PAGE_UP: 'pageup',
+  PAGE_DOWN: 'pagedown',
+  UP: 'up',
+  DOWN: 'down',
+  SPACE: 'space',
+  ESCAPE: 'escape',
+  HOME: 'home',
+  END: 'end',  
+  P: 'shift+p',
+  A: 'shift+a',
+  C: 'shift+c',
+  E: 'shift+e',
+  F: 'shift+f',
+  I: 'shift+i',
+  L: 'shift+l',
+  N: 'shift+n',
+  O: 'shift+o',
+  R: 'shift+r',
+  Q: 'shift+q',
+  T: 'shift+t',
+  S: 'shift+s',
+  G: 'shift+g',
+  H: 'shift+h',
+  K: 'shift+k',
+  U: 'shift+u',
+  X: 'shift+x',
+};
+
+export function concatKeys(...keys) {
+  return keys.join(', ');
+}
+
+function splitKey(key) {
+  return key.split(', ');
+}
+
+// Defalut keys for shortcut
+export const ShortcutKeys = {
+  [Shortcuts.ROTATE_CLOCKWISE]: concatKeys(Keys.CTRL_SHIFT_EQUAL, Keys.COMMAND_SHIFT_EQUAL),
+  [Shortcuts.ROTATE_COUNTER_CLOCKWISE]: concatKeys(Keys.CTRL_SHIFT_MINUS, Keys.COMMAND_SHIFT_MINUS),
+  [Shortcuts.NUMPAD_ROTATE_CLOCKWISE]: concatKeys(Keys.CTRL_SHIFT_NUM_ADD, Keys.COMMAND_SHIFT_NUM_ADD),
+  [Shortcuts.NUMPAD_ROTATE_COUNTER_CLOCKWISE]: concatKeys(Keys.CTRL_SHIFT_NUM_SUBTRACT, Keys.COMMAND_SHIFT_NUM_SUBTRACT),
+  [Shortcuts.COPY]: concatKeys(Keys.CTRL_C, Keys.COMMAND_C),
+  [Shortcuts.PASTE]: concatKeys(Keys.CTRL_V, Keys.COMMAND_V),
+  [Shortcuts.UNDO]: concatKeys(Keys.CTRL_Z, Keys.COMMAND_Z),
+  [Shortcuts.REDO]: concatKeys(Keys.CTRL_Y, Keys.COMMAND_SHIFT_Z),
+  [Shortcuts.OPEN_FILE]: concatKeys(Keys.CTRL_O, Keys.COMMAND_O),
+  [Shortcuts.SEARCH]: concatKeys(Keys.CTRL_F, Keys.COMMAND_F),
+  [Shortcuts.ZOOM_IN]: concatKeys(Keys.CTRL_EQUAL, Keys.COMMAND_EQUAL),
+  [Shortcuts.ZOOM_OUT]: concatKeys(Keys.CTRL_MINUS, Keys.COMMAND_MINUS),
+  [Shortcuts.NUMPAD_ZOOM_IN]: concatKeys(Keys.CTRL_NUM_ADD, Keys.COMMAND_NUM_ADD),
+  [Shortcuts.NUMPAD_ZOOM_OUT]: concatKeys(Keys.CTRL_NUM_SUBTRACT, Keys.COMMAND_NUM_SUBTRACT),
+  [Shortcuts.FIT_SCREEN_WIDTH]: concatKeys(Keys.CTRL_0, Keys.COMMAND_0),
+  [Shortcuts.PRINT]: concatKeys(Keys.CTRL_P, Keys.COMMAND_P),
+  [Shortcuts.BOOKMARK]: concatKeys(Keys.CTRL_B, Keys.COMMAND_B),
+  [Shortcuts.PREVIOUS_PAGE]: Keys.PAGE_UP,
+  [Shortcuts.NEXT_PAGE]: Keys.PAGE_DOWN,
+  [Shortcuts.UP]: Keys.UP,
+  [Shortcuts.DOWN]: Keys.DOWN,
+  [Shortcuts.SWITCH_PAN]: Keys.SPACE,
+  [Shortcuts.SELECT]: Keys.ESCAPE,
+  [Shortcuts.PAN]: Keys.P,
+  [Shortcuts.ARROW]: Keys.A,
+  [Shortcuts.CALLOUT]: Keys.C,
+  [Shortcuts.ERASER]: Keys.E,
+  [Shortcuts.FREEHAND]: Keys.F,
+  [Shortcuts.IMAGE]: Keys.I,
+  [Shortcuts.LINE]: Keys.L,
+  [Shortcuts.STICKY_NOTE]: Keys.N,
+  [Shortcuts.ELLIPSE]: Keys.O,
+  [Shortcuts.RECTANGLE]: Keys.R,
+  [Shortcuts.RUBBER_STAMP]: Keys.Q,
+  [Shortcuts.FREETEXT]: Keys.T,
+  [Shortcuts.SIGNATURE]: Keys.S,
+  [Shortcuts.SQUIGGLY]: Keys.G,
+  [Shortcuts.HIGHLIGHT]: Keys.H,
+  [Shortcuts.STRIKEOUT]: Keys.K,
+  [Shortcuts.UNDERLINE]: Keys.U,
+  [Shortcuts.HOME]: Keys.HOME,
+  [Shortcuts.END]: Keys.END,
+  [Shortcuts.CLOSE]: Keys.X,
+};
+
+const ToolNameHotkeyMap = {
+  AnnotationEdit: Keys.ESCAPE,
+  Pan: Keys.P,
+  AnnotationCreateArrow: Keys.A,
+  AnnotationCreateCallout: Keys.C,
+  AnnotationEraserTool: Keys.E,
+  AnnotationCreateFreeHand: Keys.F,
+  AnnotationCreateStamp: Keys.I,
+  AnnotationCreateLine: Keys.L,
+  AnnotationCreateSticky: Keys.N,
+  AnnotationCreateEllipse: Keys.O,
+  AnnotationCreateRectangle: Keys.R,
+  AnnotationCreateFreeText: Keys.T,
+  AnnotationCreateSignature: Keys.S,
+  AnnotationCreateTextSquiggly: Keys.G,
+  AnnotationCreateTextHighlight: Keys.H,
+  AnnotationCreateTextStrikeout: Keys.K,
+  AnnotationCreateTextUnderline: Keys.U,
+  AnnotationCreateRubberStamp: Keys.Q
+};
+
+const unbindedHotkeysMap = {};
 export const defaultHotkeysScope = 'viewer';
 
 /**

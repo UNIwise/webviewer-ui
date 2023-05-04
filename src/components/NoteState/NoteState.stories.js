@@ -23,7 +23,7 @@ function getAnnotationWithStatus(status) {
     },
     isReply: () => {
       return false;
-    }
+    },
   };
 }
 
@@ -63,7 +63,7 @@ const store = configureStore({
 });
 
 export function Basic() {
-  const availableNoteStates = ['Accepted', 'Rejected', 'Cancelled', 'Completed', 'None', 'Marked', 'Unmarked'];
+  const availableNoteStates = ['Accepted', 'Rejected', 'Cancelled', 'Completed', 'None', 'Marked', 'Unmarked', 'Participants', 'Assessors', 'All'];
   const allStates = availableNoteStates.map((state) => {
     return (
       <Provider store={store} key={state}>

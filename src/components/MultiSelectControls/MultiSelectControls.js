@@ -17,6 +17,7 @@ import useCore from 'hooks/useCore';
 import selectors from 'selectors';
 
 import './MultiSelectControls.scss';
+import NoteShareTypeMultiControl from '../NoteShareType/NoteShareTypeMultiControl';
 
 const propTypes = {
   showMultiReply: PropTypes.bool.isRequired,
@@ -183,7 +184,7 @@ const MultiSelectControls = ({
   return (
     <div className="multi-select-footer">
       <div className="buttons-container">
-        <Button
+        {/* <Button
           dataElement={DataElements.NOTE_MULTI_REPLY_BUTTON}
           disabled={multiSelectedAnnotations.length === 0}
           img="icon-header-chat-line"
@@ -204,7 +205,7 @@ const MultiSelectControls = ({
         <NoteStateFlyout
           isMultiSelectMode={true}
           handleStateChange={handleStateChange}
-        />
+        />*/}
         {customizableUI
           ? <ToggleElementButton
             {...multiStyleButtonProps}

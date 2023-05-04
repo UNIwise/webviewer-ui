@@ -28,6 +28,7 @@ const propTypes = {
   isEditable: PropTypes.bool,
   isDeletable: PropTypes.bool,
   noteId: PropTypes.string,
+  isReply: PropTypes.bool,
 };
 
 function noop() { }
@@ -51,6 +52,8 @@ function NotePopup(props) {
       handleEdit();
     } else if (selection === 'Delete') {
       handleDelete();
+    }
+  };
     }
   };
 

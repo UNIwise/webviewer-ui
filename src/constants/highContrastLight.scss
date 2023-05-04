@@ -8,17 +8,17 @@
   --blue-6: #1a4971;
   --blue-7: #2651a1;
 
-  --gray-0: #ffffff;
-  --gray-1: #f8f9fa;
-  --gray-2: #f1f3f5;
-  --gray-3: #e7ebee;
-  --gray-4: #dee2e6;
-  --gray-5: #cfd4da;
-  --gray-6: #adb5bd;
-  --gray-7: #868e96;
-  --gray-8: #485056;
-  --gray-9: #343a40;
-  --gray-10: #21242a;
+  --gray-0: #FFFFFF;
+  --gray-1: #F8F9FA;
+  --gray-2: #F1F3F5;
+  --gray-3: #E7EBEE;
+  --gray-4: #DEE2E6;
+  --gray-5: #CFD4DA;
+  --gray-6: #ADB5BD;
+  --gray-7: #6b7178;
+  --gray-8: #404040;
+  --gray-9: #343A40;
+  --gray-10: #21242A;
   --gray-11: #101214;
   --gray-12: #000000;
 
@@ -55,15 +55,15 @@
   --text-color: var(--gray-8);
   --faded-text: var(--gray-8);
   --placeholder-text: var(--gray-6);
-  --ribbon-active-color: var(--blue-7);
+  --ribbon-active-color: var(--gray-10);
 
   --no-presets-text: var(--gray-8);
   --disabled-text: var(--gray-5);
   --disabled-icon: var(--gray-5);
 
   --scroll-chevron-color: var(--gray-6);
-  --icon-color: var(--gray-7);
-  --selected-icon-color: var(--gray-8);
+  --icon-color: var(--gray-8);
+  --selected-icon-color: var(--gray-10);
 
   --view-header-button-hover: var(--blue-1);
   --view-header-button-active: var(--blue-2);
