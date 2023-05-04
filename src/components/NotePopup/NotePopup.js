@@ -1,11 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import useOnClickOutside from 'hooks/useOnClickOutside';
+import useOnFocusOutside from 'hooks/useOnFocusOutside';
+import useOverflowContainer from 'hooks/useOverflowContainer';
 import DataElementWrapper from 'components/DataElementWrapper';
 import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
-
 import Icon from 'components/Icon';
+
 import './NotePopup.scss';
 
 const propTypes = {
@@ -16,9 +18,10 @@ const propTypes = {
   isEditable: PropTypes.bool,
   isDeletable: PropTypes.bool,
   isOpen: PropTypes.bool,
+  isReply: PropTypes.bool,
 };
 
-function noop() { }
+function noop() {}
 
 function NotePopup(props) {
   const {
@@ -35,7 +38,13 @@ function NotePopup(props) {
   const [t] = useTranslation();
   const popupRef = React.useRef();
 
+  const { popupMenuRef, location } = useOverflowContainer('.normal-notes-container', 'bottom', isOpen);
+
   useOnClickOutside(popupRef, () => {
+    closePopup();
+  });
+
+  useOnFocusOutside(popupRef, () => {
     closePopup();
   });
 
@@ -63,35 +72,53 @@ function NotePopup(props) {
     return null;
   }
 
-  const notePopupButtonClass = classNames('overflow note-popup-toggle-trigger', { active: isOpen })
-  const optionsClass = classNames('options note-popup-options', { 'options-reply': isReply })
+  const notePopupButtonClass = classNames('overflow note-popup-toggle-trigger', { active: isOpen });
+  const optionsClass = classNames('options note-popup-options', { 'options-reply': isReply });
   return (
-    <DataElementWrapper
-      className="NotePopup"
-      dataElement="notePopup"
-      ref={popupRef}
-    >
-      <div className={notePopupButtonClass} onClick={togglePopup}>
+    <DataElementWrapper className="NotePopup" dataElement="notePopup" ref={popupRef}>
+      <div
+        role="button"
+        tabIndex={0}
+        className={notePopupButtonClass}
+        onClick={togglePopup}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            togglePopup(e);
+          }
+        }}
+      >
         <Icon glyph="icon-tools-more" />
       </div>
       {isOpen && (
-        <div className={optionsClass}>
+        <div className={`${optionsClass} ${location}`} ref={popupMenuRef}>
           {isEditable && (
             <DataElementWrapper
+              tabIndex={0}
               type="button"
+              role="button"
               className="option note-popup-option"
               dataElement="notePopupEdit"
               onClick={onEditButtonClick}
+              // Needed because safari otherwise loses focus on the button
+              // and the useOnFocusOutside hook triggers
+              onMouseDown={e => e.preventDefault()}
+              onMouseUp={e => e.preventDefault()}
             >
               {t('action.edit')}
             </DataElementWrapper>
           )}
           {isDeletable && (
             <DataElementWrapper
+              tabIndex={0}
               type="button"
+              role="button"
               className="option note-popup-option"
               dataElement="notePopupDelete"
               onClick={onDeleteButtonClick}
+              // Needed because safari otherwise loses focus on the button
+              // and the useOnFocusOutside hook triggers
+              onMouseDown={e => e.preventDefault()}
+              onMouseUp={e => e.preventDefault()}
             >
               {t('action.delete')}
             </DataElementWrapper>

@@ -14,6 +14,7 @@ function NotePopupContainer(props) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [t] = useTranslation();
 
+
   React.useEffect(() => {
     function onUpdateAnnotationPermission() {
       setCanModify(core.canModify(annotation));
@@ -55,7 +56,7 @@ function NotePopupContainer(props) {
 
   // We wrap the element in a div so the tooltip works properly
   return (
-    <Tooltip content={t('formField.formFieldPopup.options')}>
+    <Tooltip content={t('formField.formFieldPopup.options')} showOnKeyboardFocus hideOnClick>
       <div>
         <NotePopup {...props} {...passProps} />
       </div>

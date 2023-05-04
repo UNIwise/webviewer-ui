@@ -344,7 +344,7 @@ const AnnotationPopup = () => {
               <ActionButton
                 dataElement="annotationCommentButton"
                 title="action.comment"
-                img="icon-header-chat-line"
+                img="circle-right-solid"
                 onClick={commentOnAnnotation}
               />
             )}
@@ -441,7 +441,7 @@ const AnnotationPopup = () => {
                 }}
               />
             )}
-            {showLinkButton && (
+            {/* {showLinkButton && (
               <ActionButton
                 title="tool.Link"
                 img={hasAssociatedLink ? 'icon-tool-unlink' : 'icon-tool-link'}
@@ -466,7 +466,7 @@ const AnnotationPopup = () => {
                 }
                 dataElement="linkButton"
               />
-            )}
+            )} */}
             {showFileDownloadButton &&
               (
                 <ActionButton

@@ -10,6 +10,7 @@
     "undo": "Undo",
     "redo": "Redo",
     "comment": "Comment",
+    "openNotePanel": "Open annotation panel",
     "reply": "Add reply",
     "copy": "Copy",
     "delete": "Delete",
@@ -82,7 +83,9 @@
     "moveToTop": "Move to top",
     "moveToBottom": "Move to bottom",
     "playAudio": "Play audio",
-    "pauseAudio": "Pause audio"
+    "pauseAudio": "Pause audio",
+    "copyText": "Click to copy",
+    "copied": "Copied!"
   },
   "annotation": {
     "areaMeasurement": "Area",
@@ -90,7 +93,7 @@
     "callout": "Callout",
     "crop": "Crop Page",
     "caret": "Caret",
-    "dateFreeText": "Calendar",
+    "dateFreeText": "Date",
     "formFillCheckmark": "Tick",
     "formFillCross": "Cross",
     "distanceMeasurement": "Distance",
@@ -129,7 +132,8 @@
     "link": "Link",
     "other": "Other",
     "3D": "3D",
-    "sound": "Sound"
+    "sound": "Sound",
+    "reference": "Reference"
   },
   "rubberStamp": {
     "Approved": "Approved",
@@ -162,8 +166,8 @@
     "toolsHeader": "Tools",
     "searchOverlay": "Search",
     "searchPanel": "Search",
-    "menuOverlay": "Menu",
-    "notesPanel": "Comments",
+    "menuOverlay": "More options",
+    "notesPanel": "Annotations",
     "outlinesPanel": "Outlines",
     "bookmarksPanel": "Bookmarks",
     "signaturePanel": "Signatures",
@@ -206,7 +210,7 @@
     "printTotalPageCount_plural": "Total: {{count}} pages",
     "processing": "Processing...",
     "searching": "Searching...",
-    "searchCommentsPlaceholder": "Search comments",
+    "searchCommentsPlaceholder": "Search annotations",
     "searchDocumentPlaceholder": "Search document",
     "signHere": "Sign here",
     "insertTextHere": "Insert text here",
@@ -263,12 +267,13 @@
       "dropdownLabel": "Sort Order List",
       "position": "Position",
       "time": "Time",
-      "status": "Status",
+      "status": "Share Type",
       "author": "Author",
       "type": "Type",
       "color": "Color",
       "createdDate": "Created Date",
-      "modifiedDate": "Modified Date"
+      "modifiedDate": "Modified Date",
+      "shareType": "Share type"
     },
     "toolbarGroup": {
       "dropdownLabel": "Toolbar Groups",
@@ -318,6 +323,9 @@
       "noteContent": {
         "noName": "(no name)",
         "noDate": "(no date)"
+      },
+      "noteHeader": {
+        "copyReferenceButton": "Copy Reference"
       }
     },
     "pageTransition": {
@@ -378,9 +386,12 @@
     },
     "filterAnnotModal": {
       "commentBy": "Comment by",
-      "types": "Types",
+      "types": "Annotation types",
       "color": "Color",
-      "includeReplies": "Include Replies"
+      "includeReplies": "Include Replies",
+      "shareType": "Share type",
+      "coAssessor": "Co-assessor",
+      "author": "Author"
     },
     "status": {
       "status": "Status"
@@ -392,9 +403,12 @@
       "cancelled": "Cancelled",
       "set": "Set status:",
       "setBy": "set by",
-      "none": "None",
+      "none": "Private",
       "marked": "Marked",
-      "unmarked": "Unmarked"
+      "unmarked": "Unmarked",
+      "assessors": "Co-assessors",
+      "participants": "Participants",
+      "all": "All"
     },
     "measurementOverlay": {
       "scale": "Scale Ratio",
@@ -508,30 +522,30 @@
     }
   },
   "shortcut": {
-    "arrow": "(A)",
-    "callout": "(C)",
+    "arrow": "(Shift + A)",
+    "callout": "(Shift + C)",
     "copy": "(Ctrl C)",
     "delete": "(Del)",
-    "ellipse": "(O)",
-    "eraser": "(E)",
-    "freehand": "(F)",
-    "freetext": "(T)",
-    "highlight": "(H)",
-    "line": "(L)",
-    "pan": "(P)",
-    "rectangle": "(R)",
+    "ellipse": "(Shift + O)",
+    "eraser": "(Shift + E)",
+    "freehand": "(Shift + F)",
+    "freetext": "(Shift + T)",
+    "highlight": "(Shift + H)",
+    "line": "(Shift + L)",
+    "pan": "(Shift + P)",
+    "rectangle": "(Shift + R)",
     "rotateClockwise": "(Ctrl Shift +)",
     "rotateCounterClockwise": "(Ctrl Shift -)",
     "select": "(Esc)",
-    "signature": "(S)",
-    "squiggly": "(G)",
+    "signature": "(Shift + S)",
+    "squiggly": "(Shift + G)",
     "image": "(I)",
     "redo": "(Ctrl Shift Z)",
     "redo_windows": "(Ctrl Y)",
     "undo": "(Ctrl Z)",
-    "stickyNote": "(N)",
-    "strikeout": "(K)",
-    "underline": "(U)",
+    "stickyNote": "(Shift + N)",
+    "strikeout": "(Shift + K)",
+    "underline": "(Shift + U)",
     "zoomIn": "(Ctrl +)",
     "zoomOut": "(Ctrl -)",
     "richText": {
@@ -587,38 +601,9 @@
       "November",
       "December"
     ],
-    "monthsShort": [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sept",
-      "Oct",
-      "Nov",
-      "Dec"
-    ],
-    "weekdays": [
-      "Sunday",
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday"
-    ],
-    "weekdaysShort": [
-      "Sun",
-      "Mon",
-      "Tue",
-      "Wed",
-      "Thu",
-      "Fri",
-      "Sat"
-    ]
+    "monthsShort": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"],
+    "weekdays": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+    "weekdaysShort": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
   },
   "formField": {
     "formFieldPopup": {
