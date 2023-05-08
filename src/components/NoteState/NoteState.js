@@ -2,27 +2,18 @@ import React, { useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
-import PropTypes from 'prop-types';
-import React, { useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import Tooltip from '../Tooltip';
 import NoteStatePopup from './NoteStatePopup';
 
-import core from 'core';
-
 import DataElementWrapper from 'components/DataElementWrapper';
-import ShareTypes from 'constants/shareTypes';
-import ShareTypeIcon from './ShareTypeIcon';
+import Icon from 'components/Icon';
 
 import './NoteState.scss';
-
-import { getAnnotationShareType } from 'src/helpers/annotationShareType';
 
 const propTypes = {
   annotation: PropTypes.object.isRequired,
   openOnInitialLoad: PropTypes.bool,
-  handleStateChange: PropTypes.func,
-  noteIndex: PropTypes.number,
+  handleStateChange: PropTypes.func
 };
 
 function NoteState(props) {
@@ -30,8 +21,6 @@ function NoteState(props) {
     annotation,
     openOnInitialLoad = false,
     handleStateChange = () => {},
-    noteIndex,
-    annotationId,
   } = props;
 
   const [t] = useTranslation();
@@ -47,40 +36,32 @@ function NoteState(props) {
     }
   };
 
-  const annotationShareType = getAnnotationShareType(annotation) || ShareTypes.NONE;
-  const annotationTooltip = `${t('option.notesOrder.shareType')}: ${t(
-    `option.state.${annotationShareType.toLowerCase()}`,
-  )}`;
-
+  const annotationState = annotation.getStatus();
+  const icon = `icon-annotation-status-${annotationState === '' ? 'none' : annotationState.toLowerCase()}`;
   const noteStateButtonClassName = classNames('overflow', { active: isOpen });
+
   return (
-    <Tooltip ref={popupRef} translatedContent={annotationTooltip} showOnKeyboardFocus hideOnClick>  
-      <DataElementWrapper
-        className="NoteState"
-        dataElement="noteState"
-        type="button"
-        onClick={togglePopup}
-        onKeyDown={e => {
-          if (e.key === 'Escape') {
-            setIsOpen(false);
-          }
-        }}
-        ref={popupRef}
-      >  
+    <DataElementWrapper
+      className="NoteState"
+      dataElement="noteState"
+      onClick={togglePopup}
+      ref={popupRef}
+    >
+      <Tooltip content={t('option.notesOrder.status')}>
         <div className={noteStateButtonClassName}>
-          <ShareTypeIcon shareType={annotationShareType} ariaLabel={annotationTooltip} />
+          <Icon glyph={icon} />
         </div>
-        {isOpen && (
-          <NoteStatePopup
-            triggerElementName="noteState"
-            handleStateChange={handleStateChange}
-            onClose={() => {
-              setIsOpen(false);
-            }}
-          />
-        )}
-      </DataElementWrapper>
-    </Tooltip>
+      </Tooltip>
+      {isOpen && (
+        <NoteStatePopup
+          triggerElementName="noteState"
+          handleStateChange={handleStateChange}
+          onClose={() => {
+            setIsOpen(false);
+          }}
+        />
+      )}
+    </DataElementWrapper>
   );
 }
 

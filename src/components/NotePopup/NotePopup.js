@@ -7,6 +7,7 @@ import DataElementWrapper from 'components/DataElementWrapper';
 import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
 import Icon from 'components/Icon';
+import Tooltip from 'components/Tooltip';
 
 import './NotePopup.scss';
 
@@ -21,7 +22,7 @@ const propTypes = {
   isReply: PropTypes.bool,
 };
 
-function noop() {}
+function noop() { }
 
 function NotePopup(props) {
   const {
@@ -38,7 +39,7 @@ function NotePopup(props) {
   const [t] = useTranslation();
   const popupRef = React.useRef();
 
-  const { popupMenuRef, location } = useOverflowContainer('.normal-notes-container', 'bottom', isOpen);
+  const { popupMenuRef, location } = useOverflowContainer(isOpen, { container: '.normal-notes-container' });
 
   useOnClickOutside(popupRef, () => {
     closePopup();
@@ -76,19 +77,21 @@ function NotePopup(props) {
   const optionsClass = classNames('options note-popup-options', { 'options-reply': isReply });
   return (
     <DataElementWrapper className="NotePopup" dataElement="notePopup" ref={popupRef}>
-      <div
-        role="button"
-        tabIndex={0}
-        className={notePopupButtonClass}
-        onClick={togglePopup}
-        onKeyDown={e => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            togglePopup(e);
-          }
-        }}
-      >
-        <Icon glyph="icon-tools-more" />
-      </div>
+      <Tooltip content={t('formField.formFieldPopup.options')} showOnKeyboardFocus hideOnClick>
+        <div
+          role="button"
+          tabIndex={0}
+          className={notePopupButtonClass}
+          onClick={togglePopup}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              togglePopup(e);
+            }
+          }}
+        >
+          <Icon glyph="icon-tools-more" />
+        </div>
+      </Tooltip>
       {isOpen && (
         <div className={`${optionsClass} ${location}`} ref={popupMenuRef}>
           {isEditable && (

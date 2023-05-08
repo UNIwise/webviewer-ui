@@ -1,21 +1,25 @@
 // CUSTOM WISEFLOW
-import React from 'react';
+import React, { useRef } from 'react';
 import PropTypes from 'prop-types';
 
 import { ShareTypeColors } from 'constants/shareTypes';
 import './ShareTypeIcon.scss';
+import Tooltip from '../Tooltip';
 
 const propTypes = {
   shareType: PropTypes.string, // in ["ASSESSORS", "PARTICIPANTS", "ALL", "NONE"]
-  ariaLabel: PropTypes.string,
+  label: PropTypes.string,
 };
 
 function ShareTypeIcon(props) {
   const shareTypeColor = ShareTypeColors[props.shareType];
+  const iconRef = useRef();
   return (
-    <div className="share-type-icon" aria-label={props.ariaLabel}>
-      <div className="share-type-icon-inner" style={{ backgroundColor: shareTypeColor }} />
-    </div>
+    <Tooltip ref={iconRef} translatedContent={props.label} showOnKeyboardFocus hideOnClick>
+      <div ref={iconRef} className="share-type-icon" aria-label={props.label}>
+        <div className="share-type-icon-inner" style={{ backgroundColor: shareTypeColor }} />
+      </div>
+    </Tooltip>
   );
 }
 

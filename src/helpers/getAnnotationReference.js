@@ -4,7 +4,11 @@
 
 const annotationHashCache = {};
 
-/** Get hash of the annotation information */
+/** 
+ * Get hash of the annotation information
+ * @param {Annotation} annotation
+ * @return {string} The hash of the annotation information
+ */
 function getAnnotationHash(annotation) {
   const annotationHash = annotationHashCache[annotation.Id];
   if (annotationHash) return annotationHash;

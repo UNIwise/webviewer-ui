@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
+import NoteShareType from 'components/NoteShareType';
 import NotePopup from 'components/NotePopup';
-import NoteState from 'components/NoteState';
 import Icon from 'components/Icon';
 import NoteUnpostedCommentIndicator from 'components/NoteUnpostedCommentIndicator';
 import getLatestActivityDate from 'helpers/getLatestActivityDate';
@@ -64,7 +64,7 @@ function NoteHeader(props) {
     isEditing,
     noteIndex,
     sortStrategy,
-    renderAnnotationReference,    
+    renderAnnotationReference,
     activeTheme,
     isMultiSelected,
     isMultiSelectMode,
@@ -75,7 +75,7 @@ function NoteHeader(props) {
 
   const [t] = useTranslation();
   const date = (sortStrategy === NotesPanelSortStrategy.MODIFIED_DATE || (notesShowLastUpdatedDate && sortStrategy !== NotesPanelSortStrategy.CREATED_DATE)) ? getLatestActivityDate(annotation) : annotation.DateCreated;
-  const numberOfReplies = annotation.getReplies().length;
+  // const numberOfReplies = annotation.getReplies().length;
   let color = annotation[iconColor]?.toHexString?.();
 
   if (activeTheme === Theme.DARK && color && isDarkColorHex(color)) {
@@ -159,11 +159,7 @@ function NoteHeader(props) {
               />}
             <NoteUnpostedCommentIndicator annotationId={annotation.Id} />
             {!isNoteStateDisabled && showShareType && !isReply && !isMultiSelectMode && !isGroupMember && isSelected &&
-              <NoteState
-                annotation={annotation}
-                isSelected={isSelected}
-                noteIndex={noteIndex}
-              />
+              <NoteShareType annotation={annotation} />
             }
             {!isEditing && isSelected && !isMultiSelectMode && !isGroupMember &&
               <NotePopup

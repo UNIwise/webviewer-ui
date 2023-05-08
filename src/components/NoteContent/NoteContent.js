@@ -359,6 +359,7 @@ const NoteContent = ({
           isReply={isReply}
           isUnread={isUnread}
           renderAuthorName={renderAuthorName}
+          renderAnnotationReference={renderAnnotationReference}
           isNoteStateDisabled={isNoteStateDisabled}
           isEditing={isEditing}
           noteIndex={noteIndex}

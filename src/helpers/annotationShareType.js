@@ -8,7 +8,7 @@ import getWiseflowCustomValues from 'helpers/getWiseflowCustomValues';
  * @param {Annotation} annot annotation to add share type to
  * @return {string} share type [ASSESSORS, PARTICIPANTS, ALL, NONE]. Defaults to ShareTypes.NONE.
  */
-const getAnnotationShareType = annot => {
+const getAnnotationShareType = (annot) => {
   const { defaultShareType } = getWiseflowCustomValues();
   return annot.getCustomData('shareType') || (defaultShareType ?? ShareTypes.NONE);
 };

@@ -76,10 +76,9 @@ const DataElements = {
   // Filter modal
   ANNOTATION_USER_FILTER_PANEL_BUTTON: 'annotationUserFilterPanelButton',
   ANNOTATION_COLOR_FILTER_PANEL_BUTTON: 'annotationColorFilterPanelButton',
-  ANNOTATION_SHARE_TYPE_FILTER_PANEL_BUTTON: 'annotationColorShareTypePanelButton',
+  ANNOTATION_SHARE_TYPE_FILTER_PANEL_BUTTON: 'annotationShareTypePanelButton',
   ANNOTATION_TYPE_FILTER_PANEL_BUTTON: 'annotationTypeFilterPanelButton',
   ANNOTATION_STATUS_FILTER_PANEL_BUTTON: 'annotationStatusFilterPanelButton',
-  ANNOTATION_CO_ASSESSOR_FILTER_PANEL_BUTTON: 'annotationCoAssessorFilterPanelButton',
 
   // Settings modal
   SETTINGS_GENERAL_BUTTON: 'settingsGeneralButton',

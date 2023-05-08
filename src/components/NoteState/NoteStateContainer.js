@@ -4,8 +4,6 @@ import core from 'core';
 
 import NoteState from './NoteState';
 import { createStateAnnotation } from 'helpers/NoteStateUtils';
-import { setAnnotationShareType } from 'src/helpers/annotationShareType';
-import getAnnotationManager from 'src/core/getAnnotationManager';
 
 
 const propTypes = {
@@ -15,16 +13,13 @@ const propTypes = {
 function NoteStateContainer(props) {
   const { annotation } = props;
 
-  const handleStateChange = React.useCallback(
-    function handleStateChangeCallback(newValue) {
-      // CUSTOM WISEFLOW: Set custom data value called sharetype and trigger annotationChanged event
-
-      // Set share type and trigger annotationChanged "modify" event
-      setAnnotationShareType(annotation, newValue);
-      getAnnotationManager().trigger('annotationChanged', [[annotation], 'modify', {}]);
-    },
-    [annotation],
-  );
+  const handleStateChange = React.useCallback(function handleStateChangeCallback(newValue) {
+    const stateAnnotation = createStateAnnotation(annotation, newValue);
+    annotation.addReply(stateAnnotation);
+    const annotationManager = core.getAnnotationManager();
+    annotationManager.addAnnotation(stateAnnotation);
+    annotationManager.trigger('addReply', [stateAnnotation, annotation, annotationManager.getRootAnnotation(annotation)]);
+  }, [annotation]);
 
   return (
     <div>

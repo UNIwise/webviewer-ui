@@ -1952,11 +1952,10 @@ export default {
     dateTimeFormats: defaultDateTimeFormats,
     thumbnailSelectionMode: 'checkbox',
     annotationFilters: {
-      includeReplies: true,
       authorFilter: [],
       colorFilter: [],
       typeFilter: [],
-      statusFilter: [],
+      shareTypesFilter: [],
     },
     zoomStepFactors: [
       {
