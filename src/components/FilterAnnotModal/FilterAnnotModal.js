@@ -322,7 +322,7 @@ const FilterAnnotModal = () => {
 
   const renderShareTypes = () => {
     return (
-      <div className="status-filters three-column-filter">
+      <div className="share-type-filters one-column-filter" style={{ marginTop: '1em' }}>
         {shareTypes.map((val, index) => {
           return (
             <Choice

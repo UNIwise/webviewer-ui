@@ -69,16 +69,18 @@ const NoteShareTypeMultiControl = ({ multiSelectedAnnotations }) => {
     onClose();
   };
 
+  const isDisabled = !multiSelectedAnnotations.length;
+
   return (
     <div style={{ position: 'relative', display: 'flex' }}>
       <button
-        style={{ padding: '0 3px' }}
+        style={{ padding: '0 3px', opacity: isDisabled ? 0.6 : 1 }}
         dataElement={DataElements.NOTE_MULTI_SHARE_TYPE_BUTTON}
         onClick={togglePopup}
         className={classNames('share-type-icon-button', {
           active: dialogIsOpen,
         })}
-        disabled={!multiSelectedAnnotations.length}
+        disabled={isDisabled}
       >
         <ShareTypeIcon shareType={collectiveShareType} label={t('action.shareType')} />
       </button>

@@ -127,16 +127,16 @@ const MultiSelectControls = ({
   const canUngroup = !canGroup && (multiSelectedAnnotations.length > 2 ||
     (multiSelectedAnnotations.length > 0 && core.getGroupAnnotations(multiSelectedAnnotations[0]).length > 1));
 
-  const handleStateChange = (newValue) => {
-    getParentAnnotations(multiSelectedAnnotations).forEach((annot) => {
-      const stateAnnotation = createStateAnnotation(annot, newValue);
-      annot.addReply(stateAnnotation);
-      const annotationManager = core.getAnnotationManager();
-      annotationManager.addAnnotation(stateAnnotation);
-      annotationManager.trigger('addReply', [stateAnnotation, annot, annotationManager.getRootAnnotation(annot)]);
-    });
-    setShowMultiState(false);
-  };
+  // const handleStateChange = (newValue) => {
+  //   getParentAnnotations(multiSelectedAnnotations).forEach((annot) => {
+  //     const stateAnnotation = createStateAnnotation(annot, newValue);
+  //     annot.addReply(stateAnnotation);
+  //     const annotationManager = core.getAnnotationManager();
+  //     annotationManager.addAnnotation(stateAnnotation);
+  //     annotationManager.trigger('addReply', [stateAnnotation, annot, annotationManager.getRootAnnotation(annot)]);
+  //   });
+  //   setShowMultiState(false);
+  // };
 
   // if (showMultiReply) {
   //   return (
@@ -189,7 +189,9 @@ const MultiSelectControls = ({
             }}
           />} */}
 
-        <NoteShareTypeMultiControl multiSelectedAnnotations={modifiableMultiSelectAnnotations} />
+        {/* Note share type bulk edit */}
+        <NoteShareTypeMultiControl multiSelectedAnnotations={getParentAnnotations(modifiableMultiSelectAnnotations)} />
+
         <Button
           dataElement={DataElements.NOTE_MULTI_STYLE_BUTTON}
           img="icon-menu-style-line"
