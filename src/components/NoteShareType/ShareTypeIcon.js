@@ -2,22 +2,24 @@
 import React, { useRef } from 'react';
 import PropTypes from 'prop-types';
 
-import { ShareTypeColors } from 'constants/shareTypes';
+import ShareTypes, { ShareTypeColors } from 'constants/shareTypes';
 import './ShareTypeIcon.scss';
 import Tooltip from '../Tooltip';
 
 const propTypes = {
   shareType: PropTypes.string, // in ["ASSESSORS", "PARTICIPANTS", "ALL", "NONE"]
-  label: PropTypes.string,
+  label: PropTypes.string.isRequired,
 };
 
 function ShareTypeIcon(props) {
-  const shareTypeColor = ShareTypeColors[props.shareType];
+  const { shareType, label } = props;
+  const shareTypeColor = shareType ? ShareTypeColors[shareType] : undefined;
+  const empty = !shareTypeColor;
   const iconRef = useRef();
   return (
-    <Tooltip ref={iconRef} translatedContent={props.label} showOnKeyboardFocus hideOnClick>
-      <div ref={iconRef} className="share-type-icon" aria-label={props.label}>
-        <div className="share-type-icon-inner" style={{ backgroundColor: shareTypeColor }} />
+    <Tooltip ref={iconRef} translatedContent={label} showOnKeyboardFocus hideOnClick>
+      <div ref={iconRef} className="share-type-icon" aria-label={label}>
+        <div className="share-type-icon-inner" style={{ background: empty ? 'transparent' : shareTypeColor, border: empty ? `2px solid ${ShareTypeColors[ShareTypes.NONE]}` : undefined }} />
       </div>
     </Tooltip>
   );

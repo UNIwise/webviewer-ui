@@ -94,6 +94,7 @@ const DataElements = {
   NOTE_MULTI_SELECT_MODE_BUTTON: 'multiSelectModeButton',
   NOTE_MULTI_REPLY_BUTTON: 'multiReplyButton',
   NOTE_MULTI_STATE_BUTTON: 'multiStateButton',
+  NOTE_MULTI_SHARE_TYPE_BUTTON: 'multiShareTypeButton',
   NOTE_MULTI_STYLE_BUTTON: 'multiStyleButton',
   NOTE_MULTI_GROUP_BUTTON: 'multiGroupButton',
   NOTE_MULTI_UNGROUP_BUTTON: 'multiUngroupButton',

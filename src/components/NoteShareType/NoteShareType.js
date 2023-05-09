@@ -14,6 +14,7 @@ import useOnClickOutside from 'hooks/useOnClickOutside';
 import DataElementWrapper from 'components/DataElementWrapper';
 import ShareTypes from 'constants/shareTypes';
 import ShareTypeIcon from '../NoteShareType/ShareTypeIcon';
+import NoteShareTypeDialog from './NoteShareTypeDialog';
 
 const propTypes = {
   annotation: PropTypes.object.isRequired,
@@ -58,8 +59,6 @@ function NoteShareType(props) {
     onClose();
   });
 
-  const preventAutoClose = (e) => e.stopPropagation();
-
   const handleStateChange = useCallback((newValue) => {
     // CUSTOM WISEFLOW: Set custom data value called sharetype and trigger annotationChanged event
 
@@ -84,62 +83,7 @@ function NoteShareType(props) {
     >
       <button className="share-type-icon-button" onClick={togglePopup}><ShareTypeIcon shareType={shareType} label={annotationTooltip} /></button>
 
-      <dialog
-        ref={dialogRef}
-        style={style}
-        className={classNames('note-share-type-dialog')}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') {
-            onClose();
-          }
-        }}
-      >
-        <div className="note-share-type-popup" onClick={preventAutoClose}>
-          <DataElementWrapper
-            tabbable
-            dataElement="notePopupStateAssessor"
-            type="button"
-            className={classNames('note-sharetype-option', { selected: shareType === ShareTypes.ASSESSORS })}
-            onClick={() => handleStateChange(ShareTypes.ASSESSORS)}
-          >
-            <ShareTypeIcon shareType={ShareTypes.ASSESSORS} />
-            {t('option.state.assessors')}
-          </DataElementWrapper>
-
-          <DataElementWrapper
-            tabbable
-            dataElement="notePopupStateParticipants"
-            type="button"
-            className={classNames('note-sharetype-option', { selected: shareType === ShareTypes.PARTICIPANTS })}
-            onClick={() => handleStateChange(ShareTypes.PARTICIPANTS)}
-          >
-            <ShareTypeIcon shareType={ShareTypes.PARTICIPANTS} />
-            {t('option.state.participants')}
-          </DataElementWrapper>
-
-          <DataElementWrapper
-            tabbable
-            dataElement="notePopupStateAll"
-            type="button"
-            className={classNames('note-sharetype-option', { selected: shareType === ShareTypes.ALL })}
-            onClick={() => handleStateChange(ShareTypes.ALL)}
-          >
-            <ShareTypeIcon shareType={ShareTypes.ALL} />
-            {t('option.state.all')}
-          </DataElementWrapper>
-
-          <DataElementWrapper
-            tabbable
-            dataElement="notePopupStateAssessors"
-            type="button"
-            className={classNames('note-sharetype-option', { selected: shareType === ShareTypes.NONE })}
-            onClick={() => handleStateChange(ShareTypes.NONE)}
-          >
-            <ShareTypeIcon shareType={ShareTypes.NONE} />
-            {t('option.state.none')}
-          </DataElementWrapper>
-        </div>
-      </dialog>
+      <NoteShareTypeDialog onClose={onClose} ref={dialogRef} positionStyle={style} onSelect={handleStateChange} />
     </DataElementWrapper>
   );
 }

@@ -21,6 +21,7 @@ const getAnnotationShareType = (annot) => {
  * @returns {Annotation} annot with share type set
  */
 const setAnnotationShareType = (annot, shareType) => {
+  console.log('annot:', annot);
   annot.setCustomData('shareType', shareType);
   return annot;
 };
