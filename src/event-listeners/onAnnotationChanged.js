@@ -13,7 +13,7 @@ export default (documentViewerKey) => (annotations, action, info) => {
   const selectAnnotationOnCreation = getHashParameters('selectAnnotationOnCreation', true);
   if (selectAnnotationOnCreation) {
     if (action === 'add' && !info.imported) {
-      const isFreeTextAnnot = annotations[0] instanceof window.Annotations.FreeTextAnnotation;
+      const isFreeTextAnnot = annotations[0] instanceof window.Core.Annotations.FreeTextAnnotation;
       if (annotations.length > 0 && !annotations[0].InReplyTo && !isFreeTextAnnot) {
         core.selectAnnotation(annotations[0]);
       }
