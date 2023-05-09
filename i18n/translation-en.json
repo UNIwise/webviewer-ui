@@ -323,7 +323,8 @@
       "color": "Color",
       "createdDate": "Created Date",
       "modifiedDate": "Modified Date",
-      "shareType": "Share type"
+      "shareType": "Share type",
+      "coAssessor": "Co-assessor"
     },
     "toolbarGroup": {
       "dropdownLabel": "Toolbar Groups",

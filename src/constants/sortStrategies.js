@@ -149,7 +149,7 @@ const sortStrategies = {
       return i18next.t(`option.state.${getAnnotationShareType(currNote).toLowerCase()}`);
     },
   },
-  author: {
+  coAssessor: {
     getSortedNotes: (notes) => notes.sort((a, b) => {
       const authorA = core.getDisplayAuthor(a['Author'])?.toUpperCase();
       const authorB = core.getDisplayAuthor(b['Author'])?.toUpperCase();
