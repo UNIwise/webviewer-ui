@@ -142,7 +142,7 @@ const NoteContent = ({
   );
 
   const renderAnnotationReference = useCallback(
-    annotation => {
+    (annotation) => {
       const annotationReference = getAnnotationReference(annotation);
       return highlightSearchInput(annotationReference, searchInput);
     },
@@ -288,33 +288,33 @@ const NoteContent = ({
       contentStyle.color = textColor.toHexString();
     }
 
-      return (
-        <>
-          {(isEditing && isSelected) ? (
-            <ContentArea
-              annotation={annotation}
-              noteIndex={noteIndex}
-              setIsEditing={setIsEditing}
-              textAreaValue={textAreaValue}
-              onTextAreaValueChange={setPendingEditText}
-              pendingText={pendingEditTextMap[annotation.Id]}
-            />
-          ) : (
-            contentsToRender && (
-              <div className={classNames('container', { 'reply-content': isReply })} onClick={handleContentsClicked}>
-                {isReply && (attachments.length > 0) && (
-                  <ReplyAttachmentList
-                    files={attachments}
-                    isEditing={false}
-                  />
-                )}
-                {renderContents(contentsToRender, richTextStyle, contentStyle)}
-              </div>
-            )
-          )}
-        </>
-      );
-    },
+    return (
+      <>
+        {(isEditing && isSelected) ? (
+          <ContentArea
+            annotation={annotation}
+            noteIndex={noteIndex}
+            setIsEditing={setIsEditing}
+            textAreaValue={textAreaValue}
+            onTextAreaValueChange={setPendingEditText}
+            pendingText={pendingEditTextMap[annotation.Id]}
+          />
+        ) : (
+          contentsToRender && (
+            <div className={classNames('container', { 'reply-content': isReply })} onClick={handleContentsClicked}>
+              {isReply && (attachments.length > 0) && (
+                <ReplyAttachmentList
+                  files={attachments}
+                  isEditing={false}
+                />
+              )}
+              {renderContents(contentsToRender, richTextStyle, contentStyle)}
+            </div>
+          )
+        )}
+      </>
+    );
+  },
     [annotation, isSelected, isEditing, setIsEditing, contents, renderContents, textAreaValue, setPendingEditText, attachments]
   );
 
@@ -324,25 +324,25 @@ const NoteContent = ({
       return null;
     }
 
-      const highlightSearchResult = highlightSearchInput(text, searchInput);
-      const shouldCollapseAnnotationText = !isReply && canCollapseTextPreview;
-      // If we have a search result do not use text
-      // preview but instead show the entire text
-      if (isString(highlightSearchResult) && shouldCollapseAnnotationText) {
-        return (
-          <div className="selected-text-preview">
-            <NoteTextPreview linesToBreak={3}>
-              {`"${highlightSearchResult}"`}
-            </NoteTextPreview>
-          </div>
-        );
-      }
+    const highlightSearchResult = highlightSearchInput(text, searchInput);
+    const shouldCollapseAnnotationText = !isReply && canCollapseTextPreview;
+    // If we have a search result do not use text
+    // preview but instead show the entire text
+    if (isString(highlightSearchResult) && shouldCollapseAnnotationText) {
       return (
-        <div className="selected-text-preview" style={{ paddingRight: '12px' }}>
-          {highlightSearchResult}
+        <div className="selected-text-preview">
+          <NoteTextPreview linesToBreak={3}>
+            {`"${highlightSearchResult}"`}
+          </NoteTextPreview>
         </div>
       );
-    }, [text, searchInput]);
+    }
+    return (
+      <div className="selected-text-preview" style={{ paddingRight: '12px' }}>
+        {highlightSearchResult}
+      </div>
+    );
+  }, [text, searchInput]);
 
   const header = useMemo(
     () => {
@@ -553,19 +553,6 @@ const ContentArea = ({
         onFocus={onFocus}
       />
       <div className="edit-buttons">
-        {annotation.getContents() !== undefined && (
-          <button
-            className="cancel-button"
-            onClick={e => {
-              e.stopPropagation();
-              setIsEditing(false, noteIndex);
-              // Clear pending text
-              onTextAreaValueChange(undefined, annotation.Id);
-            }}
-          >
-            {t('action.cancel')}
-          </button>
-        )}
         <button
           className="cancel-button"
           onClick={(e) => {

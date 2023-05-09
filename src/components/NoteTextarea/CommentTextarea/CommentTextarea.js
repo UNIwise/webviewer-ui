@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import ReactQuill from 'react-quill';
 import 'quill-mention';
 import mentionsManager from 'helpers/MentionsManager';

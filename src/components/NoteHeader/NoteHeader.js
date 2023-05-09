@@ -134,16 +134,6 @@ function NoteHeader(props) {
                 {isGroupMember && ` (Page ${annotation.PageNumber})`}
               </div>
             </div>
-            <div className="annotId">
-              <span>
-                {t('annotation.reference')}: {renderAnnotationReference(annotation)}
-              </span>
-              <Tooltip content={copied ? t('action.copied') : copyTooltipText} showOnKeyboardFocus>
-                <button onClick={handleCopyAnnotId} className={'copy-reference-button'} aria-label={copyTooltipText}>
-                  <Icon glyph="icon-header-page-manipulation-page-transition-reader" />
-                </button>
-              </Tooltip>
-            </div>
           </div>
 
           <div className="state-and-overflow">
@@ -169,6 +159,16 @@ function NoteHeader(props) {
                 isReply={isReply}
               />}
           </div>
+        </div>
+        <div className="annotId">
+          <span>
+            {renderAnnotationReference(annotation)}
+          </span>
+          <Tooltip content={copied ? t('action.copied') : copyTooltipText} showOnKeyboardFocus>
+            <button onClick={handleCopyAnnotId} className={'copy-reference-button'} aria-label={copyTooltipText}>
+              <Icon glyph="icon-header-page-manipulation-page-transition-reader" />
+            </button>
+          </Tooltip>
         </div>
       </div>
     </div>
