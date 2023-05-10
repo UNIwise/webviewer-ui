@@ -1856,7 +1856,7 @@ export default {
       linkModal: 'URLPanelButton',
       rubberStampTab: 'standardStampPanelButton',
       filterAnnotModal: DataElements.ANNOTATION_USER_FILTER_PANEL_BUTTON,
-      settingsModal: DataElements.SETTINGS_GENERAL_BUTTON,
+      settingsModal: DataElements.SETTINGS_KEYBOARD_BUTTON, // As others are disabled, set initial settings to keyboard tab
       savedSignatures: DataElements.SAVED_SIGNATURES_PANEL_BUTTON,
       openFileModal: 'urlInputPanelButton',
       insertPageModal: 'insertBlankPagePanelButton'
