@@ -1,0 +1,24 @@
+name: Node.js CI
+
+on:
+  push:
+    branches: ['10.0-wf']
+  # pull_request:
+  #   branches: ['master']
+
+jobs:
+  branchname:
+    runs-on: self-hosted
+    outputs:
+      branchname: ${{ steps.branchname.outputs.branch }}
+    steps:
+      - name: Get branch name for destination folder
+        shell: bash
+        run: echo "branch=${GITHUB_REF##*/}" >> $GITHUB_ENV
+        id: branchname
+  deploy:
+    uses: UNIwise/workflows/.github/workflows/gh-pages.yaml@gh-pages-cdn
+    with:
+      source-directory: 'build'
+      dest-directory: '${{ needs.branchname.outputs.branchname }}/ui'
+      action-deploy-access-token: ${{ secrets.ACTION_DEPLOY_ACCESS_TOKEN }}
