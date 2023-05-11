@@ -33,5 +33,5 @@ jobs:
         run: yarn gh-pages --dist ${source-directory} --dest ${dest-directory}
     env:
       github_token: ${{ secrets.GITHUB_TOKEN }}
-      source-directory: 'build'
-      dest-directory: '${GITHUB_REF##*/}/ui'
+      source-directory: ./build
+      dest-directory: ${GITHUB_REF##*/}/ui
