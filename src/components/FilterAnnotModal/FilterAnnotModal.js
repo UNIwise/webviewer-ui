@@ -218,7 +218,6 @@ const FilterAnnotModal = () => {
 
   useEffect(() => {
     if (isOpen) {
-      console.log(' annotationFilters:', annotationFilters);
       setAuthorFilter(annotationFilters.authorFilter);
       setColorFilter(annotationFilters.colorFilter);
       setTypesFilter(annotationFilters.typeFilter);
