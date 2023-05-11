@@ -15,8 +15,8 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: 16.*
-          cache: "yarn"
-          cache-dependency-path: "./yarn.lock"
+          cache: 'yarn'
+          cache-dependency-path: './yarn.lock'
       - name: Install Dependencies
         run: yarn install --frozen-lockfile
       - name: Build
@@ -25,11 +25,9 @@ jobs:
         run: |
           git config --global user.name $user_name
           git config --global user.email $user_email
-          git remote set-url origin https://${github_token}@github.com/${repository}
+          git remote set-url origin https://${{ secrets.GITHUB_TOKEN }}@github.com/${{github.repository}}
         env:
-          user_name: "github-actions[bot]"
-          user_email: "github-actions[bot]@users.noreply.github.com"
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
       - name: Deploy
         run: yarn gh-pages --dist "./build" --dest "${GITHUB_REF##*/}/ui"
-    env:
-      github_token: ${{ secrets.GITHUB_TOKEN }}
