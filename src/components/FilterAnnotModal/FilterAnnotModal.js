@@ -387,7 +387,7 @@ const FilterAnnotModal = () => {
                   <div className="tab-list">
                     <Tab dataElement={DataElements.ANNOTATION_USER_FILTER_PANEL_BUTTON}>
                       <button className="tab-options-button">
-                        {t('option.filterAnnotModal.user')}
+                        {t('option.filterAnnotModal.coAssessor')}
                       </button>
                     </Tab>
                     <div className="tab-options-divider" />
