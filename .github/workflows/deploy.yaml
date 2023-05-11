@@ -6,35 +6,21 @@ on:
     # branches: ['release/*']
 
 jobs:
-  branchname:
-    runs-on: self-hosted
-    outputs:
-      branchname: ${{ steps.branchname.outputs.branch }}
-    steps:
-      - name: Get branch name for destination folder
-        shell: bash
-        run: echo "branch=${GITHUB_REF##*/}" >> $GITHUB_ENV
-        id: branchname
   deploy:
     runs-on: self-hosted
-    needs: [branchname]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Setup Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: ${{ inputs.node-version }}
+          node-version: 16.*
           cache: "yarn"
           cache-dependency-path: "./yarn.lock"
       - name: Install Dependencies
         run: yarn install --frozen-lockfile
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_READ_TOKEN }}
       - name: Build
         run: yarn build
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Set remote git repository
         run: |
           git config --global user.name $user_name
@@ -44,8 +30,8 @@ jobs:
           user_name: "github-actions[bot]"
           user_email: "github-actions[bot]@users.noreply.github.com"
       - name: Deploy
-        run: yarn gh-pages --dist ${dest-directory} --dest ${dest-directory}
+        run: yarn gh-pages --dist ${source-directory} --dest ${dest-directory}
     env:
-      github_token: ${{ secrets.ACTION_DEPLOY_ACCESS_TOKEN }}
+      github_token: ${{ secrets.GITHUB_TOKEN }}
       source-directory: 'build'
-      dest-directory: '${{ needs.branchname.outputs.branchname }}/ui'
+      dest-directory: '${GITHUB_REF##*/}/ui'
