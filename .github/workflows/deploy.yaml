@@ -1,33 +1,33 @@
 name: Deploy to gh pages (1)
 
 on:
-  push:
-    branches: ['10.0-wf']
-    # branches: ['release/*']
+  release:
+    types: [published]
 
 jobs:
-  deploy:
+  publish:
     runs-on: self-hosted
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
       - name: Setup Node.js
         uses: actions/setup-node@v2
         with:
           node-version: 16.*
           cache: 'yarn'
           cache-dependency-path: './yarn.lock'
+
       - name: Install Dependencies
         run: yarn install --frozen-lockfile
+
       - name: Build
         run: yarn build
-      - name: Set remote git repository
-        run: |
-          git config --global user.name $user_name
-          git config --global user.email $user_email
-          git remote set-url origin https://${{ secrets.GITHUB_TOKEN }}@github.com/${{github.repository}}
+        
+      - name: Version
+        run: yarn version --new-version "${GITHUB_REF:11}" --no-git-tag-version
+
+      - name: Publish
+        run: yarn publish
         env:
-          user_name: 'github-actions[bot]'
-          user_email: 'github-actions[bot]@users.noreply.github.com'
-      - name: Deploy
-        run: yarn gh-pages --dist "./build" --dest "${GITHUB_REF##*/}/ui"
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

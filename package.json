@@ -3,7 +3,9 @@
   "author": "Apryse Software Inc.",
   "version": "10.0.1",
   "description": "WebViewer UI built in React",
-  "main": "src/index.js",
+  "files": [
+    "./build"
+  ],
   "scripts": {
     "start": "npx babel-node ./dev-server.js",
     "download-webviewer": "npx @pdftron/webviewer-downloader --core-only --path ./lib",
