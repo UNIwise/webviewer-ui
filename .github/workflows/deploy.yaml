@@ -1,4 +1,4 @@
-name: Deploy to gh pages (1)
+name: Deploy to @uniwise/webviewer-ui npm package
 
 on:
   release:
@@ -16,6 +16,7 @@ jobs:
         with:
           node-version: 16.x
           registry-url: https://npm.pkg.github.com/
+          always-auth: true
           scope: '@uniwise'
 
       - name: Install Dependencies
