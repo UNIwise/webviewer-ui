@@ -1,11 +1,14 @@
 {
-  "name": "webviewer-ui",
+  "name": "@uniwise/webviewer-ui",
   "author": "Apryse Software Inc.",
   "version": "10.0.1",
   "description": "WebViewer UI built in React",
   "files": [
     "./build"
   ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "start": "npx babel-node ./dev-server.js",
     "download-webviewer": "npx @pdftron/webviewer-downloader --core-only --path ./lib",
