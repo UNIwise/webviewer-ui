@@ -96,6 +96,7 @@ const NotesPanel = ({ currentLeftPanelWidth }) => {
       setNotes([]);
       setSelectedNoteIds({});
       setSearchInput('');
+      setMultiSelectMode(false);
     };
     core.addEventListener('documentUnloaded', onDocumentUnloaded);
     return () => core.removeEventListener('documentUnloaded', onDocumentUnloaded);
@@ -176,7 +177,7 @@ const NotesPanel = ({ currentLeftPanelWidth }) => {
     const content = note.getContents();
     const authorName = core.getDisplayAuthor(note['Author']);
     const annotationPreview = note.getCustomData('trn-annot-preview');
-    
+
     /** CUSTOM WISEFLOW */
     const reference = getAnnotationReference(note);
 
@@ -243,7 +244,7 @@ const NotesPanel = ({ currentLeftPanelWidth }) => {
 
   // debounced callback to fire unpostedAnnotationsChanged event
   const onUnpostedAnnotationChanged = useCallback(
-    debounce(pendingEditTextMap => {
+    debounce((pendingEditTextMap) => {
       const unpostedAnnotationsCount = Object.values(pendingEditTextMap).reduce((count, pendingText) => {
         if (pendingText !== undefined) {
           return count + 1;
