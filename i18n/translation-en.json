@@ -89,6 +89,7 @@
     "open": "Open",
     "deselectAll": "Deselect All",
     "select": "Select",
+    "selectAll": "Select all",
     "moveToTop": "Move to top",
     "moveToBottom": "Move to bottom",
     "backToMenu": "Back to Menu",
