@@ -91,6 +91,7 @@ const DataElements = {
   SAVED_SIGNATURES_TAB: 'signatureModalSavedSignaturesTab',
 
   // Notes panel - multi select
+  NOTE_MULTI_SELECT_ALL_BUTTON: 'multiSelectAllButton',
   NOTE_MULTI_SELECT_MODE_BUTTON: 'multiSelectModeButton',
   NOTE_MULTI_REPLY_BUTTON: 'multiReplyButton',
   NOTE_MULTI_STATE_BUTTON: 'multiStateButton',

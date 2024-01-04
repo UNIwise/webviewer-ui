@@ -64,6 +64,7 @@ import getOutlines from './getOutlines';
 import getSelectedAnnotations from './getSelectedAnnotations';
 import updateCopiedAnnotations from './updateCopiedAnnotations';
 import pasteCopiedAnnotations from './pasteCopiedAnnotations';
+import selectAllAnnotations from './selectAllAnnotations';
 import selectAnnotation from './selectAnnotation';
 import selectAnnotations from './selectAnnotations';
 import addAnnotations from './addAnnotations';
@@ -210,6 +211,7 @@ export default {
   getSelectedAnnotations,
   updateCopiedAnnotations,
   pasteCopiedAnnotations,
+  selectAllAnnotations,
   selectAnnotation,
   selectAnnotations,
   addAnnotations,

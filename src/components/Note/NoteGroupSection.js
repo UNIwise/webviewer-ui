@@ -71,6 +71,7 @@ const NoteGroupSection = ({
                 e.stopPropagation();
                 core.selectAnnotation(groupAnnotation);
                 core.jumpToAnnotation(groupAnnotation);
+                console.log("here");
                 dispatch(actions.openElement('annotationPopup'));
               }}
             >
