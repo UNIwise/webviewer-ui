@@ -130,6 +130,20 @@ function NotesPanelHeader({
             title={t('component.multiSelectButton')}
           />
           <Button
+            disabled={notes.length === 0}
+            dataElement={DataElements.NOTE_MULTI_SELECT_ALL_BUTTON}
+            title={t('action.selectAll')}
+            onClick={() => {
+              const annots = core.getAnnotationsList().filter((annot) => annot.Subject !== null);
+              if (annots.length === core.getSelectedAnnotations().length) {
+                core.deselectAllAnnotations();
+                return;
+              }
+              core.selectAllAnnotations();
+            }}
+            img="icon-header-page-manipulation-page-transition-reader"
+          />
+          <Button
             dataElement="filterAnnotationButton"
             className={classNames({
               filterAnnotationButton: true,
