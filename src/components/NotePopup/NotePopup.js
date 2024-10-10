@@ -31,7 +31,7 @@ const propTypes = {
   isReply: PropTypes.bool,
 };
 
-function noop() { }
+function noop() {}
 
 function NotePopup(props) {
   const {
