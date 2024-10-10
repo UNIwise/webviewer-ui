@@ -516,7 +516,7 @@ const FilterAnnotModal = ({ isInFormBuilderMode }) => {
                     checked={checkRepliesForAuthorFilter}
                     onChange={(e) => setCheckRepliesForAuthorFilter(e.target.checked)}
                     id="filter-annot-modal-include-replies"
-                  />
+                  /> */}
                   <Choice
                     label={t('option.filterAnnotModal.filterDocument')}
                     checked={isDocumentFilterActive}

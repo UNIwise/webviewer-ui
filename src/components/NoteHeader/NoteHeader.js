@@ -28,7 +28,6 @@ import getWiseflowCustomValues from 'helpers/getWiseflowCustomValues';
 import Tooltip from '../Tooltip';
 
 const { Annotations } = window.Core;
-
 const propTypes = {
   icon: PropTypes.string,
   iconColor: PropTypes.string,
@@ -324,9 +323,9 @@ function NoteHeader(props) {
             )}
           </div>
         </div>
-        <div className="annotId">
+        <div className="annot-id">
           <span>{renderAnnotationReference(annotation)}</span>
-          <Tooltip content={copied ? t('action.copied') : copyTooltipText} showOnKeyboardFocus>
+          <Tooltip content={copied ? t('action.copied') : copyTooltipText} hideOnClick={false}>
             <button onClick={handleCopyAnnotId} className={'copy-reference-button'} aria-label={copyTooltipText}>
               <Icon glyph="icon-header-page-manipulation-page-transition-reader" />
             </button>
