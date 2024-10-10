@@ -28,13 +28,17 @@ function NoteShareType(props) {
   const wrapperRef = useRef();
   const [shareType, setShareType] = useState(getAnnotationShareType(annotation) || ShareTypes.NONE);
 
-  const { popupMenuRef: dialogRef, style } = useOverflowContainer(isOpen, { container: '.normal-notes-container', offset: 25 });
+  const { popupMenuRef: dialogRef, style } = useOverflowContainer(isOpen, {
+    container: '.normal-notes-container',
+    offset: 25,
+  });
 
   const isOwnedByCurrentUser = annotation.Author === core.getCurrentUser();
 
-  const annotationTooltip = useMemo(() => `${t('option.notesOrder.shareType')}: ${t(
-    `option.state.${shareType.toLowerCase()}`,
-  )}`, [shareType]);
+  const annotationTooltip = useMemo(
+    () => `${t('option.notesOrder.shareType')}: ${t(`option.state.${shareType.toLowerCase()}`)}`,
+    [shareType],
+  );
 
   const onClose = () => {
     dialogRef.current?.close();
@@ -59,15 +63,15 @@ function NoteShareType(props) {
     onClose();
   });
 
-  const handleStateChange = useCallback((newValue) => {
-    // CUSTOM WISEFLOW: Set custom data value called sharetype and trigger annotationChanged event
-
-    // Set share type and trigger annotationChanged "modify" event
-    setAnnotationShareType(annotation, newValue);
-    getAnnotationManager().trigger('annotationChanged', [[annotation], 'modify', {}]);
-    setShareType(newValue);
-    onClose();
-  }, [annotation]);
+  const handleStateChange = useCallback(
+    (newValue) => {
+      setAnnotationShareType(annotation, newValue);
+      getAnnotationManager().trigger('annotationChanged', [[annotation], 'modify', {}]);
+      setShareType(newValue);
+      onClose();
+    },
+    [annotation],
+  );
 
   return (
     <DataElementWrapper
@@ -81,7 +85,9 @@ function NoteShareType(props) {
       }}
       ref={wrapperRef}
     >
-      <button className="share-type-icon-button" onClick={togglePopup}><ShareTypeIcon shareType={shareType} label={annotationTooltip} /></button>
+      <button className="share-type-icon-button" onClick={togglePopup}>
+        <ShareTypeIcon shareType={shareType} label={annotationTooltip} />
+      </button>
 
       <NoteShareTypeDialog onClose={onClose} ref={dialogRef} positionStyle={style} onSelect={handleStateChange} />
     </DataElementWrapper>

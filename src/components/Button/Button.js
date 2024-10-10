@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { useSelector, shallowEqual } from 'react-redux';
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
@@ -12,7 +12,7 @@ import { createAnnouncement } from 'helpers/accessibility';
 
 import './Button.scss';
 
-const NOOP = (e) => {
+const NOOP = e => {
   e?.stopPropagation();
   e?.preventDefault();
 };
@@ -40,9 +40,10 @@ const propTypes = {
   children: PropTypes.node,
 };
 
-const Button = (props) => {
+// eslint-disable-next-line react/display-name
+const Button = forwardRef((props, ref) => {
   const [removeElement, isCustomUI, customOverrides = {}, activeDocumentViewerKey = 1] = useSelector(
-    (state) => [
+    state => [
       selectors.isElementDisabled(state, props.dataElement),
       selectors.getFeatureFlags(state)?.customizableUI,
       selectors.getCustomElementOverrides(state, props.dataElement),
@@ -119,7 +120,7 @@ const Button = (props) => {
       }
     };
   } else {
-    onClickHandler = (e) => {
+    onClickHandler = e => {
       createAnnouncement(onClickAnnouncement);
       getClickMiddleWare()?.(dataElement, { type: ClickedItemTypes.BUTTON });
       if (onClick) {
@@ -129,11 +130,11 @@ const Button = (props) => {
   }
 
   // if there is no file extension then assume that this is a glyph
-  const isGlyph =
-    img && !isBase64 && (!img.includes('.') || img.startsWith('<svg'));
+  const isGlyph = img && !isBase64 && (!img.includes('.') || img.startsWith('<svg'));
   const shouldRenderTooltip = !!title;
   const children = (
     <button
+      ref={ref}
       className={classNames({
         Button: true,
         active: isActive && !actuallyDisabled,
@@ -192,14 +193,13 @@ const Button = (props) => {
       hideShortcut={hideTooltipShortcut || actuallyDisabled}
       forcePosition={forceTooltipPosition}
       hideOnClick={hideOnClick}
-      showOnKeyboardFocus
     >
       {children}
     </Tooltip>
   ) : (
     children
   );
-};
+});
 
 Button.propTypes = propTypes;
 

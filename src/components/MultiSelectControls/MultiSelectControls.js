@@ -33,7 +33,7 @@ const propTypes = {
 
 const getParentAnnotations = (annotations, documentViewerKey = 1) => {
   const annotSet = new Set();
-  annotations.forEach((annotation) => {
+  annotations.forEach(annotation => {
     if (annotation.isGrouped()) {
       const parentAnnotation = core.getAnnotationById(annotation['InReplyTo'], documentViewerKey);
       if (parentAnnotation) {
@@ -57,10 +57,7 @@ const MultiSelectControls = ({
   setIsMultiSelectedMap,
   multiSelectedAnnotations,
 }) => {
-  const [
-    modifiableMultiSelectAnnotations,
-    setModifiableMultiSelectAnnotations,
-  ] = useState([]);
+  const [modifiableMultiSelectAnnotations, setModifiableMultiSelectAnnotations] = useState([]);
   const dispatch = useDispatch();
   const [t] = useTranslation();
 
@@ -129,7 +126,7 @@ const MultiSelectControls = ({
   }, []);
 
   useEffect(() => {
-    const _modifiableMultiSelectAnnotations = multiSelectedAnnotations.filter((multiSelectedAnnot) => {
+    const _modifiableMultiSelectAnnotations = multiSelectedAnnotations.filter(multiSelectedAnnot => {
       return core.canModify(multiSelectedAnnot, activeDocumentViewerKey);
     });
     setModifiableMultiSelectAnnotations(_modifiableMultiSelectAnnotations);
@@ -137,8 +134,11 @@ const MultiSelectControls = ({
 
   const numberOfGroups = core.getNumberOfGroups(modifiableMultiSelectAnnotations, activeDocumentViewerKey);
   const canGroup = numberOfGroups > 1;
-  const canUngroup = !canGroup && (modifiableMultiSelectAnnotations.length > 2 ||
-    (modifiableMultiSelectAnnotations.length > 0 && core.getGroupAnnotations(modifiableMultiSelectAnnotations[0], activeDocumentViewerKey).length > 1));
+  const canUngroup =
+    !canGroup &&
+    (modifiableMultiSelectAnnotations.length > 2 ||
+      (modifiableMultiSelectAnnotations.length > 0 &&
+        core.getGroupAnnotations(modifiableMultiSelectAnnotations[0], activeDocumentViewerKey).length > 1));
 
   // const handleStateChange = useCallback((newValue) => {
   //   getParentAnnotations(multiSelectedAnnotations, activeDocumentViewerKey).forEach((annot) => {
@@ -192,6 +192,10 @@ const MultiSelectControls = ({
           isMultiSelectMode={true}
           handleStateChange={handleStateChange}
         />*/}
+
+        {/* WISEflow: Sharetype bulk control */}
+        <NoteShareTypeMultiControl multiSelectedAnnotations={modifiableMultiSelectAnnotations} />
+
         <Button
           dataElement={DataElements.NOTE_MULTI_STYLE_BUTTON}
           img="icon-menu-style-line"
@@ -201,15 +205,18 @@ const MultiSelectControls = ({
           }}
           title="action.style"
         />
-        {showMultiStyle &&
+
+
+        {showMultiStyle && (
           <MultiStylePopup
             annotations={modifiableMultiSelectAnnotations}
             triggerElementName="multiStyleButton"
             onClose={() => {
               setShowMultiStyle(false);
             }}
-          />}
-        {!canUngroup &&
+          />
+        )}
+        {/* {!canUngroup &&
           <Button
             dataElement={DataElements.NOTE_MULTI_GROUP_BUTTON}
             disabled={isDocumentReadOnly || !canGroup}
@@ -218,8 +225,8 @@ const MultiSelectControls = ({
               core.groupAnnotations(multiSelectedAnnotations[0], multiSelectedAnnotations, activeDocumentViewerKey);
             }}
             title="action.group"
-          />}
-        {canUngroup &&
+          />} */}
+        {canUngroup && (
           <Button
             dataElement={DataElements.NOTE_MULTI_UNGROUP_BUTTON}
             img="ungroup-annotations-icon"
@@ -227,7 +234,8 @@ const MultiSelectControls = ({
               core.ungroupAnnotations(multiSelectedAnnotations, activeDocumentViewerKey);
             }}
             title="action.ungroup"
-          />}
+          />
+        )}
         <Button
           dataElement={DataElements.NOTE_MULTI_DELETE_BUTTON}
           disabled={isDocumentReadOnly || modifiableMultiSelectAnnotations.length === 0}
@@ -250,9 +258,7 @@ const MultiSelectControls = ({
           title="action.delete"
         />
       </div>
-      <div
-        className="close-container"
-      >
+      <div className="close-container">
         <Button
           className="close-icon-container"
           onClick={() => {

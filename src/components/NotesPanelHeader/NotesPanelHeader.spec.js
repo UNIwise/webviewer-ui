@@ -54,9 +54,9 @@ describe('NotesPanelHeader', () => {
         </Provider>
       );
 
-      screen.getByPlaceholderText('Search comments');
+      screen.getByPlaceholderText('Search annotations'); // WISEflow term change
       screen.getByText('Sort:');
-      screen.getByText('Comments (0)');
+      screen.getByText('Annotations (0)'); // WISEflow term change
     });
 
     it('Should not render NotesPanelHeader if disabled', () => {
@@ -68,9 +68,9 @@ describe('NotesPanelHeader', () => {
         </Provider>
       );
 
-      expect(screen.queryByPlaceholderText('Search comments')).not.toBeInTheDocument;
+      expect(screen.queryByPlaceholderText('Search annotations')).not.toBeInTheDocument; // WISEflow term change
       expect(screen.queryByText('Sort:')).not.toBeInTheDocument;
-      expect(screen.queryByText('Comments (0)')).not.toBeInTheDocument;
+      expect(screen.queryByText('Annotations (0)')).not.toBeInTheDocument; // WISEflow term change
     });
 
     it('Should not render search input if disabled', () => {
@@ -85,9 +85,9 @@ describe('NotesPanelHeader', () => {
         </Provider>
       );
 
-      expect(screen.queryByPlaceholderText('Search comments')).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('Search annotations')).not.toBeInTheDocument(); // WISEflow term change
       screen.getByText('Sort:');
-      screen.getByText('Comments (0)');
+      screen.getByText('Annotations (0)'); // WISEflow term change
     });
 
     it('Should not render comments counter if disabled', () => {
@@ -102,9 +102,9 @@ describe('NotesPanelHeader', () => {
         </Provider>
       );
 
-      screen.getByPlaceholderText('Search comments');
+      screen.getByPlaceholderText('Search annotations'); // WISEflow term change
       screen.getByText('Sort:');
-      expect(screen.queryByText('Comments (0)')).not.toBeInTheDocument;
+      expect(screen.queryByText('Annotations (0)')).not.toBeInTheDocument; // WISEflow term change
     });
 
     it('Should not render sorting row if disabled', () => {
@@ -120,9 +120,9 @@ describe('NotesPanelHeader', () => {
         </Provider>
       );
 
-      screen.getByPlaceholderText('Search comments');
+      screen.getByPlaceholderText('Search annotations'); // WISEflow term change
       expect(screen.queryByText('Sort:')).not.toBeInTheDocument();
-      screen.getByText('Comments (0)');
+      screen.getByText('Annotations (0)'); // WISEflow term change
     });
 
     it('Should have Aria Label on the dropdown', () => {

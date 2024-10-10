@@ -30,7 +30,7 @@ const propTypes = {
   noteId: PropTypes.string,
 };
 
-function noop() { }
+function noop() {}
 
 function NotePopup(props) {
   const {

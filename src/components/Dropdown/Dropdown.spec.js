@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { within } from '@testing-library/dom';
 import { Basic as BasicStory, DropdownWithInput, DropdownWithInputAndNoSearch, ImageDropdown } from './Dropdown.stories';
 import userEvent from '@testing-library/user-event';
 
@@ -32,10 +33,11 @@ describe('Dropdown component', () => {
     expect(dropDownCombobox).toBeInTheDocument();
     expect(dropDownCombobox.getAttribute('aria-expanded')).toEqual('true');
 
+    // WISEflow: Changed status translation to Share Type
     // click Status button and make sure active element is changed to Status
-    const statusOption = screen.getByRole('option', { name: 'Status' });
-    userEvent.click(statusOption);
-    expect(dropDownCombobox).toHaveTextContent('Status');
+    const statusButton = within(dropdownItems).getByText('Share Type');
+    fireEvent.click(statusButton);
+    expect(dropDownCombobox).toHaveTextContent('Share Type');
   });
 });
 
