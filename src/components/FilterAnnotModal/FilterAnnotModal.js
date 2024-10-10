@@ -500,12 +500,12 @@ const FilterAnnotModal = ({ isInFormBuilderMode }) => {
               <fieldset className="settings-body">
                 <legend id="filter-settings" className="settings-header">{t('option.filterAnnotModal.filterSettings')}</legend>
                 <div className="settings" role="group" aria-labelledby='filter-settings'>
-                  <Choice
+                  {/* <Choice
                     label={t('option.filterAnnotModal.includeReplies')}
                     checked={checkRepliesForAuthorFilter}
                     onChange={(e) => setCheckRepliesForAuthorFilter(e.target.checked)}
                     id="filter-annot-modal-include-replies"
-                  />
+                  /> */}
                   <Choice
                     label={t('option.filterAnnotModal.filterDocument')}
                     checked={isDocumentFilterActive}

@@ -54,8 +54,6 @@ function NotePopup(props) {
       handleDelete();
     }
   };
-    }
-  };
 
   if (!isEditable && !isDeletable) {
     return null;

@@ -16,7 +16,6 @@ import './Tooltip.scss';
 const propTypes = {
   children: PropTypes.element.isRequired,
   content: PropTypes.string,
-  translatedContent: PropTypes.string,
   hideShortcut: PropTypes.bool,
   forcePosition: PropTypes.string,
   hideOnClick: PropTypes.bool,
@@ -24,7 +23,12 @@ const propTypes = {
 };
 
 const isMouseOverElement = (elementBoundingRect, e) => {
-  return e.clientX >= elementBoundingRect.left && e.clientX <= elementBoundingRect.right && e.clientY >= elementBoundingRect.top && e.clientY <= elementBoundingRect.bottom;
+  return (
+    e.clientX >= elementBoundingRect.left &&
+    e.clientX <= elementBoundingRect.right &&
+    e.clientY >= elementBoundingRect.top &&
+    e.clientY <= elementBoundingRect.bottom
+  );
 };
 
 const Tooltip = forwardRef(({ content = '', translatedContent, children, hideShortcut, forcePosition, hideOnClick = true, xOffset = 0 }, ref) => {
@@ -34,7 +38,7 @@ const Tooltip = forwardRef(({ content = '', translatedContent, children, hideSho
   const showRef = useRef(false); // track current show state to avoid redundant enqueues from high-frequency pointermove
   const opacityRef = useRef(0); // track current opacity to avoid redundant enqueues
   useImperativeHandle(ref, () => childRef.current);
-  const isDisabled = useSelector((state) => selectors.isElementDisabled(state, 'tooltip'));
+  const isDisabled = useSelector(state => selectors.isElementDisabled(state, 'tooltip'));
 
   const tooltipRef = useRef(null);
   const [show, setShow] = useState(false);
@@ -91,7 +95,7 @@ const Tooltip = forwardRef(({ content = '', translatedContent, children, hideSho
       hideTooltip();
     };
 
-    const changeToolTipState = (e) => {
+    const changeToolTipState = e => {
       if (childRef.current?.contains(e.target) || tooltipRef.current?.contains(e.target)) {
         showToolTip();
       } else {
@@ -99,13 +103,21 @@ const Tooltip = forwardRef(({ content = '', translatedContent, children, hideSho
         const tooltipBoundingRect = tooltipRef.current?.getBoundingClientRect();
         const isMouseOverChild = childBoundingRect && isMouseOverElement(childBoundingRect, e);
         const isMouseOverTooltip = tooltipBoundingRect && isMouseOverElement(tooltipBoundingRect, e);
-        const rectBetweenChildAndTooltip = tooltipBoundingRect && childBoundingRect && {
-          top: Math.min(childBoundingRect.top, tooltipBoundingRect.top),
-          bottom: Math.max(childBoundingRect.bottom, tooltipBoundingRect.bottom),
-          left: Math[childBoundingRect.bottom < tooltipBoundingRect.top ? 'max' : 'min'](childBoundingRect.left, tooltipBoundingRect.left),
-          right: Math[childBoundingRect.bottom < tooltipBoundingRect.top ? 'min' : 'max'](childBoundingRect.right, tooltipBoundingRect.right)
-        };
-        const isMouseBetweenChildAndTooltip = rectBetweenChildAndTooltip && isMouseOverElement(rectBetweenChildAndTooltip, e);
+        const rectBetweenChildAndTooltip = tooltipBoundingRect &&
+          childBoundingRect && {
+            top: Math.min(childBoundingRect.top, tooltipBoundingRect.top),
+            bottom: Math.max(childBoundingRect.bottom, tooltipBoundingRect.bottom),
+            left: Math[childBoundingRect.bottom < tooltipBoundingRect.top ? 'max' : 'min'](
+              childBoundingRect.left,
+              tooltipBoundingRect.left,
+            ),
+            right: Math[childBoundingRect.bottom < tooltipBoundingRect.top ? 'min' : 'max'](
+              childBoundingRect.right,
+              tooltipBoundingRect.right,
+            ),
+          };
+        const isMouseBetweenChildAndTooltip =
+          rectBetweenChildAndTooltip && isMouseOverElement(rectBetweenChildAndTooltip, e);
         if (!isMouseOverChild && !isMouseOverTooltip && !isMouseBetweenChildAndTooltip) {
           hiddenByClickRef.current = false;
           hideTooltip();
@@ -118,14 +130,18 @@ const Tooltip = forwardRef(({ content = '', translatedContent, children, hideSho
       childRef.current?.addEventListener('click', hideByClick);
     }
     // only enable focus event for non popup buttons
-    if (childRef.current['ariaLabel'] !== 'action.cancel' &&
+    if (
+      childRef.current?.['ariaLabel'] !== 'action.close' &&
+      content !== 'action.close' &&
+      childRef.current?.['ariaLabel'] !== 'action.cancel' &&
       content !== 'action.cancel' &&
-      !childRef.current.parentElement.parentElement.className.includes('TextPopup')) {
+      !childRef.current?.parentElement.parentElement.className.includes('TextPopup')
+    ) {
       childRef.current?.addEventListener('focus', showToolTip);
       childRef.current?.addEventListener('blur', hideByBlur);
     }
 
-    const observer = new MutationObserver((mutations) => {
+    const observer = new MutationObserver(mutations => {
       // hide tooltip when button get disabled, disable buttons don't have "mouseleave" events
       const lastMutation = mutations[mutations.length - 1];
       if (lastMutation && lastMutation.attributeName === 'disabled' && lastMutation.target.disabled) {
@@ -150,6 +166,8 @@ const Tooltip = forwardRef(({ content = '', translatedContent, children, hideSho
       childRef.current?.removeEventListener('blur', hideByBlur);
     };
   }, [childRef, hideOnClick]);
+
+  const translatedContent = t(content);
 
   useLayoutEffect(() => {
     const childEle = childRef.current;
@@ -198,22 +216,21 @@ const Tooltip = forwardRef(({ content = '', translatedContent, children, hideSho
 
       // starting from placing the tooltip at the bottom location
       // if the tooltip can't fit into the window, try placing it counterclockwise until we can find a location to fit it
-      const bestLocation = Object.keys(locationTopLeftMap).find((location) => {
-        if (forcePosition) {
-          return location === forcePosition;
-        }
-        const { top: newTop, left: newLeft } = locationTopLeftMap[location];
+      const bestLocation =
+        Object.keys(locationTopLeftMap).find(location => {
+          if (forcePosition) {
+            return location === forcePosition;
+          }
+          const { top: newTop, left: newLeft } = locationTopLeftMap[location];
 
-        return (
-          newTop > 0
-          && newTop + tooltipRect.height < window.innerHeight
-          && newLeft > 0
-          && newLeft + tooltipRect.width < window.innerWidth
-        );
-      }) || 'bottom';
-      const { top: tooltipTop, left: tooltipLeft } = locationTopLeftMap[
-        bestLocation
-      ];
+          return (
+            newTop > 0 &&
+            newTop + tooltipRect.height < window.innerHeight &&
+            newLeft > 0 &&
+            newLeft + tooltipRect.width < window.innerWidth
+          );
+        }) || 'bottom';
+      const { top: tooltipTop, left: tooltipLeft } = locationTopLeftMap[bestLocation];
 
       const { scaleX, scaleY } = getWebComponentScale();
 
@@ -232,13 +249,13 @@ const Tooltip = forwardRef(({ content = '', translatedContent, children, hideSho
     } else {
       setOpacityGuarded(0);
     }
-  }, [childRef, show, content, translatedContent]);
+  }, [childRef, show, translatedContent]);
 
   const isUsingMobileDevices = isIOS || isAndroid;
   const child = React.cloneElement(children, {
     ref: childRef,
   });
-  translatedContent = content ? t(content) : translatedContent;
+
   // If shortcut.xxx exists in translation-en.json file
   // method t will return the shortcut, otherwise it will return shortcut.xxx
   let shortcutKey = content.slice(content.indexOf('.') + 1);
@@ -277,9 +294,7 @@ const Tooltip = forwardRef(({ content = '', translatedContent, children, hideSho
           >
             <div className={'tooltip__content'}>
               {translatedContent}
-              {hasShortcut && !hideShortcut && (
-                <span className="tooltip__shortcut">{shortcut}</span>
-              )}
+              {hasShortcut && !hideShortcut && <span className="tooltip__shortcut">{shortcut}</span>}
             </div>
           </div>,
           getRootNode().querySelector('#app'),
