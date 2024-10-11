@@ -33,7 +33,7 @@ const propTypes = {
 
 const getParentAnnotations = (core, annotations) => {
   const annotSet = new Set();
-  annotations.forEach((annotation) => {
+  annotations.forEach(annotation => {
     if (annotation.isGrouped()) {
       const parentAnnotation = core.getAnnotationById(annotation['InReplyTo']);
       if (parentAnnotation) {
@@ -225,8 +225,9 @@ const MultiSelectControls = ({
             onClose={() => {
               setShowMultiStyle(false);
             }}
-          />}
-        {!canUngroup &&
+          />
+        )}
+        {/* {!canUngroup &&
           <Button
             dataElement={DataElements.NOTE_MULTI_GROUP_BUTTON}
             disabled={!canGroup}
@@ -270,9 +271,7 @@ const MultiSelectControls = ({
           forceTooltipPosition={multiSelectTooltipPosition}
         />
       </div>
-      <div
-        className="close-container"
-      >
+      <div className="close-container">
         <Button
           className="close-icon-container"
           onClick={() => {

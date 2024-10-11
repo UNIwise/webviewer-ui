@@ -92,18 +92,18 @@ const FilterAnnotModal = ({ isInFormBuilderMode }) => {
     let status = true;
     let sharetype = true;
 
-    if (typesFilter.length > 0) {
-      const isMeasurementAnnotation = annot.IT || annot.getCustomData('trn-is-count');
-      if (isMeasurementAnnotationFilterEnabled && isMeasurementAnnotation) {
-        const measurementKey = mapAnnotationToKey(annot);
-        type = typesFilter.includes(measurementKey);
-      } else {
-        type = typesFilter.includes(getAnnotationClass(annot));
+      if (typesFilter.length > 0) {
+        const isMeasurementAnnotation = annot.IT || annot.getCustomData('trn-is-count');
+        if (isMeasurementAnnotationFilterEnabled && isMeasurementAnnotation) {
+          const measurementKey = mapAnnotationToKey(annot);
+          type = typesFilter.includes(measurementKey);
+        } else {
+          type = typesFilter.includes(getAnnotationClass(annot));
+        }
       }
-    }
 
-    if (authorFilter.length > 0) {
-      author = authorFilter.includes(core.getDisplayAuthor(annot['Author'], documentViewerKey));
+      if (authorFilter.length > 0) {
+        author = authorFilter.includes(core.getDisplayAuthor(annot['Author'], documentViewerKey));
       // if (!author && checkRepliesForAuthorFilter) {
       //   const allReplies = annot.getReplies();
       //   for (const reply of allReplies) {
@@ -115,22 +115,23 @@ const FilterAnnotModal = ({ isInFormBuilderMode }) => {
       //     }
       //   }
       // }
-    }
-
-    if (colorFilter.length > 0) {
-      const iconColor = getIconColor(annot);
-      if (iconColor) {
-        color = similarColorExist(colorFilter, iconColor);
-      } else {
-        // check for default color if no color is available
-        color = colorFilter.includes('#485056');
       }
-    }
 
-    if (shareTypesFilter.length > 0) {
+      if (colorFilter.length > 0) {
+        const iconColor = getIconColor(annot);
+        if (iconColor) {
+          color = similarColorExist(colorFilter, iconColor);
+        } else {
+        // check for default color if no color is available
+          color = colorFilter.includes('#485056');
+        }
+      }
+
+      if (shareTypesFilter.length > 0) {
       // CUSTOM WISEFLOW: get customData sharetype
-      if (getAnnotationShareType(annot)) {
-        sharetype = shareTypesFilter.includes(getAnnotationShareType(annot));
+        if (getAnnotationShareType(annot)) {
+          sharetype = shareTypesFilter.includes(getAnnotationShareType(annot));
+        }
       }
     }
     if (statusFilter.length > 0) {
