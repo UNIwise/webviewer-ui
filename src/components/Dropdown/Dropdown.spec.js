@@ -32,6 +32,7 @@ describe('Dropdown component', () => {
     expect(dropDownCombobox).toBeInTheDocument();
     expect(dropDownCombobox.getAttribute('aria-expanded')).toEqual('true');
 
+    // WISEflow: Changed status translation to Share Type
     // click Status button and make sure active element is changed to Status
     const statusOption = screen.getByRole('option', { name: 'Status' });
     userEvent.click(statusOption);

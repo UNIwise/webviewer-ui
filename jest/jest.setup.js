@@ -6,6 +6,8 @@ import withI18n from './withI18n';
 import withMockRedux from './withMockRedux';
 import 'jest-canvas-mock';
 
+import React, { Component as mockComponent } from 'react';
+
 global.withI18n = withI18n;
 global.withMockRedux = withMockRedux;
 

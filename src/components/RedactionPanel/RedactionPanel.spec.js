@@ -167,7 +167,7 @@ describe.skip('RedactionPanel', () => {
     expect(selectedRedactionItemId).toEqual(mockRegionRedactionAnnotationPageTwo.Id);
   });
 
-  it('when a redaction item is the selected one in the context, it has the correct styling', () => {
+  it('when a redaction item is the selected one in the context, it has the correct styling', async () => {
     const mockTextRedactionAnnotation = getMockRedactionAnnotation({ IsText: true, PageNumber: 1 });
     const mockRegionRedactionAnnotationPageTwo = getMockRedactionAnnotation({ PageNumber: 2 });
 
@@ -188,9 +188,9 @@ describe.skip('RedactionPanel', () => {
       isTestMode: true,
     };
 
-    customRenderWithContext(<RedactionPanelWithRedux {...props} />, providerProps);
+    const r = customRenderWithContext(<RedactionPanelWithRedux {...props} />, providerProps);
 
-    const redactionItems = screen.getAllByRole('listitem');
+    const redactionItems = r.getAllByRole('listitem');
     // First one is selected
     expect(redactionItems[0]).toHaveClass('redaction-item redaction-item-selected', { exact: true });
     // Second one is not selected

@@ -11,7 +11,7 @@ import RedactionSearchPanel from './RedactionSearchPanel';
 import { RedactionPanelContext } from '../RedactionPanel/RedactionPanelContext';
 import userEvent from '@testing-library/user-event';
 
-function noop() { }
+function noop() {}
 
 const RedactionSearchPanelWithRedux = withProviders(RedactionSearchPanel);
 const StartSearch = {};
@@ -21,15 +21,11 @@ const SearchCompleteWithResults = {};
 const SearchCompleteNoResults = {};
 
 const customRenderWithContext = (component, providerProps = {}) => {
-  return render(
-    <RedactionPanelContext.Provider value={providerProps}>
-      {component}
-    </RedactionPanelContext.Provider>,
-  );
+  return render(<RedactionPanelContext.Provider value={providerProps}>{component}</RedactionPanelContext.Provider>);
 };
 
 jest.mock('core', () => ({
-  setActiveSearchResult: () => { },
+  setActiveSearchResult: () => {},
 }));
 
 // To be fixed as part of https://apryse.atlassian.net/browse/WVR-8684
@@ -92,7 +88,7 @@ describe.skip('RedactionSearchPanel', () => {
       screen.getAllByText((_, node) => node.textContent === `Search Results (${mockSearchResults.length})`);
     });
 
-    it('when user clicks on Select All and Unselect, we select and deselect all results', () => {
+    it('when user clicks on Select All and Unselect, we select and deselect all results', async () => {
       const props = {
         redactionSearchResults: mockSearchResults,
         isProcessingRedactionResults: false,
@@ -117,17 +113,17 @@ describe.skip('RedactionSearchPanel', () => {
       const selectAllButton = screen.getByText('Select all');
       userEvent.click(selectAllButton);
 
-      redactionSearchResultsCheckboxes.forEach((checkbox) => {
-        expect(checkbox).toBeChecked();
-      });
+      for (const checkbox of redactionSearchResultsCheckboxes) {
+        await waitFor(() => expect(checkbox).toBeChecked());
+      }
 
       // Now deselect all
       const unselectAllButton = screen.getByText('Unselect');
       userEvent.click(unselectAllButton);
 
-      redactionSearchResultsCheckboxes.forEach((checkbox) => {
-        expect(checkbox).not.toBeChecked();
-      });
+      for (const checkbox of redactionSearchResultsCheckboxes) {
+        await waitFor(() => expect(checkbox).not.toBeChecked());
+      }
     });
 
     it('if a user selects all results on same page, the top level checkbox also gets toggled to selected', () => {

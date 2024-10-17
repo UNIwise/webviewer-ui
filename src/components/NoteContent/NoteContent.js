@@ -393,6 +393,7 @@ const NoteContent = ({
       );
     }, [text, searchInput]);
 
+
   const header = useMemo(
     () => {
       return (
