@@ -6,6 +6,8 @@ import withI18n from './withI18n';
 import withMockRedux from './withMockRedux';
 import 'jest-canvas-mock';
 
+import React, { Component as mockComponent } from 'react';
+
 global.withI18n = withI18n;
 global.withMockRedux = withMockRedux;
 
@@ -37,3 +39,17 @@ if (!document.getElementById('storybook-root')) {
   sbRoot.style.height = '768px';
   document.body.appendChild(sbRoot);
 }
+
+// This is a mock of the Virtuoso component that is used in the RedactionPanel component
+// Virtuoso does not add the items to the DOM, even if the renders are called
+// This is a workaround to actually render the items in the tests
+jest.mock('react-virtuoso', () => {
+  const mockVirtuoso = () =>
+    class extends mockComponent {
+      displayName = 'Mocked Virtuoso';
+      render() {
+        return <>{this.props.data?.map((value, index) => this.props.itemContent?.(index, value, undefined))}</>;
+      }
+    };
+  return { Virtuoso: mockVirtuoso() };
+});

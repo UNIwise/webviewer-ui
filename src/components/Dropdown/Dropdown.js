@@ -81,8 +81,8 @@ const SelectActions = {
 
 function Dropdown({
   id = '',
-  items,
-  images,
+  items = [],
+  images = [],
   width = DEFAULT_WIDTH,
   height,
   columns = 1,

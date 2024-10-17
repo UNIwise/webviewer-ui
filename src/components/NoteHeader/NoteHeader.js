@@ -241,8 +241,6 @@ function NoteHeader(props) {
     }, 3000);
   };
 
-  console.log(isNoteStateDisabled, !isReply, !isMultiSelectMode, !isGroupMember, !isTrackedChange, showShareType);
-
   return (
     <div className={noteHeaderClass}>
       {!isReply && (

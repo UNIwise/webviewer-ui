@@ -5,6 +5,7 @@ import NoteContext from '../Note/Context';
 import { Provider } from 'react-redux';
 import { initialColors } from 'helpers/initialColorStates';
 import { disableRtlModeParameters } from 'helpers/storybookParams';
+import ShareTypes from 'src/constants/shareTypes';
 
 export default {
   title: 'Components/Note/NoteHeader',
@@ -47,6 +48,12 @@ const mockAnnotation = {
   getReplies: () => [1, 2, 3],
   getStatus: () => '',
   isReply: () => false,
+  getPageNumber: () => 1,
+  getCustomData: (key) => {
+    if (key === 'shareType') {
+      return ShareTypes.NONE;
+    }
+  },
   getAssociatedNumber: () => 1,
   StrokeColor: {
     'R': 255,
@@ -75,6 +82,7 @@ export const testProps = {
   renderAuthorName: () => 'Mikel Landa',
   isStateDisabled: false,
   isEditing: false,
+  renderAnnotationReference: (annotation) => 'P1-DBFCF',
 };
 
 export function Basic() {
