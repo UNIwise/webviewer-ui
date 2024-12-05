@@ -227,7 +227,7 @@ const Note = ({
     if (!isMultiSelectMode) {
       replies.forEach((reply, index) => {
         const pendingText = pendingEditTextMap[reply.Id];
-        if ((pendingText !== '' && typeof pendingText !== 'undefined') && isSelected) {
+        if (pendingText !== '' && typeof pendingText !== 'undefined' && isSelected) {
           setIsEditing(true, 1 + index);
         }
       });
@@ -292,14 +292,14 @@ const Note = ({
       style={
         showShareType
           ? {
-              borderBottom: `4px solid ${getAnnotationStatusColor()}`,
-              borderTop: `4px solid ${getAnnotationStatusColor()}`,
+              borderBottom: `4px solid ${getAnnotationStatusColor().borderColor}`,
+              borderTop: `4px solid ${getAnnotationStatusColor().borderColor}`,
             }
           : undefined
       }
     >
       <Button
-        className='note-button'
+        className="note-button"
         onClick={(e) => handleNoteClick(e)}
         ariaLabelledby={`note_${annotation.Id}`}
         ariaCurrent={isSelected}
@@ -331,7 +331,7 @@ const Note = ({
                   onClick={markAllRepliesRead}
                 />
               )}
-              {replies.map((reply, i) => (
+              {/* {replies.map((reply, i) => (
                 <div className="reply" id={`note_reply_${reply.Id}`} key={`note_reply_${reply.Id}`}>
                   <NoteContent
                     noteIndex={i + 1}
@@ -349,11 +349,7 @@ const Note = ({
               ))}
             </div>
           )} */}
-          {isGroup &&
-            <NoteGroupSection
-              groupAnnotations={groupAnnotations}
-              isMultiSelectMode={isMultiSelectMode}
-            />}
+          {isGroup && <NoteGroupSection groupAnnotations={groupAnnotations} isMultiSelectMode={isMultiSelectMode} />}
           {/* {showReplyArea && !isMultiSelectMode && (
             <ReplyArea
               isUnread={lastReplyId && unreadAnnotationIdSet.has(lastReplyId)}

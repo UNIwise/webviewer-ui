@@ -77,6 +77,10 @@
       }
 
       color: var(--faded-text);
+      
+      > * {
+        pointer-events: auto;
+      }
     }
 
     .annot-id {

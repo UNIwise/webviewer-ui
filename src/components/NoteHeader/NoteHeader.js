@@ -6,6 +6,7 @@ import Icon from 'components/Icon';
 import NoteUnpostedCommentIndicator from 'components/NoteUnpostedCommentIndicator';
 import Choice from 'components/Choice';
 import Button from 'components/Button';
+import Tooltip from 'components/Tooltip';
 
 import getLatestActivityDate from 'helpers/getLatestActivityDate';
 import getColor from 'helpers/getColor';
@@ -64,7 +65,7 @@ function NoteHeader(props) {
     isReply,
     isUnread,
     renderAuthorName,
-    isNoteStateDisabled,
+    isNoteStateDisabled = false,
     isEditing,
     noteIndex,
     sortStrategy,
@@ -116,11 +117,11 @@ function NoteHeader(props) {
   const authorAndDateClass = classNames('author-and-date', { isReply });
   const noteHeaderClass = classNames('NoteHeader', { parent: !isReply && !isGroupMember });
 
-  const acceptTrackedChange = trackedChangeAnnot => {
+  const acceptTrackedChange = (trackedChangeAnnot) => {
     const trackedChangeId = trackedChangeAnnot.getCustomData(OFFICE_EDITOR_TRACKED_CHANGE_KEY);
     core.getOfficeEditor().acceptTrackedChange(trackedChangeId);
   };
-  const rejectTrackedChange = trackedChangeAnnot => {
+  const rejectTrackedChange = (trackedChangeAnnot) => {
     const trackedChangeId = trackedChangeAnnot.getCustomData(OFFICE_EDITOR_TRACKED_CHANGE_KEY);
     core.getOfficeEditor().rejectTrackedChange(trackedChangeId);
   };
@@ -136,7 +137,7 @@ function NoteHeader(props) {
 
   const copyTooltipText = `${t('option.notesPanel.noteHeader.copyReferenceButton')} ${annotationReference}`;
 
-  const handleCopyAnnotId = e => {
+  const handleCopyAnnotId = (e) => {
     e.stopPropagation();
     navigator.clipboard.writeText(annotationReference);
     setCopied(true);
@@ -176,7 +177,7 @@ function NoteHeader(props) {
                 id={`note-multi-select-toggle_${annotation.Id}`}
                 aria-label={`${renderAuthorName(annotation)} ${t('option.notesPanel.toggleMultiSelect')}`}
                 checked={isMultiSelected}
-                onClick={e => {
+                onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   handleMultiSelect(!isMultiSelected);
@@ -189,7 +190,7 @@ function NoteHeader(props) {
             />
 
             {/* WISEflow: Note share type menu */}
-            {isNoteStateDisabled &&
+            {!isNoteStateDisabled &&
               !isReply &&
               !isMultiSelectMode &&
               !isGroupMember &&
@@ -223,9 +224,9 @@ function NoteHeader(props) {
         <div className="annot-id">
           <span>{renderAnnotationReference(annotation)}</span>
           <Tooltip content={copied ? t('action.copied') : copyTooltipText} hideOnClick={false}>
-            <button onClick={handleCopyAnnotId} className={'copy-reference-button'} aria-label={copyTooltipText}>
+            <Button onClick={handleCopyAnnotId} className={'copy-reference-button'} aria-label={copyTooltipText}>
               <Icon glyph="icon-header-page-manipulation-page-transition-reader" />
-            </button>
+            </Button>
           </Tooltip>
         </div>
       </div>
