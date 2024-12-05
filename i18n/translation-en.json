@@ -14,7 +14,7 @@
     "close": "Close",
     "undo": "Undo",
     "redo": "Redo",
-    "comment": "Comment",
+    "comment": "Annotation",
     "openNotePanel": "Open annotation panel",
     "reply": "Add reply",
     "copy": "Copy",
@@ -216,7 +216,7 @@
     "Experimental": "Experimental",
     "Expired": "Expired",
     "Final": "Final",
-    "ForComment": "For Comment",
+    "ForComment": "For Annotation",
     "ForPublicRelease": "For Public Release",
     "InformationOnly": "Information Only",
     "NotApproved": "Not Approved",
@@ -238,7 +238,7 @@
     "searchOverlay": "Search",
     "searchPanel": "Search",
     "menuOverlay": "Menu",
-    "notesPanel": "Comments",
+    "notesPanel": "Annotations",
     "indexPanel": "Index Panel",
     "outlinePanel": "Outline",
     "outlinesPanel": "Outlines",
@@ -285,7 +285,7 @@
     "encryptedUserCancelled": "Failed to load encrypted document. Password entry cancelled.",
     "enterPassword": "This document is password protected. Please enter a password",
     "incorrectPassword": "Incorrect password, attempts left: {{ remainingAttempts }}",
-    "noAnnotations": "Start making annotations to leave a comment.",
+    "noAnnotations": "Start making annotations to leave a annotation.",
     "noAnnotationsReadOnly": "This document has no annotations.",
     "noAnnotationsFilter": "Start making annotations and filters will appear here.",
     "noBookmarks": "No bookmarks available",
@@ -323,7 +323,7 @@
     "sort": "Sort",
     "sortBy": "Sort by",
     "emptyCustomStampInput": "Stamp text cannot be empty",
-    "unpostedComment": "Unposted Comment",
+    "unpostedComment": "Unposted Annotation",
     "lockedLayer": "Layer is locked",
     "layerVisibililtyNoChange": "Layer visibililty can't be changed",
     "noLayers": "This document has no layers.",
@@ -461,7 +461,7 @@
       "qualityNormal": "Normal",
       "qualityHigh": "High",
       "includeAnnotations": "Include annotations",
-      "includeComments": "Include comments",
+      "includeComments": "Include annotations",
       "printSettings": "Print Settings",
       "printGrayscale": "Print Grayscale",
       "printCurrentDisabled": "Current view is only available when viewing a single page."
@@ -537,7 +537,9 @@
       "type": "Type",
       "shareType": "Share type",
       "coAssessor": "Co-assessor",
-      "author": "Author"
+      "author": "Author",
+      "filterSettings": "Filter Settings",
+      "filterDocument": "Filter document and annotations panel"
     },
     "state": {
       "accepted": "Accepted",
@@ -745,8 +747,8 @@
       "notesPanel": "Notes Panel",
       "disableNoteSubmissionWithEnter": "Disable Note Submission With Enter",
       "disableNoteSubmissionWithEnterDesc": "Disable the ability to submit notes by only pressing Enter if it had previously been enabled. This will revert note submission to the default which is Ctrl/Cmd + Enter.",
-      "disableAutoExpandCommentThread": "Disable Auto Expand Comment Thread",
-      "disableAutoExpandCommentThreadDesc": "Disables the automatic expansion of all the comments threads in the Notes Panel.",
+      "disableAutoExpandCommentThread": "Disable Auto Expand Annotation Thread",
+      "disableAutoExpandCommentThreadDesc": "Disables the automatic expansion of all the annotations threads in the Notes Panel.",
       "disableReplyCollapse": "Disable Reply Collapse",
       "disableReplyCollapseDesc": "Disables the collapsing of the replies in the Notes Panel.",
       "disableTextCollapse": "Disable Text Collapse",
@@ -846,7 +848,7 @@
     },
     "multiDeleteAnnotation": {
       "title": "Delete Annotations?",
-      "message": "Deleting will remove all comments, replies, and grouping and cannot be undone. \n\n Are you sure you want to delete these annotations?"
+      "message": "Deleting will remove all annotations, replies, and grouping and cannot be undone. \n\n Are you sure you want to delete these annotations?"
     },
     "closeFile": {
       "title": "Close without downloading?",
@@ -1071,7 +1073,7 @@
     "documentPermission": {
       "noChangesAllowed": "The {{editor}} has specified that no changes are allowed for this document",
       "formfillingSigningAllowed": "The {{editor}} has specified that Form Fill-in and Signing are allowed for this document. No other changes are permitted.",
-      "annotatingFormfillingSigningAllowed": "The {{editor}} has specified that Form Fill-in, Signing and Commenting are allowed for this document. No other changes are permitted.",
+      "annotatingFormfillingSigningAllowed": "The {{editor}} has specified that Form Fill-in, Signing and Annotationing are allowed for this document. No other changes are permitted.",
       "unrestricted": "The {{editor}} has specified that there are no restrictions for this document."
     },
     "digestAlgorithm": {
@@ -1416,7 +1418,7 @@
     "specifyPage": "Specify Page",
     "properties": "Properties",
     "includeAnnotation": "Include Annotations",
-    "includeComments": "Include Comments",
+    "includeComments": "Include Annotations",
     "watermark": "Watermark",
     "addWatermark": "Add Watermark",
     "save": "Save File",

@@ -69,6 +69,7 @@ function NotePopup(props) {
         title={t('formField.formFieldPopup.options')}
         toggleElement={flyoutSelector}
         disabled={false}
+        data-testid="notePopupToggle"
       />
       <NotePopupFlyout
         flyoutSelector={flyoutSelector}

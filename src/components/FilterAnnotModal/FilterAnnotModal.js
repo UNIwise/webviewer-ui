@@ -290,7 +290,7 @@ const FilterAnnotModal = () => {
       setAuthorFilter(annotationFilters.authorFilter);
       setColorFilter(annotationFilters.colorFilter);
       setTypesFilter(annotationFilters.typeFilter);
-      setShareTypesFilter(annotationFilters.shareTypesFilter);
+      setShareTypesFilter(annotationFilters.shareTypesFilter ?? []);
     }
   }, [isOpen]);
 

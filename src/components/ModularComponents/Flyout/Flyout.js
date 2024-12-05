@@ -35,9 +35,9 @@ const Flyout = () => {
   const customizableUI = useSelector(selectors.getFeatureFlags)?.customizableUI;
   const currentPage = useSelector(selectors.getCurrentPage);
 
-  const flyoutProperties = flyoutMap[activeFlyout];
+  const flyoutProperties = flyoutMap?.[activeFlyout];
   const horizontalHeadersUsedHeight = topHeadersHeight + bottomHeadersHeight + DEFAULT_GAP;
-  const { dataElement, items, className } = flyoutProperties;
+  const { dataElement, items, className } = (flyoutProperties ?? {});
   const [activePath, setActivePath] = useState([]);
   const [currentFocusIndex, setCurrentFocusIndex] = useState(-1);
   const [focusableElements, setFocusableElements] = useState([]);
@@ -53,7 +53,7 @@ const Flyout = () => {
   const [correctedPosition, setCorrectedPosition] = useState(position);
   const [maxHeightValue, setMaxHeightValue] = useState(window.innerHeight - horizontalHeadersUsedHeight);
 
-  const itemsToRender = items.filter((item) => !item.hidden);
+  const itemsToRender = items?.filter((item) => !item.hidden);
   const activeChildren = activeItem ? activeItem.children.filter((child) => !child.hidden) : [];
 
   const getElementDOMRef = (dataElement) => {
@@ -290,8 +290,8 @@ const Flyout = () => {
   };
 
   const flyoutStyles = {
-    left: correctedPosition.x,
-    top: correctedPosition.y,
+    left: correctedPosition?.x,
+    top: correctedPosition?.y,
     maxHeight: maxHeightValue
   };
 

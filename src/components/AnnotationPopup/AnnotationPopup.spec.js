@@ -131,7 +131,7 @@ describe('AnnotationPopup in read-only mode', () => {
     );
 
     screen.getByLabelText('Download attached file');
-    screen.getByLabelText('Comment');
+    screen.getByLabelText('Annotation');
     const buttons = screen.getAllByRole('button');
     expect(buttons.length).toBe(2);
   });
@@ -166,7 +166,7 @@ describe('AnnotationPopup in read-only mode', () => {
         <AnnotationPopupWithProviders {...createAnnotationProps(annotation)} />
       );
 
-      screen.getByLabelText('Comment');
+      screen.getByLabelText('Annotation');
       const buttons = screen.getAllByRole('button');
       expect(buttons.length).toBe(1);
     }

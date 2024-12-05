@@ -145,7 +145,7 @@ describe('NotesPanelHeader', () => {
         </Provider>
       );
 
-      const element = screen.getByText('Comments (0)');
+      const element = screen.getByText('Annotations (0)');
       expect(element.tagName.toLocaleLowerCase()).toEqual('h2');
     });
 

@@ -85,7 +85,7 @@ function NoteShareType(props) {
       }}
       ref={wrapperRef}
     >
-      <button className="share-type-icon-button" onClick={togglePopup}>
+      <button className="share-type-icon-button" onClick={togglePopup} aria-pressed={isOpen} aria-expanded={isOpen}>
         <ShareTypeIcon shareType={shareType} label={annotationTooltip} />
       </button>
 

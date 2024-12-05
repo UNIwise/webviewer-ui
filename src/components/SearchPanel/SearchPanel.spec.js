@@ -150,7 +150,7 @@ describe('SearchPanel', () => {
       />
     );
 
-    const activeResultButton = screen.queryByRole('button');
+    const activeResultButton = screen.queryByRole('button', { name: 'mock active result' });
     expect(activeResultButton).toHaveAttribute('aria-current');
   });
 

@@ -199,6 +199,9 @@ module.exports = {
     "^.+\.svg": "./jest/svgTransform.js",
   },
 
+  // WISEFlow: Ignore custom UI tests as it causes issues with the Jest runner (chai transform and sinon not available)
+  testPathIgnorePatterns: ["/node_modules/", "tests/ui/custom-ui-tests/custom-ui.test.js"],
+
   // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
   // transformIgnorePatterns: [
   //   "/node_modules/",

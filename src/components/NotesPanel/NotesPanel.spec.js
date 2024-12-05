@@ -80,7 +80,7 @@ describe('NotesPanel', () => {
         </Provider>
       );
 
-      const defaultEmptyContentMessage = 'Start making annotations to leave a comment.';
+      const defaultEmptyContentMessage = 'Start making annotations to leave a annotation.'; // WISEflow term change
 
       screen.getByPlaceholderText('Search annotations'); // WISEflow term change
       screen.getByText('Sort:');

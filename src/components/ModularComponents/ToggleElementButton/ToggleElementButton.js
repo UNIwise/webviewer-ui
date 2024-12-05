@@ -39,7 +39,7 @@ const ToggleElementButton = (props) => {
 
   const onClick = (event) => {
     event.stopPropagation();
-    if (flyoutMap[toggleElement]) {
+    if (flyoutMap?.[toggleElement]) {
       if (setFlyoutTriggerRef) {
         setFlyoutTriggerRef();
       } else {

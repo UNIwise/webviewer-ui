@@ -88,6 +88,7 @@ const Button = forwardRef((props, ref) => {
     hideOnClick,
     shouldPassActiveDocumentViewerKeyToOnClickHandler,
     onClickAnnouncement,
+    ["data-testid"]: dataTestId,
   } = { ...props, ...customOverrides };
   const [t] = useTranslation();
 
@@ -166,6 +167,7 @@ const Button = forwardRef((props, ref) => {
       aria-expanded={ariaExpanded}
       aria-selected={ariaSelected}
       aria-current={ariaCurrent}
+      data-testid={dataTestId}
     >
       {isGlyph && (
         <Icon

@@ -1,7 +1,7 @@
 import React from 'react';
 import * as reactRedux from 'react-redux';
 import { Provider } from 'react-redux';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import core from 'core';
 import NotePopupWithOutI18n, { notePopupFlyoutItems } from './NotePopup';
 import NotePopupContainerWithOutI18n from './NotePopupContainer';
@@ -24,7 +24,7 @@ const initialState = {
     disabledElements: {},
     openElements: {
       notesPanel: true,
-      'notePopupFlyout-1': true,
+      'notePopupFlyout-foo': true,
     },
     panelWidths: {
       notesPanel: DEFAULT_NOTES_PANEL_WIDTH,
@@ -69,7 +69,7 @@ describe('NotePopup', () => {
     jest.resetAllMocks();
 
     useSelectorMock.mockImplementation(function (selector) {
-      return selector({ viewer: { disabledElements: {}, customElementOverrides: {} } });
+      return selector({ ...initialState });
     });
   });
 

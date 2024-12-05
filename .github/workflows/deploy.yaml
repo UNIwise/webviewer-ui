@@ -24,7 +24,7 @@ jobs:
 
       - name: Run tests
         run: |
-          yarn cp-webviewer-core
+          yarn download-webviewer
           yarn jest
 
 

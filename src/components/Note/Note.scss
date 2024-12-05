@@ -13,6 +13,8 @@
   cursor: pointer;
   position: relative;
 
+  transition: border-color 0.25s ease;
+
   &.unread {
     border: 1.2px solid $pdftron-blue;
   }
