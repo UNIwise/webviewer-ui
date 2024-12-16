@@ -37,6 +37,20 @@ const NoteShareTypeDialog = forwardRef(({ onClose, onSelect, positionStyle, sele
       }}
     >
       <div className="note-share-type-popup" onClick={preventAutoClose}>
+        {/* None */}
+        {sharePermissions.includes('NONE') && (
+          <DataElementWrapper
+            tabbable
+            dataElement="notePopupStateAssessors"
+            type="button"
+            className={classNames('note-sharetype-option', { selected: selectedShareType === ShareTypes.NONE })}
+            onClick={() => onSelect(ShareTypes.NONE)}
+          >
+            <ShareTypeIcon shareType={ShareTypes.NONE} />
+            {t('option.state.none')}
+          </DataElementWrapper>
+        )}
+
         {/* Assessors */}
         {sharePermissions.includes('ASSESSORS') && (
           <DataElementWrapper
@@ -76,20 +90,6 @@ const NoteShareTypeDialog = forwardRef(({ onClose, onSelect, positionStyle, sele
           >
             <ShareTypeIcon shareType={ShareTypes.ALL} />
             {t('option.state.all')}
-          </DataElementWrapper>
-        )}
-
-        {/* None */}
-        {sharePermissions.includes('NONE') && (
-          <DataElementWrapper
-            tabbable
-            dataElement="notePopupStateAssessors"
-            type="button"
-            className={classNames('note-sharetype-option', { selected: selectedShareType === ShareTypes.NONE })}
-            onClick={() => onSelect(ShareTypes.NONE)}
-          >
-            <ShareTypeIcon shareType={ShareTypes.NONE} />
-            {t('option.state.none')}
           </DataElementWrapper>
         )}
       </div>
