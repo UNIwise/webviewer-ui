@@ -51,20 +51,6 @@ const NoteShareTypeDialog = forwardRef(({ onClose, onSelect, positionStyle, sele
           </DataElementWrapper>
         )}
 
-        {/* Assessors */}
-        {sharePermissions.includes('ASSESSORS') && (
-          <DataElementWrapper
-            tabbable
-            dataElement="notePopupStateAssessor"
-            type="button"
-            className={classNames('note-sharetype-option', { selected: selectedShareType === ShareTypes.ASSESSORS })}
-            onClick={() => onSelect(ShareTypes.ASSESSORS)}
-          >
-            <ShareTypeIcon shareType={ShareTypes.ASSESSORS} />
-            {t('option.state.assessors')}
-          </DataElementWrapper>
-        )}
-
         {/* Participants */}
         {sharePermissions.includes('PARTICIPANTS') && (
           <DataElementWrapper
@@ -76,6 +62,20 @@ const NoteShareTypeDialog = forwardRef(({ onClose, onSelect, positionStyle, sele
           >
             <ShareTypeIcon shareType={ShareTypes.PARTICIPANTS} />
             {t('option.state.participants')}
+          </DataElementWrapper>
+        )}
+
+        {/* Assessors */}
+        {sharePermissions.includes('ASSESSORS') && (
+          <DataElementWrapper
+            tabbable
+            dataElement="notePopupStateAssessor"
+            type="button"
+            className={classNames('note-sharetype-option', { selected: selectedShareType === ShareTypes.ASSESSORS })}
+            onClick={() => onSelect(ShareTypes.ASSESSORS)}
+          >
+            <ShareTypeIcon shareType={ShareTypes.ASSESSORS} />
+            {t('option.state.assessors')}
           </DataElementWrapper>
         )}
 
