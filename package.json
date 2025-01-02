@@ -12,7 +12,7 @@
   "scripts": {
     "start": "npx babel-node ./dev-server.js",
     "download-webviewer": "npx @pdftron/webviewer-downloader --core-only -v 11.1.0 --path ./lib",
-    "postinstall": "INSTALL_PATH=./scripts/postinstall.sh && path-exists $INSTALL_PATH && $INSTALL_PATH",
+    "postinstall": "INSTALL_PATH=./scripts/postinstall.sh && npx path-exists $INSTALL_PATH && $INSTALL_PATH || true",
     "lint": "eslint ./src --fix --ext .js,.jsx,.ts,.tsx",
     "lint:ci": "eslint ./src --quiet --ext .js,.jsx,.ts,.tsx",
     "clean": "rimraf build",
