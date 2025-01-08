@@ -53,7 +53,11 @@ export const OFFICE_NUMBER_OPTIONS = [
 
 export const OFFICE_EDITOR_TRACKED_CHANGE_KEY = 'officeEditorTrackedChangeUID';
 
-export const OfficeEditorEditMode = window.Core.Document.OfficeEditorEditMode;
+export const OfficeEditorEditMode = window.Core.Document.OfficeEditorEditMode || {
+  EDITING: 'EDITING',
+  REVIEWING: 'REVIEWING',
+  VIEW_ONLY: 'VIEW_ONLY',
+};
 
 export const OFFICE_EDITOR_SCOPE = 'office-editor';
 
