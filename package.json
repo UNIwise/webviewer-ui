@@ -14,7 +14,7 @@
     "download-webviewer": "npx @pdftron/webviewer-downloader --core-only --path ./lib",
     "cp-webviewer-core": "rm -rf ./lib && mkdir -p ./lib && cp -r ./node_modules/@pdftron/webviewer/public/core ./lib",
     "postinstall": "cp ./node_modules/@storybook/react-dom-shim/dist/react-16.js ./node_modules/@storybook/react-dom-shim/dist/react-18.js && patch-package",
-    "devinstall": "test -n \"$NOYARNPOSTINSTALL\" || ./scripts/postinstall.sh",
+    "devinstall": "INSTALL_PATH=./scripts/postinstall.sh && npx path-exists $INSTALL_PATH && $INSTALL_PATH || true",
     "lint": "eslint ./src --fix --ext .js,.jsx,.ts,.tsx",
     "lint:ci": "eslint ./src --quiet --ext .js,.jsx,.ts,.tsx",
     "clean": "rimraf build",
