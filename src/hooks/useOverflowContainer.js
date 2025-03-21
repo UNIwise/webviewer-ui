@@ -35,41 +35,39 @@ const useOverflowContainer = (isOpen, options) => {
 
   useLayoutEffect(() => {
     const popupMenuEle = popupMenuRef.current;
-    if (!popupMenuEle) {
-      return;
-    }
+    if (!popupMenuEle) return;
 
     const _isOpen = isOpen !== undefined ? isOpen : true;
     const popupRect = popupMenuEle.getBoundingClientRect();
+
     setTransform('');
+
     if (_isOpen && popupMenuEle && containerEle) {
       const containerRect = containerEle.getBoundingClientRect();
 
       if (popupRect.left + popupRect.width > containerRect.right) {
-        const newTransform = `translateX(-${popupRect.width - offset}px)`;
-        if (transform !== newTransform) {
-          setTransform(newTransform);
-        }
+        setTransform(`translateX(-${popupRect.width - offset}px)`);
       }
-      if (location === 'bottom' && popupRect.bottom > containerRect.bottom) {
+
+      const shouldRelocateTop = location === 'bottom' && popupRect.bottom > containerRect.bottom;
+      if (shouldRelocateTop) {
         setLocation('top');
         setBottom(topBottomCalc);
         setTop(undefined);
       }
-      if (location === 'top' && popupRect.top < containerRect.top) {
+
+      const shouldRelocateBottom = location === 'top' && popupRect.top < containerRect.top;
+      if (shouldRelocateBottom) {
         setLocation('bottom');
         setTop(topBottomCalc);
         setBottom(undefined);
       }
     }
-
     if (containerEle === null) {
-      const newTransform = `translateX(-${popupRect.width - offset}px)`;
-      if (transform !== newTransform) {
-        setTransform(newTransform);
-      }
+      setTransform(`translateX(-${popupRect.width - offset}px)`);
+      console.log(`Element "${container}" not found`);
     }
-  }, [isOpen, popupMenuRef, containerEle, topBottomCalc, offset]);
+  }, [isOpen, popupMenuRef, location, container]);
 
   const style = useMemo(() => ({ top, bottom, transform }), [top, bottom, transform]);
 
