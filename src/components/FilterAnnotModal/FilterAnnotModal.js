@@ -411,7 +411,6 @@ const FilterAnnotModal = ({ isInFormBuilderMode }) => {
                     backgroundColor: `${ShareTypeColors[val]}`,
                     padding: '5px 10px',
                     borderRadius: '5px',
-                    color: '#fff',
                   }}
                 >
                   {t(`option.state.${val.toLocaleLowerCase()}`)}
