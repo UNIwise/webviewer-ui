@@ -32,6 +32,7 @@ import DataElements from 'constants/dataElement';
 import DataElementWrapper from '../DataElementWrapper';
 import { COMMON_COLORS } from 'constants/commonColors';
 import getAnnotationReference from 'src/helpers/getAnnotationReference';
+import debounce from 'lodash.debounce';
 
 import './NoteContent.scss';
 
@@ -584,13 +585,20 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
     clearAttachments(annotation.Id);
   };
 
-  const onBlur = (e) => {
-    if (e.relatedTarget?.getAttribute('data-element')?.includes('annotationCommentButton')) {
-      e.target.focus();
-      return;
-    }
-    setCurAnnotId(undefined);
-  };
+  const debouncedBlur = useMemo(
+    () =>
+      debounce((e) => {
+        setCurAnnotId(undefined);
+        setContents(e);
+      }, 200),
+    [setContents, setCurAnnotId],
+  );
+
+  useEffect(() => {
+    return () => {
+      debouncedBlur.cancel();
+    };
+  }, [debouncedBlur]);
 
   const onFocus = () => {
     setCurAnnotId(annotation.Id);
@@ -616,10 +624,7 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
         onChange={(value) => onTextAreaValueChange(value, annotation.Id)}
         onSubmit={setContents}
         isReply={isReply}
-        onBlur={(e) => {
-          onBlur(e);
-          setContents(e);
-        }}
+        onBlur={debouncedBlur}
         onFocus={onFocus}
       />
     </div>
