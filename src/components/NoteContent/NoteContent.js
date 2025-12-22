@@ -31,7 +31,6 @@ import selectors from 'selectors';
 import DataElements from 'constants/dataElement';
 import DataElementWrapper from '../DataElementWrapper';
 import { COMMON_COLORS } from 'constants/commonColors';
-import Button from 'components/Button';
 import getAnnotationReference from 'src/helpers/getAnnotationReference';
 
 import './NoteContent.scss';
@@ -617,30 +616,12 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
         onChange={(value) => onTextAreaValueChange(value, annotation.Id)}
         onSubmit={setContents}
         isReply={isReply}
-        onBlur={onBlur}
+        onBlur={(e) => {
+          onBlur(e);
+          setContents(e);
+        }}
         onFocus={onFocus}
       />
-      <div className="edit-buttons">
-        <Button
-          className="cancel-button"
-          label={t('action.cancel')}
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsEditing(false, noteIndex);
-            // Clear pending text
-            onTextAreaValueChange(undefined, annotation.Id);
-            clearAttachments(annotation.Id);
-          }}
-        />
-        <Button
-          className={`save-button`}
-          label={t('action.save')}
-          onClick={(e) => {
-            e.stopPropagation();
-            setContents(e);
-          }}
-        />
-      </div>
     </div>
   );
 };
