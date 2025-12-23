@@ -17,7 +17,7 @@ const stateConfig = (labels) => ({
   [SavedStateIndicatorState.SAVING]: { icon: 'sprite:clock-outline', label: labels.saving },
   [SavedStateIndicatorState.SAVED]: { icon: 'check', label: labels.saved },
   [SavedStateIndicatorState.UNSAVED_EDITS]: { icon: 'edit', label: labels.unsaved },
-  [SavedStateIndicatorState.SAVED_OFFLINE]: { icon: 'cloud-off', label: labels.savedOffline },
+  [SavedStateIndicatorState.SAVED_OFFLINE]: { icon: 'cloud-slash', label: labels.savedOffline },
   [SavedStateIndicatorState.ERROR]: {
     icon: 'exclamation-triangle',
     label: labels.errorLabel,
