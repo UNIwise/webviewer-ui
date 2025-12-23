@@ -575,6 +575,9 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
 
     const editor = textareaRef.current.getEditor();
     textAreaValue = mentionsManager.getFormattedTextFromDeltas(editor.getContents());
+    if (typeof textAreaValue === 'string' && textAreaValue.replace(/<br\s*\/?>(\s*)?/gi, '').trim() === '') {
+      textAreaValue = '';
+    }
     setAnnotationRichTextStyle(editor, annotation);
 
     const skipAutoLink = annotation.getSkipAutoLink && annotation.getSkipAutoLink();
