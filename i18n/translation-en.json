@@ -1378,5 +1378,13 @@
   },
   "colorPickerModal": {
     "modalTitle": "Color Picker"
+  },
+  "saveStateIndicator": {
+    "saved": "Saved",
+    "savedOffline": "Saved offline",
+    "saving": "Saving...",
+    "unsaved": "Editing...",
+    "errorLabel": "Last edits backed up but not saved",
+    "errorTitle": "There was an error saving the annotation. Your last edits have been backed up in the browser local storage. Please check your internet connection and try again."
   }
 }
