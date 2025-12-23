@@ -36,7 +36,6 @@ import debounce from 'lodash.debounce';
 
 import SavedStateIndicator, { SavedStateIndicatorState } from './SavedStateIndicator';
 import './NoteContent.scss';
-import { set } from 'lodash';
 
 dayjs.extend(LocalizedFormat);
 
