@@ -36,6 +36,7 @@ import debounce from 'lodash.debounce';
 
 import SavedStateIndicator, { SavedStateIndicatorState } from './SavedStateIndicator';
 import './NoteContent.scss';
+import { set } from 'lodash';
 
 dayjs.extend(LocalizedFormat);
 
@@ -444,6 +445,7 @@ export default NoteContent;
 
 // a component that contains the content textarea, the save button and the cancel button
 const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTextAreaValueChange, pendingText }) => {
+  const localStorageKey = `noteContent_${annotation.Id}`;
   const [
     autoFocusNoteOnAnnotationSelection,
     isMentionEnabled,
@@ -474,6 +476,7 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
   const handleSave = useCallback(
     (e) => {
       setContents(e);
+      setSavedState(SavedStateIndicatorState.SAVED);
     },
     [setContents],
   );
@@ -610,6 +613,7 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
   };
 
   const handleBlur = (e) => {
+    setSavedState(SavedStateIndicatorState.UNSAVED_EDITS);
     setCurAnnotId(undefined);
     handleSave(e);
   };
@@ -623,6 +627,11 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
 
   const handleChange = (value) => {
     onTextAreaValueChange(value, annotation.Id);
+    setSavedState(SavedStateIndicatorState.UNSAVED_EDITS);
+    try {
+      localStorage.setItem(localStorageKey, value);
+      setSavedState(SavedStateIndicatorState.SAVED_OFFLINE);
+    } catch (e) {}
     debouncedSave({ preventDefault: () => {} });
   };
 
