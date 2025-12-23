@@ -605,12 +605,7 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
       annotation.setContents(textAreaValue ?? '');
     }
 
-    try {
-      await setAnnotationAttachments(annotation, pendingAttachmentMap[annotation.Id]);
-      setSavedState(SavedStateIndicatorState.SAVED);
-    } catch {
-      setSavedState(SavedStateIndicatorState.ERROR);
-    }
+    await setAnnotationAttachments(annotation, pendingAttachmentMap[annotation.Id]);
 
     const source = annotation instanceof window.Core.Annotations.FreeTextAnnotation ? 'textChanged' : 'noteChanged';
     core
@@ -632,10 +627,10 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
     } catch (e) {
       console.error(`Error removing item ${localStorageKey} from localStorage`, e);
     }
+    setSavedState(SavedStateIndicatorState.SAVED);
   };
 
   const handleBlur = (e) => {
-    setSavedState(SavedStateIndicatorState.UNSAVED_EDITS);
     setCurAnnotId(undefined);
     handleSave(e);
     setIsEditing(false, noteIndex);
@@ -650,10 +645,8 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
 
   const handleChange = (value) => {
     onTextAreaValueChange(value, annotation.Id);
-    setSavedState(SavedStateIndicatorState.UNSAVED_EDITS);
     try {
       localStorage.setItem(localStorageKey, value);
-      setSavedState(SavedStateIndicatorState.SAVED_OFFLINE);
     } catch (e) {}
     debouncedSave({ preventDefault: () => {} });
   };

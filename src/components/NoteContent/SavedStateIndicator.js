@@ -8,8 +8,6 @@ export const SavedStateIndicatorState = {
   SAVED: 'SAVED',
   SAVING: 'SAVING',
   UNSAVED_EDITS: 'UNSAVED_EDITS',
-  SAVED_OFFLINE: 'SAVED_OFFLINE',
-  ERROR: 'ERROR',
   NONE: 'NONE',
 };
 
@@ -17,12 +15,6 @@ const stateConfig = (labels) => ({
   [SavedStateIndicatorState.SAVING]: { icon: 'sprite:clock-outline', label: labels.saving },
   [SavedStateIndicatorState.SAVED]: { icon: 'check', label: labels.saved },
   [SavedStateIndicatorState.UNSAVED_EDITS]: { icon: 'edit', label: labels.unsaved },
-  [SavedStateIndicatorState.SAVED_OFFLINE]: { icon: 'cloud-slash', label: labels.savedOffline },
-  [SavedStateIndicatorState.ERROR]: {
-    icon: 'exclamation-triangle',
-    label: labels.errorLabel,
-    title: labels.errorTitle,
-  },
 });
 
 const SavedStateIndicator = ({ state, labels }) => {
@@ -46,9 +38,6 @@ SavedStateIndicator.propTypes = {
     saved: PropTypes.string.isRequired,
     saving: PropTypes.string.isRequired,
     unsaved: PropTypes.string.isRequired,
-    savedOffline: PropTypes.string.isRequired,
-    errorLabel: PropTypes.string.isRequired,
-    errorTitle: PropTypes.string.isRequired,
   }).isRequired,
 };
 
