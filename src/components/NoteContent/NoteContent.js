@@ -483,7 +483,7 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
   useEffect(() => {
     try {
       const saved = localStorage.getItem(localStorageKey);
-      if (saved !== null && saved !== textAreaValue) {
+      if (saved !== null) {
         onTextAreaValueChange(saved, annotation.Id);
         setTimeout(() => {
           handleSave({ preventDefault: () => {} });
@@ -605,6 +605,7 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
       annotation.setContents(textAreaValue ?? '');
     }
 
+    annotation.setCustomData('key', localStorageKey);
     await setAnnotationAttachments(annotation, pendingAttachmentMap[annotation.Id]);
 
     const source = annotation instanceof window.Core.Annotations.FreeTextAnnotation ? 'textChanged' : 'noteChanged';
@@ -622,11 +623,6 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
     }
     clearAttachments(annotation.Id);
 
-    try {
-      localStorage.removeItem(localStorageKey);
-    } catch (e) {
-      console.error(`Error removing item ${localStorageKey} from localStorage`, e);
-    }
     setSavedState(SavedStateIndicatorState.SAVED);
   };
 
