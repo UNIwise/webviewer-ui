@@ -445,6 +445,16 @@ export default NoteContent;
 // a component that contains the content textarea, the save button and the cancel button
 const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTextAreaValueChange, pendingText }) => {
   const localStorageKey = `noteContent_${annotation.Id}`;
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(localStorageKey);
+      if (saved !== null && saved !== textAreaValue) {
+        onTextAreaValueChange(saved, annotation.Id);
+      }
+    } catch (e) {}
+  }, [annotation.Id]);
+
   const [
     autoFocusNoteOnAnnotationSelection,
     isMentionEnabled,
@@ -475,7 +485,6 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
   const handleSave = useCallback(
     (e) => {
       setContents(e);
-      setSavedState(SavedStateIndicatorState.SAVED);
     },
     [setContents],
   );
@@ -609,6 +618,13 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
       onTextAreaValueChange(undefined, annotation.Id);
     }
     clearAttachments(annotation.Id);
+
+    try {
+      localStorage.removeItem(localStorageKey);
+    } catch (e) {
+      console.error(`Error removing item ${localStorageKey} from localStorage`, e);
+    }
+    setSavedState(SavedStateIndicatorState.SAVED);
   };
 
   const handleBlur = (e) => {
