@@ -451,6 +451,9 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
       const saved = localStorage.getItem(localStorageKey);
       if (saved !== null && saved !== textAreaValue) {
         onTextAreaValueChange(saved, annotation.Id);
+        setTimeout(() => {
+          handleSave({ preventDefault: () => {} });
+        }, 0);
       }
     } catch (e) {}
   }, [annotation.Id]);
@@ -612,7 +615,6 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
       core.drawAnnotationsFromList([annotation]);
     }
 
-    setIsEditing(false, noteIndex);
     // Only set comment to unposted state if it is not empty
     if (textAreaValue !== '') {
       onTextAreaValueChange(undefined, annotation.Id);
@@ -631,6 +633,7 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
     setSavedState(SavedStateIndicatorState.UNSAVED_EDITS);
     setCurAnnotId(undefined);
     handleSave(e);
+    setIsEditing(false, noteIndex);
   };
 
   const onFocus = () => {
