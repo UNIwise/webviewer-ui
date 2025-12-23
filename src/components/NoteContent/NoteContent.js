@@ -34,6 +34,7 @@ import { COMMON_COLORS } from 'constants/commonColors';
 import getAnnotationReference from 'src/helpers/getAnnotationReference';
 import debounce from 'lodash.debounce';
 
+import SavedStateIndicator, { SavedStateIndicatorState } from './SavedStateIndicator';
 import './NoteContent.scss';
 
 dayjs.extend(LocalizedFormat);
@@ -468,6 +469,14 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
 
   const shouldNotFocusOnInput = !isInlineCommentDisabled && isInlineCommentOpen && isMobile();
 
+  const [savedState, setSavedState] = useState(SavedStateIndicatorState.NONE);
+
+  useEffect(() => {
+    if (textAreaValue && textAreaValue !== annotation.getContents()) {
+      setSavedState(SavedStateIndicatorState.UNSAVED_EDITS);
+    }
+  }, [textAreaValue, annotation]);
+
   useEffect(() => {
     // on initial mount, focus the last character of the textarea
     if (isAnyCustomPanelOpen || ((isNotesPanelOpen || isInlineCommentOpen) && textareaRef.current)) {
@@ -626,6 +635,17 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
         isReply={isReply}
         onBlur={debouncedBlur}
         onFocus={onFocus}
+      />
+      <SavedStateIndicator
+        state={savedState}
+        labels={{
+          saved: t('saveStateIndicator.saved'),
+          saving: t('saveStateIndicator.saving'),
+          unsaved: t('saveStateIndicator.unsaved'),
+          savedOffline: t('saveStateIndicator.savedOffline'),
+          errorLabel: t('saveStateIndicator.errorLabel'),
+          errorTitle: t('saveStateIndicator.errorTitle'),
+        }}
       />
     </div>
   );
