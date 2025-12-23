@@ -446,18 +446,6 @@ export default NoteContent;
 const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTextAreaValueChange, pendingText }) => {
   const localStorageKey = `noteContent_${annotation.Id}`;
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(localStorageKey);
-      if (saved !== null && saved !== textAreaValue) {
-        onTextAreaValueChange(saved, annotation.Id);
-        setTimeout(() => {
-          handleSave({ preventDefault: () => {} });
-        }, 0);
-      }
-    } catch (e) {}
-  }, [annotation.Id]);
-
   const [
     autoFocusNoteOnAnnotationSelection,
     isMentionEnabled,
@@ -491,6 +479,18 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
     },
     [setContents],
   );
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(localStorageKey);
+      if (saved !== null && saved !== textAreaValue) {
+        onTextAreaValueChange(saved, annotation.Id);
+        setTimeout(() => {
+          handleSave({ preventDefault: () => {} });
+        }, 0);
+      }
+    } catch (e) {}
+  }, [annotation.Id]);
 
   const debouncedSave = useMemo(() => debounce(handleSave, 2000), [handleSave]);
 
@@ -569,6 +569,7 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
   }, []);
 
   const setContents = async (e) => {
+    setSavedState(SavedStateIndicatorState.SAVING);
     // prevent the textarea from blurring out which will unmount these two buttons
     e.preventDefault();
 
@@ -604,7 +605,12 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
       annotation.setContents(textAreaValue ?? '');
     }
 
-    await setAnnotationAttachments(annotation, pendingAttachmentMap[annotation.Id]);
+    try {
+      await setAnnotationAttachments(annotation, pendingAttachmentMap[annotation.Id]);
+      setSavedState(SavedStateIndicatorState.SAVED);
+    } catch {
+      setSavedState(SavedStateIndicatorState.ERROR);
+    }
 
     const source = annotation instanceof window.Core.Annotations.FreeTextAnnotation ? 'textChanged' : 'noteChanged';
     core
@@ -626,7 +632,6 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
     } catch (e) {
       console.error(`Error removing item ${localStorageKey} from localStorage`, e);
     }
-    setSavedState(SavedStateIndicatorState.SAVED);
   };
 
   const handleBlur = (e) => {
