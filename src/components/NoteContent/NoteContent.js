@@ -471,6 +471,21 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
 
   const [savedState, setSavedState] = useState(SavedStateIndicatorState.NONE);
 
+  const handleSave = useCallback(
+    (e) => {
+      setContents(e);
+    },
+    [setContents],
+  );
+
+  const debouncedSave = useMemo(() => debounce(handleSave, 2000), [handleSave]);
+
+  useEffect(() => {
+    return () => {
+      debouncedSave.flush();
+    };
+  }, [debouncedSave]);
+
   useEffect(() => {
     if (textAreaValue && textAreaValue !== annotation.getContents()) {
       setSavedState(SavedStateIndicatorState.UNSAVED_EDITS);
@@ -594,20 +609,10 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
     clearAttachments(annotation.Id);
   };
 
-  const debouncedBlur = useMemo(
-    () =>
-      debounce((e) => {
-        setCurAnnotId(undefined);
-        setContents(e);
-      }, 200),
-    [setContents, setCurAnnotId],
-  );
-
-  useEffect(() => {
-    return () => {
-      debouncedBlur.cancel();
-    };
-  }, [debouncedBlur]);
+  const handleBlur = (e) => {
+    setCurAnnotId(undefined);
+    handleSave(e);
+  };
 
   const onFocus = () => {
     setCurAnnotId(annotation.Id);
@@ -615,6 +620,11 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
 
   const contentClassName = classNames('edit-content', { 'reply-content': isReply });
   const pendingAttachments = pendingAttachmentMap[annotation.Id] || [];
+
+  const handleChange = (value) => {
+    onTextAreaValueChange(value, annotation.Id);
+    debouncedSave({ preventDefault: () => {} });
+  };
 
   return (
     <div className={contentClassName}>
@@ -630,10 +640,10 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
           textareaRef.current = el;
         }}
         value={textAreaValue}
-        onChange={(value) => onTextAreaValueChange(value, annotation.Id)}
+        onChange={handleChange}
         onSubmit={setContents}
         isReply={isReply}
-        onBlur={debouncedBlur}
+        onBlur={handleBlur}
         onFocus={onFocus}
       />
       <SavedStateIndicator
