@@ -3,22 +3,16 @@ import PropTypes from 'prop-types';
 import Icon from 'components/Icon';
 
 import './SavedStateIndicator.scss';
-
-export const SavedStateIndicatorState = {
-  SAVED: 'SAVED',
-  SAVING: 'SAVING',
-  UNSAVED_EDITS: 'UNSAVED_EDITS',
-  NONE: 'NONE',
-};
+import { AnnotationSavedState } from './annotationSavedState';
 
 const stateConfig = (labels) => ({
-  [SavedStateIndicatorState.SAVING]: { icon: 'sprite:clock-outline', label: labels.saving },
-  [SavedStateIndicatorState.SAVED]: { icon: 'check', label: labels.saved },
-  [SavedStateIndicatorState.UNSAVED_EDITS]: { icon: 'edit', label: labels.unsaved },
+  [AnnotationSavedState.SAVING]: { icon: 'sprite:clock-outline', label: labels.saving },
+  [AnnotationSavedState.SAVED]: { icon: 'check', label: labels.saved },
+  [AnnotationSavedState.UNSAVED_EDITS]: { icon: 'edit', label: labels.unsaved },
 });
 
 const SavedStateIndicator = ({ state, labels }) => {
-  if (state === SavedStateIndicatorState.NONE) {
+  if (!state || state === AnnotationSavedState.NONE) {
     return null;
   }
 
@@ -33,7 +27,7 @@ const SavedStateIndicator = ({ state, labels }) => {
 };
 
 SavedStateIndicator.propTypes = {
-  state: PropTypes.oneOf(Object.values(SavedStateIndicatorState)).isRequired,
+  state: PropTypes.oneOf(Object.values(AnnotationSavedState)).isRequired,
   labels: PropTypes.shape({
     saved: PropTypes.string.isRequired,
     saving: PropTypes.string.isRequired,

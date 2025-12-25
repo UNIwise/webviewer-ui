@@ -34,8 +34,9 @@ import { COMMON_COLORS } from 'constants/commonColors';
 import getAnnotationReference from 'src/helpers/getAnnotationReference';
 import debounce from 'lodash.debounce';
 
-import SavedStateIndicator, { SavedStateIndicatorState } from './SavedStateIndicator';
+import SavedStateIndicator from './SavedStateIndicator';
 import './NoteContent.scss';
+import { AnnotationSavedState, ANNOTATION_STATE_CHANGE_EVENT } from './annotationSavedState';
 
 dayjs.extend(LocalizedFormat);
 
@@ -444,7 +445,23 @@ export default NoteContent;
 
 // a component that contains the content textarea, the save button and the cancel button
 const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTextAreaValueChange, pendingText }) => {
-  const localStorageKey = `noteContent_${annotation.Id}`;
+  const [savedState, setSavedState] = useState(AnnotationSavedState.NONE);
+
+  useEffect(() => {
+    function handleAnnotationStateChange(event) {
+      const { state, annotations } = event.detail || {};
+      if (!annotations) {
+        return;
+      }
+      if (annotations.some((a) => a.Id === annotation.Id)) {
+        setSavedState(state);
+      }
+    }
+    window.addEventListener(ANNOTATION_STATE_CHANGE_EVENT, handleAnnotationStateChange);
+    return () => {
+      window.removeEventListener(ANNOTATION_STATE_CHANGE_EVENT, handleAnnotationStateChange);
+    };
+  }, [annotation]);
 
   const [
     autoFocusNoteOnAnnotationSelection,
@@ -471,26 +488,12 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
 
   const shouldNotFocusOnInput = !isInlineCommentDisabled && isInlineCommentOpen && isMobile();
 
-  const [savedState, setSavedState] = useState(SavedStateIndicatorState.NONE);
-
   const handleSave = useCallback(
     (e) => {
       setContents(e);
     },
     [setContents],
   );
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(localStorageKey);
-      if (saved !== null) {
-        onTextAreaValueChange(saved, annotation.Id);
-        setTimeout(() => {
-          handleSave({ preventDefault: () => {} });
-        }, 0);
-      }
-    } catch (e) {}
-  }, [annotation.Id]);
 
   const debouncedSave = useMemo(() => debounce(handleSave, 2000), [handleSave]);
 
@@ -499,12 +502,6 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
       debouncedSave.flush();
     };
   }, [debouncedSave]);
-
-  useEffect(() => {
-    if (textAreaValue && textAreaValue !== annotation.getContents()) {
-      setSavedState(SavedStateIndicatorState.UNSAVED_EDITS);
-    }
-  }, [textAreaValue, annotation]);
 
   useEffect(() => {
     // on initial mount, focus the last character of the textarea
@@ -569,7 +566,6 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
   }, []);
 
   const setContents = async (e) => {
-    setSavedState(SavedStateIndicatorState.SAVING);
     // prevent the textarea from blurring out which will unmount these two buttons
     e.preventDefault();
 
@@ -608,7 +604,6 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
       annotation.setContents(textAreaValue ?? '');
     }
 
-    annotation.setCustomData('key', localStorageKey);
     await setAnnotationAttachments(annotation, pendingAttachmentMap[annotation.Id]);
 
     const source = annotation instanceof window.Core.Annotations.FreeTextAnnotation ? 'textChanged' : 'noteChanged';
@@ -625,8 +620,6 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
       onTextAreaValueChange(undefined, annotation.Id);
     }
     clearAttachments(annotation.Id);
-
-    setSavedState(SavedStateIndicatorState.SAVED);
   };
 
   const handleBlur = (e) => {
@@ -644,9 +637,6 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
 
   const handleChange = (value) => {
     onTextAreaValueChange(value, annotation.Id);
-    try {
-      localStorage.setItem(localStorageKey, value);
-    } catch (e) {}
     debouncedSave({ preventDefault: () => {} });
   };
 
@@ -676,9 +666,6 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
           saved: t('saveStateIndicator.saved'),
           saving: t('saveStateIndicator.saving'),
           unsaved: t('saveStateIndicator.unsaved'),
-          savedOffline: t('saveStateIndicator.savedOffline'),
-          errorLabel: t('saveStateIndicator.errorLabel'),
-          errorTitle: t('saveStateIndicator.errorTitle'),
         }}
       />
     </div>
