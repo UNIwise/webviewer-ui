@@ -35,7 +35,7 @@ import getAnnotationReference from 'src/helpers/getAnnotationReference';
 
 import SavedStateIndicator from './SavedStateIndicator';
 import './NoteContent.scss';
-import { AnnotationSavedState, ANNOTATION_STATE_CHANGE_EVENT } from './annotationSavedState';
+import { AnnotationCustomEvents, AnnotationSavedState } from './annotationSavedState';
 
 dayjs.extend(LocalizedFormat);
 
@@ -456,9 +456,9 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
         setSavedState(state);
       }
     }
-    window.addEventListener(ANNOTATION_STATE_CHANGE_EVENT, handleAnnotationStateChange);
+    window.addEventListener(AnnotationCustomEvents.ANNOTATION_SAVED_STATE_CHANGED, handleAnnotationStateChange);
     return () => {
-      window.removeEventListener(ANNOTATION_STATE_CHANGE_EVENT, handleAnnotationStateChange);
+      window.removeEventListener(AnnotationCustomEvents.ANNOTATION_SAVED_STATE_CHANGED, handleAnnotationStateChange);
     };
   }, [annotation]);
 
@@ -486,13 +486,6 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
     useContext(NoteContext);
 
   const shouldNotFocusOnInput = !isInlineCommentDisabled && isInlineCommentOpen && isMobile();
-
-  const handleSave = useCallback(
-    (e) => {
-      setContents(e);
-    },
-    [setContents],
-  );
 
   useEffect(() => {
     // on initial mount, focus the last character of the textarea
@@ -556,7 +549,7 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
     }
   }, []);
 
-  const setContents = async (e) => {
+  const setContents = async (e, eventSourceArg) => {
     // prevent the textarea from blurring out which will unmount these two buttons
     e.preventDefault();
 
@@ -597,10 +590,11 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
 
     await setAnnotationAttachments(annotation, pendingAttachmentMap[annotation.Id]);
 
-    let eventSource = 'change';
-    if (e && e.type === 'blur') {
-      eventSource = 'blur';
+    let eventSource = eventSourceArg;
+    if (!eventSource) {
+      eventSource = (e && e.type === 'blur') ? 'blur' : 'change';
     }
+    console.log('Event source:', eventSource);
 
     const source = annotation instanceof window.Core.Annotations.FreeTextAnnotation ? 'textChanged' : 'noteChanged';
     core
@@ -620,7 +614,7 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
 
   const handleBlur = (e) => {
     setCurAnnotId(undefined);
-    handleSave(e);
+    setContents(e, 'blur');
     setIsEditing(false, noteIndex);
   };
 
@@ -633,7 +627,7 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
 
   const handleChange = (value) => {
     onTextAreaValueChange(value, annotation.Id);
-    handleSave({ preventDefault: () => {} });
+    setContents({ preventDefault: () => {} }, 'change');
   };
 
   return (

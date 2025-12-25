@@ -5,4 +5,6 @@ export const AnnotationSavedState = {
   NONE: 'NONE',
 };
 
-export const ANNOTATION_STATE_CHANGE_EVENT = 'annotation-state-change';
+export const AnnotationCustomEvents = {
+  ANNOTATION_SAVED_STATE_CHANGED: 'annotation-state-change',
+};
