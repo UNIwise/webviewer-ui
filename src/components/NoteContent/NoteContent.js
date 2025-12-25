@@ -32,7 +32,6 @@ import DataElements from 'constants/dataElement';
 import DataElementWrapper from '../DataElementWrapper';
 import { COMMON_COLORS } from 'constants/commonColors';
 import getAnnotationReference from 'src/helpers/getAnnotationReference';
-import debounce from 'lodash.debounce';
 
 import SavedStateIndicator from './SavedStateIndicator';
 import './NoteContent.scss';
@@ -495,14 +494,6 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
     [setContents],
   );
 
-  const debouncedSave = useMemo(() => debounce(handleSave, 2000), [handleSave]);
-
-  useEffect(() => {
-    return () => {
-      debouncedSave.flush();
-    };
-  }, [debouncedSave]);
-
   useEffect(() => {
     // on initial mount, focus the last character of the textarea
     if (isAnyCustomPanelOpen || ((isNotesPanelOpen || isInlineCommentOpen) && textareaRef.current)) {
@@ -637,7 +628,7 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
 
   const handleChange = (value) => {
     onTextAreaValueChange(value, annotation.Id);
-    debouncedSave({ preventDefault: () => {} });
+    handleSave({ preventDefault: () => {} });
   };
 
   return (
