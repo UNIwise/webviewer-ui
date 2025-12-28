@@ -595,10 +595,12 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
       eventSource = e && e.type === 'blur' ? 'blur' : 'change';
     }
 
+    annotation._eventSource = eventSource;
+
     const source = annotation instanceof window.Core.Annotations.FreeTextAnnotation ? 'textChanged' : 'noteChanged';
     core
       .getAnnotationManager(activeDocumentViewerKey)
-      .trigger('annotationChanged', [[annotation], 'modify', { source, eventSource }]);
+      .trigger('annotationChanged', [[annotation], 'modify', { source }]);
 
     if (annotation instanceof window.Core.Annotations.FreeTextAnnotation) {
       core.drawAnnotationsFromList([annotation]);
