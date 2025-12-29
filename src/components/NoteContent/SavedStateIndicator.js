@@ -1,4 +1,5 @@
 import React from 'react';
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import Icon from 'components/Icon';
 
@@ -19,8 +20,11 @@ const SavedStateIndicator = ({ state, labels }) => {
 
   const { icon, label, title } = stateConfig(labels)[state];
 
+  const isError = state === AnnotationSavedState.ERROR;
+  const className = classNames('SavedStateIndicator', { error: isError });
+
   return (
-    <div className="SavedStateIndicator" title={title}>
+    <div className={className} title={title}>
       <Icon glyph={icon} />
       <span>{label}</span>
     </div>
@@ -33,6 +37,7 @@ SavedStateIndicator.propTypes = {
     saved: PropTypes.string.isRequired,
     saving: PropTypes.string.isRequired,
     unsaved: PropTypes.string.isRequired,
+    error: PropTypes.string.isRequired,
   }).isRequired,
 };
 
