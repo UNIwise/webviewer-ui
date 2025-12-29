@@ -12,5 +12,18 @@
 
   &.error {
     color: #a53737;
+
+    .Icon svg {
+      color: #a53737;
+      fill: #a53737;
+      stroke: #a53737;
+    }
+    .Icon svg path,
+    .Icon svg mask,
+    .Icon svg stop {
+      fill: #a53737 !important;
+      stroke: #a53737 !important;
+      stop-color: #a53737 !important;
+    }
   }
 }
