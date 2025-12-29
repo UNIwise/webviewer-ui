@@ -38,6 +38,8 @@ import './NoteContent.scss';
 import { AnnotationCustomEvents, AnnotationSavedState } from './annotationSavedState';
 import debounce from 'lodash.debounce';
 
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
 dayjs.extend(LocalizedFormat);
 
 const propTypes = {
@@ -447,6 +449,47 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
   const [savedState, setSavedState] = useState(AnnotationSavedState.NONE);
 
   useEffect(() => {
+    try {
+      const keys = Object.keys(localStorage);
+      const draftKeys = keys.filter((key) => key.startsWith('annotation_draft_'));
+      const oneDayAgo = Date.now() - ONE_DAY_MS;
+
+      draftKeys.forEach((key) => {
+        try {
+          const stored = localStorage.getItem(key);
+          if (stored) {
+            const draft = JSON.parse(stored);
+            if (draft.timestamp < oneDayAgo) {
+              localStorage.removeItem(key);
+            }
+          }
+        } catch (e) {
+          localStorage.removeItem(key);
+        }
+      });
+    } catch (e) {
+      console.error('Failed to cleanup old drafts:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    const storageKey = `annotation_draft_${annotation.Id}`;
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        const draft = JSON.parse(stored);
+        const isRecent = Date.now() - draft.timestamp < ONE_DAY_MS;
+        if (isRecent && draft.value && !pendingText) {
+          onTextAreaValueChange(draft.value, annotation.Id);
+          setSavedState(AnnotationSavedState.UNSAVED_EDITS);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load from localStorage:', e);
+    }
+  }, []);
+
+  useEffect(() => {
     function handleAnnotationStateChange(event) {
       const { state, annotations } = event.detail || {};
       if (!annotations) {
@@ -454,6 +497,15 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
       }
       if (annotations.some((a) => a.Id === annotation.Id)) {
         setSavedState(state);
+
+        if (state === AnnotationSavedState.SAVED) {
+          try {
+            const storageKey = `annotation_draft_${annotation.Id}`;
+            localStorage.removeItem(storageKey);
+          } catch (e) {
+            console.error('Failed to clear localStorage:', e);
+          }
+        }
       }
     }
     window.addEventListener(AnnotationCustomEvents.ANNOTATION_SAVED_STATE_CHANGED, handleAnnotationStateChange);
@@ -619,10 +671,10 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
   };
 
   const handleBlur = (e) => {
-    debouncedSetContents.cancel();
+    debouncedSetContents.flush();
 
     setCurAnnotId(undefined);
-    setContents(e, 'blur');
+    setContents(e);
 
     setTimeout(() => {
       const editorContainer = textareaRef.current?.editor?.container;
@@ -643,6 +695,21 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
   const handleChange = (value) => {
     onTextAreaValueChange(value, annotation.Id);
     setSavedState(AnnotationSavedState.UNSAVED_EDITS);
+
+    try {
+      const storageKey = `annotation_draft_${annotation.Id}`;
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          value,
+          timestamp: Date.now(),
+          annotationId: annotation.Id,
+        }),
+      );
+    } catch (e) {
+      console.error('Failed to save to localStorage:', e);
+    }
+
     debouncedSetContents();
   };
 
