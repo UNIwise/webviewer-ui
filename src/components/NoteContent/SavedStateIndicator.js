@@ -9,6 +9,7 @@ const stateConfig = (labels) => ({
   [AnnotationSavedState.SAVING]: { icon: 'sprite:clock-outline', label: labels.saving },
   [AnnotationSavedState.SAVED]: { icon: 'check', label: labels.saved },
   [AnnotationSavedState.UNSAVED_EDITS]: { icon: 'edit', label: labels.unsaved },
+  [AnnotationSavedState.ERROR]: { icon: 'exclamation-triangle', label: labels.error },
 });
 
 const SavedStateIndicator = ({ state, labels }) => {
