@@ -36,6 +36,7 @@ import getAnnotationReference from 'src/helpers/getAnnotationReference';
 import SavedStateIndicator from './SavedStateIndicator';
 import './NoteContent.scss';
 import { AnnotationCustomEvents, AnnotationSavedState } from './annotationSavedState';
+import debounce from 'lodash.debounce';
 
 dayjs.extend(LocalizedFormat);
 
@@ -442,7 +443,6 @@ NoteContent.propTypes = propTypes;
 
 export default NoteContent;
 
-// a component that contains the content textarea, the save button and the cancel button
 const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTextAreaValueChange, pendingText }) => {
   const [savedState, setSavedState] = useState(AnnotationSavedState.NONE);
 
@@ -486,6 +486,18 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
     useContext(NoteContext);
 
   const shouldNotFocusOnInput = !isInlineCommentDisabled && isInlineCommentOpen && isMobile();
+
+  const debouncedSetContents = useRef(
+    debounce(() => {
+      if (textareaRef.current) {
+        setContents({ preventDefault: () => {} }, 'change');
+      }
+    }, 2000),
+  ).current;
+
+  useEffect(() => {
+    return () => debouncedSetContents.flush();
+  }, [debouncedSetContents]);
 
   useEffect(() => {
     // on initial mount, focus the last character of the textarea
@@ -590,13 +602,6 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
 
     await setAnnotationAttachments(annotation, pendingAttachmentMap[annotation.Id]);
 
-    let eventSource = eventSourceArg;
-    if (!eventSource) {
-      eventSource = e && e.type === 'blur' ? 'blur' : 'change';
-    }
-
-    annotation._eventSource = eventSource;
-
     const source = annotation instanceof window.Core.Annotations.FreeTextAnnotation ? 'textChanged' : 'noteChanged';
     core
       .getAnnotationManager(activeDocumentViewerKey)
@@ -606,17 +611,19 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
       core.drawAnnotationsFromList([annotation]);
     }
 
-    // Only set comment to unposted state if it is not empty
-    if (textAreaValue !== '') {
-      onTextAreaValueChange(undefined, annotation.Id);
+    if (e && e.type === 'blur') {
+      if (textAreaValue !== '') {
+        onTextAreaValueChange(undefined, annotation.Id);
+      }
+      clearAttachments(annotation.Id);
     }
-    clearAttachments(annotation.Id);
   };
 
   const handleBlur = (e) => {
+    debouncedSetContents.cancel();
+
     setCurAnnotId(undefined);
     setContents(e, 'blur');
-    setIsEditing(false, noteIndex);
   };
 
   const onFocus = () => {
@@ -628,7 +635,7 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
 
   const handleChange = (value) => {
     onTextAreaValueChange(value, annotation.Id);
-    setContents({ preventDefault: () => {} }, 'change');
+    debouncedSetContents();
   };
 
   return (
@@ -657,6 +664,7 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
           saved: t('saveStateIndicator.saved'),
           saving: t('saveStateIndicator.saving'),
           unsaved: t('saveStateIndicator.unsaved'),
+          error: t('saveStateIndicator.error'),
         }}
       />
     </div>
