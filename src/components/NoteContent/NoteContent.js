@@ -480,8 +480,7 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
         const draft = JSON.parse(stored);
         const isRecent = Date.now() - draft.timestamp < ONE_DAY_MS;
         if (isRecent && draft.value && !pendingText) {
-          onTextAreaValueChange(draft.value, annotation.Id);
-          setSavedState(AnnotationSavedState.UNSAVED_EDITS);
+          handleChange(draft.value);
         }
       }
     } catch (e) {
