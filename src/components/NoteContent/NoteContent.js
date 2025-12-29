@@ -561,8 +561,7 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
     }
   }, []);
 
-  const setContents = async (e, eventSourceArg) => {
-    // prevent the textarea from blurring out which will unmount these two buttons
+  const setContents = async (e) => {
     e.preventDefault();
 
     const editor = textareaRef.current.getEditor();
@@ -624,6 +623,14 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
 
     setCurAnnotId(undefined);
     setContents(e, 'blur');
+
+    setTimeout(() => {
+      const editorContainer = textareaRef.current?.editor?.container;
+      if (editorContainer && editorContainer.contains(document.activeElement)) {
+        return;
+      }
+      setIsEditing(false, noteIndex);
+    }, 0);
   };
 
   const onFocus = () => {
@@ -635,6 +642,7 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
 
   const handleChange = (value) => {
     onTextAreaValueChange(value, annotation.Id);
+    setSavedState(AnnotationSavedState.UNSAVED_EDITS);
     debouncedSetContents();
   };
 
