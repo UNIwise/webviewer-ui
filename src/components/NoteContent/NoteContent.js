@@ -32,10 +32,14 @@ import selectors from 'selectors';
 import DataElements from 'constants/dataElement';
 import DataElementWrapper from '../DataElementWrapper';
 import { COMMON_COLORS } from 'constants/commonColors';
-import Button from 'components/Button';
 import getAnnotationReference from 'src/helpers/getAnnotationReference';
 
+import SavedStateIndicator from './SavedStateIndicator';
 import './NoteContent.scss';
+import { AnnotationCustomEvents, AnnotationSavedState } from './annotationSavedState';
+import debounce from 'lodash.debounce';
+
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 dayjs.extend(LocalizedFormat);
 
@@ -176,10 +180,10 @@ const NoteContent = ({
                   href,
                   text: anchorText,
                   start: offset,
-                  end: offset + match.getMatchedText().length
+                  end: offset + match.getMatchedText().length,
                 });
             }
-          }
+          },
         });
       }
 
@@ -387,12 +391,18 @@ const NoteContent = ({
       }
       
       return (
-        <div className="selected-text-preview" style={{ paddingRight: '12px' }}>
-          {highlightSearchResult}
-        </div>
+        <DataElementWrapper className="selected-text-preview" dataElement="notesSelectedTextPreview">
+          <NoteTextPreview linesToBreak={3}>{`"${highlightSearchResult}"`}</NoteTextPreview>
+        </DataElementWrapper>
       );
-    }, [text, searchInput]);
+    }
 
+    return (
+      <div className="selected-text-preview" style={{ paddingRight: '12px' }}>
+        {highlightSearchResult}
+      </div>
+    );
+  }, [text, searchInput]);
 
   const header = useMemo(
     () => {
@@ -487,7 +497,7 @@ const ContentArea = ({
   const { core } = useCore();
   useEffect(() => {
     // on initial mount, focus the last character of the textarea
-    if (isAnyCustomPanelOpen || (isNotesPanelOpen || isInlineCommentOpen) && textareaRef.current) {
+    if (isAnyCustomPanelOpen || ((isNotesPanelOpen || isInlineCommentOpen) && textareaRef.current)) {
       const editor = textareaRef.current.getEditor();
       const isFreeTextAnnnotation = annotation && annotation instanceof window.Core.Annotations.FreeTextAnnotation;
       isFreeTextAnnnotation && editor.setText('');
@@ -548,11 +558,13 @@ const ContentArea = ({
   }, []);
 
   const setContents = async (e) => {
-    // prevent the textarea from blurring out which will unmount these two buttons
     e.preventDefault();
 
     const editor = textareaRef.current.getEditor();
     textAreaValue = mentionsManager.getFormattedTextFromDeltas(editor.getContents());
+    if (typeof textAreaValue === 'string' && textAreaValue.replace(/<br\s*\/?>(\s*)?/gi, '').trim() === '') {
+      textAreaValue = '';
+    }
     setAnnotationRichTextStyle(editor, annotation);
 
     const hasTrailingNewlineToRemove = textAreaValue.length > 1 && textAreaValue[textAreaValue.length - 1] === '\n';
@@ -587,10 +599,13 @@ const ContentArea = ({
         }
       });
 
-      annotation.setCustomData('trn-mention', JSON.stringify({
-        contents: textAreaValue,
-        ids,
-      }));
+      annotation.setCustomData(
+        'trn-mention',
+        JSON.stringify({
+          contents: textAreaValue,
+          ids,
+        }),
+      );
       annotation.setContents(plainTextValue ?? '');
     } else {
       annotation.setContents(textAreaValue ?? '');
@@ -598,9 +613,10 @@ const ContentArea = ({
 
     await setAnnotationAttachments(annotation, pendingAttachmentMap[annotation.Id]);
 
-    const source = (annotation instanceof window.Core.Annotations.FreeTextAnnotation)
-      ? 'textChanged' : 'noteChanged';
-    core.getAnnotationManager(activeDocumentViewerKey).trigger('annotationChanged', [[annotation], 'modify', { 'source': source }]);
+    const source = annotation instanceof window.Core.Annotations.FreeTextAnnotation ? 'textChanged' : 'noteChanged';
+    core
+      .getAnnotationManager(activeDocumentViewerKey)
+      .trigger('annotationChanged', [[annotation], 'modify', { source }]);
 
     if (annotation instanceof window.Core.Annotations.FreeTextAnnotation) {
       core.drawAnnotationsFromList([annotation]);
@@ -611,15 +627,21 @@ const ContentArea = ({
     if (textAreaValue !== '') {
       onTextAreaValueChange(undefined, annotation.Id);
     }
-    clearAttachments(annotation.Id);
   };
 
-  const onBlur = (e) => {
-    if (e.relatedTarget?.getAttribute('data-element')?.includes('annotationCommentButton')) {
-      e.target.focus();
-      return;
-    }
+  const handleBlur = (e) => {
+    debouncedSetContents.flush();
+
     setCurAnnotId(undefined);
+    setContents(e);
+
+    setTimeout(() => {
+      const editorContainer = textareaRef.current?.editor?.container;
+      if (editorContainer && editorContainer.contains(document.activeElement)) {
+        return;
+      }
+      setIsEditing(false, noteIndex);
+    }, 0);
   };
 
   const onFocus = () => {
@@ -628,6 +650,27 @@ const ContentArea = ({
 
   const contentClassName = classNames('edit-content', { 'reply-content': isReply });
   const pendingAttachments = pendingAttachmentMap[annotation.Id] || [];
+
+  const handleChange = (value) => {
+    onTextAreaValueChange(value, annotation.Id);
+    setSavedState(AnnotationSavedState.UNSAVED_EDITS);
+
+    try {
+      const storageKey = `annotation_draft_${annotation.Id}`;
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          value,
+          timestamp: Date.now(),
+          annotationId: annotation.Id,
+        }),
+      );
+    } catch (e) {
+      console.error('Failed to save to localStorage:', e);
+    }
+
+    debouncedSetContents();
+  };
 
   return (
     <div className={contentClassName}>
@@ -643,10 +686,10 @@ const ContentArea = ({
           textareaRef.current = el;
         }}
         value={textAreaValue}
-        onChange={(value) => onTextAreaValueChange(value, annotation.Id)}
+        onChange={handleChange}
         onSubmit={setContents}
         isReply={isReply}
-        onBlur={onBlur}
+        onBlur={handleBlur}
         onFocus={onFocus}
       />
       <div className="edit-buttons">
@@ -680,7 +723,7 @@ ContentArea.propTypes = {
   setIsEditing: PropTypes.func.isRequired,
   textAreaValue: PropTypes.string,
   onTextAreaValueChange: PropTypes.func.isRequired,
-  pendingText: PropTypes.string
+  pendingText: PropTypes.string,
 };
 
 const getRichTextSpan = (text, richTextStyle, key) => {

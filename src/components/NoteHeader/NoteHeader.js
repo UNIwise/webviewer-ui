@@ -4,7 +4,6 @@ import { useSelector } from 'react-redux';
 import NoteShareType from 'components/NoteShareType';
 import NotePopup from 'components/NotePopup';
 import Icon from 'components/Icon';
-import NoteUnpostedCommentIndicator from 'components/NoteUnpostedCommentIndicator';
 import Choice from 'components/Choice';
 import Button from 'components/Button';
 
