@@ -5,7 +5,6 @@ import NoteState from 'components/NoteState';
 import NoteShareType from 'components/NoteShareType';
 import NotePopup from 'components/NotePopup';
 import Icon from 'components/Icon';
-import NoteUnpostedCommentIndicator from 'components/NoteUnpostedCommentIndicator';
 import Choice from 'components/Choice';
 import Button from 'components/Button';
 
@@ -278,19 +277,10 @@ function NoteHeader(props) {
                   handleMultiSelect(!isMultiSelected);
                 }}
               />
-            }
-            <NoteUnpostedCommentIndicator
-              annotationId={annotation.Id}
-              ariaLabel={`Unposted Comment, ${renderAuthorName(annotation)}, ${noteDateAndTime}`}
-            />
-            {showNoteState &&
-              <NoteState
-                annotation={annotation}
-                isSelected={isSelected}
-                flyoutId={flyoutId}
-              />
-            }
-            {isNoteStateDisabled &&
+            )}
+
+            {/* WISEflow: Note share type menu */}
+            {!isNoteStateDisabled &&
               !isReply &&
               !isMultiSelectMode &&
               !isGroupMember &&
