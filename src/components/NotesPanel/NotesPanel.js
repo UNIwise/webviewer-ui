@@ -312,7 +312,7 @@ const NotesPanel = ({
       searchInput,
       resize,
       isSelected: selectedNoteIds[currNote.Id],
-      isContentEditable: core.canModifyContents(currNote, activeDocumentViewerKey) && !currNote.getContents(),
+      isContentEditable: core.canModifyContents(currNote, activeDocumentViewerKey),
       isOfficeEditorCommentAnnotation: mapAnnotationToKey(currNote) === annotationMapKeys.OFFICE_EDITOR_COMMENT,
       pendingEditTextMap,
       setPendingEditText,
