@@ -30,6 +30,7 @@ const propTypes = {
   isEditable: PropTypes.bool,
   isDeletable: PropTypes.bool,
   noteId: PropTypes.string,
+  isCopyable: PropTypes.bool,
   isReply: PropTypes.bool,
 };
 
@@ -42,6 +43,7 @@ function NotePopup(props) {
     handleCopy = noop,
     isEditable,
     isDeletable,
+    isCopyable,
     isReply,
     noteId,
   } = props;
@@ -60,7 +62,7 @@ function NotePopup(props) {
     }
   };
 
-  if (!isEditable && !isDeletable) {
+  if (!isEditable && !isDeletable && !isCopyable) {
     return null;
   }
 
@@ -81,6 +83,7 @@ function NotePopup(props) {
         handleClick={handleClick}
         isEditable={isEditable}
         isDeletable={isDeletable}
+        isCopyable={isCopyable}
       />
     </div>
   );
@@ -92,6 +95,7 @@ const NotePopupFlyout = ({
   handleClick,
   isEditable,
   isDeletable,
+  isCopyable,
 }) => {
   const dispatch = useDispatch();
   const currentFlyout = useSelector((state) => selectors.getFlyout(state, flyoutSelector));
@@ -100,8 +104,12 @@ const NotePopupFlyout = ({
   useLayoutEffect(() => {
     let items = notePopupFlyoutItems;
     if (!isEditable) {
-      items = items.filter((item) => item.option !== 'Edit' && item.option !== 'Copy');
-    } else if (!isDeletable) {
+      items = items.filter((item) => item.option !== 'Edit');
+    }
+    if (!isCopyable) {
+      items = items.filter((item) => item.option !== 'Copy');
+    }
+    if (!isDeletable) {
       items = items.filter((item) => item.option !== 'Delete');
     }
 
@@ -123,7 +131,7 @@ const NotePopupFlyout = ({
     } else {
       dispatch(actions.updateFlyout(notePopupFlyout.dataElement, notePopupFlyout));
     }
-  }, [isEditable, isDeletable]);
+  }, [isEditable, isDeletable, isCopyable]);
 
   return null;
 };
@@ -133,6 +141,7 @@ NotePopupFlyout.propTypes = {
   handleClick: PropTypes.func,
   isEditable: PropTypes.bool,
   isDeletable: PropTypes.bool,
+  isCopyable: PropTypes.bool,
 };
 
 NotePopup.propTypes = propTypes;
