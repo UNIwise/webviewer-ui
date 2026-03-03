@@ -27,8 +27,10 @@ const propTypes = {
   handleEdit: PropTypes.func,
   handleDelete: PropTypes.func,
   handleCopy: PropTypes.func,
+  isCopyable: PropTypes.bool,
   isEditable: PropTypes.bool,
   isDeletable: PropTypes.bool,
+  isReply: PropTypes.bool,
   noteId: PropTypes.string,
 };
 
@@ -39,6 +41,7 @@ function NotePopup(props) {
     handleEdit = noop,
     handleDelete = noop,
     handleCopy = noop,
+    isCopyable,
     isEditable,
     isDeletable,
     isReply,
@@ -59,7 +62,7 @@ function NotePopup(props) {
     }
   };
 
-  if (!isEditable && !isDeletable) {
+  if (!isEditable && !isDeletable && !isCopyable) {
     return null;
   }
 
@@ -75,12 +78,12 @@ function NotePopup(props) {
         toggleElement={flyoutSelector}
         disabled={false}
       />
-<<<<<<< HEAD
       <NotePopupFlyout
         flyoutSelector={flyoutSelector}
         handleClick={handleClick}
         isEditable={isEditable}
         isDeletable={isDeletable}
+        isCopyable={isCopyable}
       />
     </div>
   );
