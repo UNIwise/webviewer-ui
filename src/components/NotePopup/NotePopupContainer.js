@@ -66,6 +66,7 @@ function NotePopupContainer(props) {
 
   const isEditable = canModifyContents;
   const isDeletable = canModify && !annotation?.NoDelete;
+  const isCopyable = canModify;
 
   const passProps = {
     handleEdit,
@@ -73,6 +74,7 @@ function NotePopupContainer(props) {
     handleCopy,
     isEditable,
     isDeletable,
+    isCopyable,
     isOpen,
     closePopup,
     openPopup,

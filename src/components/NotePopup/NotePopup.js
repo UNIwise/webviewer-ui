@@ -22,6 +22,7 @@ const propTypes = {
   openPopup: PropTypes.func,
   isEditable: PropTypes.bool,
   isDeletable: PropTypes.bool,
+  isCopyable: PropTypes.bool,
   isOpen: PropTypes.bool,
   isReply: PropTypes.bool,
 };
@@ -37,6 +38,7 @@ function NotePopup(props) {
     openPopup = noop,
     isEditable,
     isDeletable,
+    isCopyable,
     isOpen,
     isReply,
   } = props;
@@ -81,7 +83,7 @@ function NotePopup(props) {
     handleCopy();
   }
 
-  if (!isEditable && !isDeletable) {
+  if (!isEditable && !isDeletable && !isCopyable) {
     return null;
   }
 
@@ -118,7 +120,7 @@ function NotePopup(props) {
               {t('action.edit')}
             </DataElementWrapper>
           )}
-          {isEditable && (
+          {isCopyable && (
             <DataElementWrapper
               tabIndex={0}
               type="button"
