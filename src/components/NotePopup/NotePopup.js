@@ -19,12 +19,14 @@ const createFlyoutItem = (option, icon, dataElement) => ({
 
 export const notePopupFlyoutItems = [
   createFlyoutItem('Edit', '', 'notePopupEdit'),
+  createFlyoutItem('Copy', '', 'notePopupCopy'),
   createFlyoutItem('Delete', '', 'notePopupDelete'),
 ];
 
 const propTypes = {
   handleEdit: PropTypes.func,
   handleDelete: PropTypes.func,
+  handleCopy: PropTypes.func,
   isEditable: PropTypes.bool,
   isDeletable: PropTypes.bool,
   noteId: PropTypes.string,
@@ -37,6 +39,7 @@ function NotePopup(props) {
   const {
     handleEdit = noop,
     handleDelete = noop,
+    handleCopy = noop,
     isEditable,
     isDeletable,
     isReply,
@@ -50,6 +53,8 @@ function NotePopup(props) {
   const handleClick = (selection) => {
     if (selection === 'Edit') {
       handleEdit();
+    } else if (selection === 'Copy') {
+      handleCopy();
     } else if (selection === 'Delete') {
       handleDelete();
     }
@@ -95,7 +100,7 @@ const NotePopupFlyout = ({
   useLayoutEffect(() => {
     let items = notePopupFlyoutItems;
     if (!isEditable) {
-      items = items.filter((item) => item.option !== 'Edit');
+      items = items.filter((item) => item.option !== 'Edit' && item.option !== 'Copy');
     } else if (!isDeletable) {
       items = items.filter((item) => item.option !== 'Delete');
     }
