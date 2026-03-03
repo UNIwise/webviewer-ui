@@ -19,12 +19,14 @@ const createFlyoutItem = (option, icon, dataElement) => ({
 
 export const notePopupFlyoutItems = [
   createFlyoutItem('Edit', '', 'notePopupEdit'),
+  createFlyoutItem('Copy', '', 'notePopupCopy'),
   createFlyoutItem('Delete', '', 'notePopupDelete'),
 ];
 
 const propTypes = {
   handleEdit: PropTypes.func,
   handleDelete: PropTypes.func,
+  handleCopy: PropTypes.func,
   isEditable: PropTypes.bool,
   isDeletable: PropTypes.bool,
   noteId: PropTypes.string,
@@ -36,6 +38,7 @@ function NotePopup(props) {
   const {
     handleEdit = noop,
     handleDelete = noop,
+    handleCopy = noop,
     isEditable,
     isDeletable,
     isReply,
@@ -51,6 +54,8 @@ function NotePopup(props) {
       handleEdit();
     } else if (selection === 'Delete') {
       handleDelete();
+    } else if (selection === 'Copy') {
+      handleCopy();
     }
   };
 
@@ -70,6 +75,7 @@ function NotePopup(props) {
         toggleElement={flyoutSelector}
         disabled={false}
       />
+<<<<<<< HEAD
       <NotePopupFlyout
         flyoutSelector={flyoutSelector}
         handleClick={handleClick}
@@ -86,6 +92,7 @@ const NotePopupFlyout = ({
   handleClick,
   isEditable,
   isDeletable,
+  isCopyable = true,
 }) => {
   const dispatch = useDispatch();
   const currentFlyout = useSelector((state) => selectors.getFlyout(state, flyoutSelector));
@@ -94,9 +101,13 @@ const NotePopupFlyout = ({
   useLayoutEffect(() => {
     let items = notePopupFlyoutItems;
     if (!isEditable) {
-      items = items.filter((item) => item.option !== 'Edit');
-    } else if (!isDeletable) {
+      items = items.filter((item) => item.option !== 'Edit' && item.option !== 'Copy');
+    }
+    if (!isDeletable) {
       items = items.filter((item) => item.option !== 'Delete');
+    }
+    if (!isCopyable) {
+      items = items.filter((item) => item.option !== 'Copy');
     }
 
     const notePopupFlyout = {
@@ -127,6 +138,7 @@ NotePopupFlyout.propTypes = {
   handleClick: PropTypes.func,
   isEditable: PropTypes.bool,
   isDeletable: PropTypes.bool,
+  isCopyable: PropTypes.bool,
 };
 
 NotePopup.propTypes = propTypes;

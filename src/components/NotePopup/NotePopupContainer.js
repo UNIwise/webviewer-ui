@@ -3,14 +3,16 @@ import useCore from 'hooks/useCore';
 import NotePopup from './NotePopup';
 import { deleteOfficeEditorComment } from 'helpers/officeEditorCommentHelper';
 import NoteContext from 'components/Note/Context';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import actions from 'actions';
+import selectors from 'selectors';
 
 function NotePopupContainer(props) {
   const { annotation, setIsEditing, editingKey, flyoutId } = props;
   const { core } = useCore();
   const { isOfficeEditorCommentAnnotation } = useContext(NoteContext);
   const dispatch = useDispatch();
+  const activeDocumentViewerKey = useSelector(selectors.getActiveDocumentViewerKey);
   const isReadOnly = core.getIsReadOnly();
   const [canModify, setCanModify] = useState((isOfficeEditorCommentAnnotation && !isReadOnly) || core.canModify(annotation));
   const [canModifyContents, setCanModifyContents] = useState(core.canModifyContents(annotation));
@@ -47,12 +49,31 @@ function NotePopupContainer(props) {
     core.deleteAnnotations([annotation, ...annotation.getGroupedChildren()]);
   }, [annotation, core, isOfficeEditorCommentAnnotation]);
 
+  const handleCopy = useCallback(() => {
+    const annotManager = core.getAnnotationManager(activeDocumentViewerKey);
+    annotManager.deselectAllAnnotations();
+    const copiedAnnotation = annotManager.getAnnotationCopy(annotation);
+    if (Array.isArray(copiedAnnotation)) {
+      copiedAnnotation.forEach((copiedAnnot) => {
+        annotManager.addAnnotation(copiedAnnot);
+        annotManager.redrawAnnotation(copiedAnnot);
+      });
+    } else if (copiedAnnotation) {
+      annotManager.addAnnotation(copiedAnnotation);
+      annotManager.redrawAnnotation(copiedAnnotation);
+    }
+    window.dispatchEvent(new CustomEvent('annotationCopied', {
+      detail: { annotation, copiedAnnotation }
+    }));
+  }, [annotation, activeDocumentViewerKey, core]);
+
   const isEditable = canModifyContents;
   const isDeletable = canModify && !annotation?.NoDelete;
   const noteId = flyoutId || ((annotation) ? annotation.Id : '');
   const passProps = {
     handleEdit,
     handleDelete,
+    handleCopy,
     isEditable,
     isDeletable,
     noteId,
