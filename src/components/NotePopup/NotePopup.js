@@ -17,6 +17,7 @@ import { useSelector } from 'react-redux';
 const propTypes = {
   handleEdit: PropTypes.func,
   handleDelete: PropTypes.func,
+  handleCopy: PropTypes.func,
   closePopup: PropTypes.func,
   openPopup: PropTypes.func,
   isEditable: PropTypes.bool,
@@ -31,6 +32,7 @@ function NotePopup(props) {
   const {
     handleEdit = noop,
     handleDelete = noop,
+    handleCopy = noop,
     closePopup = noop,
     openPopup = noop,
     isEditable,
@@ -73,6 +75,12 @@ function NotePopup(props) {
     handleDelete();
   }
 
+  function onCopyButtonClick(e) {
+    e.stopPropagation();
+    closePopup();
+    handleCopy();
+  }
+
   if (!isEditable && !isDeletable) {
     return null;
   }
@@ -108,6 +116,20 @@ function NotePopup(props) {
               onMouseUp={e => e.preventDefault()}
             >
               {t('action.edit')}
+            </DataElementWrapper>
+          )}
+          {isEditable && (
+            <DataElementWrapper
+              tabIndex={0}
+              type="button"
+              role="button"
+              className="option note-popup-option"
+              dataElement="notePopupCopy"
+              onClick={onCopyButtonClick}
+              onMouseDown={e => e.preventDefault()}
+              onMouseUp={e => e.preventDefault()}
+            >
+              {t('action.copy')}
             </DataElementWrapper>
           )}
           {isDeletable && (

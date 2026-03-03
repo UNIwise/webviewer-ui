@@ -43,6 +43,24 @@ function NotePopupContainer(props) {
     core.deleteAnnotations([annotation, ...annotation.getGroupedChildren()], undefined, activeDocumentViewerKey);
   }, [annotation]);
 
+  const handleCopy = React.useCallback(() => {
+    const annotManager = core.getAnnotationManager(activeDocumentViewerKey);
+    annotManager.deselectAllAnnotations();
+    const copiedAnnotation = annotManager.getAnnotationCopy(annotation);
+    if (Array.isArray(copiedAnnotation)) {
+      copiedAnnotation.forEach((copiedAnnot) => {
+        annotManager.addAnnotation(copiedAnnot);
+        annotManager.redrawAnnotation(copiedAnnot);
+      });
+    } else if (copiedAnnotation) {
+      annotManager.addAnnotation(copiedAnnotation);
+      annotManager.redrawAnnotation(copiedAnnotation);
+    }
+    window.dispatchEvent(new CustomEvent('annotationCopied', {
+      detail: { annotation, copiedAnnotation }
+    }));
+  }, [annotation, activeDocumentViewerKey]);
+
   const openPopup = () => setIsOpen(true);
   const closePopup = () => setIsOpen(false);
 
@@ -52,6 +70,7 @@ function NotePopupContainer(props) {
   const passProps = {
     handleEdit,
     handleDelete,
+    handleCopy,
     isEditable,
     isDeletable,
     isOpen,
