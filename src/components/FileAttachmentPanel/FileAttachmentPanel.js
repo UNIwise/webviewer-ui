@@ -72,7 +72,6 @@ const FileAttachmentPanel = ({ initialFiles = initialFilesDefault }) => {
   const [showFileIdProcessSpinner, setFileIdProcessSpinner] = useState(null);
 
   useEffect(() => {
-    let isMounted = true;
     const updateFileAttachments = async () => {
       const attachments = await getFileAttachments(core);
       if (isMounted) {
@@ -86,9 +85,7 @@ const FileAttachmentPanel = ({ initialFiles = initialFilesDefault }) => {
     core.addEventListener('documentLoaded', updateFileAttachments);
     core.addEventListener('fileAttachmentDataAvailable', clearSpinner);
     updateFileAttachments();
-
     return () => {
-      isMounted = false;
       core.removeEventListener('annotationChanged', updateFileAttachments);
       core.removeEventListener('documentLoaded', updateFileAttachments);
       core.removeEventListener('fileAttachmentDataAvailable', clearSpinner);
