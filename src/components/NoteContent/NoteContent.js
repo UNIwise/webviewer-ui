@@ -292,7 +292,12 @@ const NoteContent = ({
     if (!isGroupMember) {
       if (isReply) {
         onReplyClicked(annotation);
-      } else if (!isEditing) {
+      } else if (isEditing) {
+        // already editing, do nothing
+      } else if (isSelected && setIsEditing && core.canModifyContents(annotation)) {
+        // if already selected, enter edit mode on click
+        setIsEditing(true, noteIndex);
+      } else {
         // collapse expanded note when top noteContent is clicked if it's not being edited
         onTopNoteContentClicked();
       }
