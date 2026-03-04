@@ -242,10 +242,10 @@ describe('NotePopup', () => {
     expect(closePopup).toHaveBeenCalled();
   });
 
-  it('Should not render component when not editable and not deletable', () => {
+  it('Should not render component when not editable and not deletable and not copyable', () => {
     const { container } = render(
       <Provider store={store}>
-        <NotePopup isOpen isEditable={false} isDeletable={false} />
+        <NotePopup isOpen isEditable={false} isDeletable={false} isCopyable={false} />
       </Provider>,
     );
     expect(container.querySelector('.NotePopup')).not.toBeInTheDocument();
@@ -261,6 +261,7 @@ describe('NotePopupContainer', () => {
         viewer: {
           activeDocumentViewerKey: 1,
           disabledElements: {},
+          customElementOverrides: {},
         },
       }),
     );
