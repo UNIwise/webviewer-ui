@@ -67,7 +67,7 @@ function NotePopupContainer(props) {
 
   const isEditable = canModifyContents;
   const isDeletable = canModify && !annotation?.NoDelete;
-  const isCopyable = canModify;
+  const isCopyable = true;
   const noteId = flyoutId || ((annotation) ? annotation.Id : '');
   const passProps = {
     handleEdit,
