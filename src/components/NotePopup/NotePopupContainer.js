@@ -5,6 +5,8 @@ import { deleteOfficeEditorComment } from 'helpers/officeEditorCommentHelper';
 import NoteContext from 'components/Note/Context';
 import { useDispatch } from 'react-redux';
 import actions from 'actions';
+import { setAnnotationShareType } from 'helpers/annotationShareType';
+import ShareTypes from 'constants/shareTypes';
 
 function NotePopupContainer(props) {
   const { annotation, setIsEditing, editingKey, flyoutId } = props;
@@ -49,14 +51,22 @@ function NotePopupContainer(props) {
 
   const handleCopy = React.useCallback(() => {
     const annotManager = core.getAnnotationManager(activeDocumentViewerKey);
+    const currentUser = core.getCurrentUser(activeDocumentViewerKey);
     annotManager.deselectAllAnnotations();
     const copiedAnnotation = annotManager.getAnnotationCopy(annotation);
+    const applyPrivateDefaults = (annot) => {
+      setAnnotationShareType(annot, ShareTypes.NONE);
+      annot.Author = currentUser;
+      annot.setCustomData('isCopy', 'true');
+    };
     if (Array.isArray(copiedAnnotation)) {
       copiedAnnotation.forEach((copiedAnnot) => {
+        applyPrivateDefaults(copiedAnnot);
         annotManager.addAnnotation(copiedAnnot);
         annotManager.redrawAnnotation(copiedAnnot);
       });
     } else if (copiedAnnotation) {
+      applyPrivateDefaults(copiedAnnotation);
       annotManager.addAnnotation(copiedAnnotation);
       annotManager.redrawAnnotation(copiedAnnotation);
     }
@@ -67,7 +77,7 @@ function NotePopupContainer(props) {
 
   const isEditable = canModifyContents;
   const isDeletable = canModify && !annotation?.NoDelete;
-  const isCopyable = true;
+  const isCopyable = annotation?.getCustomData('isCopy') !== 'true';
   const noteId = flyoutId || ((annotation) ? annotation.Id : '');
   const passProps = {
     handleEdit,
