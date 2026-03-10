@@ -4,6 +4,8 @@ import NotePopup from './NotePopup';
 import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
 import selectors from 'selectors';
+import { setAnnotationShareType } from 'helpers/annotationShareType';
+import ShareTypes from 'constants/shareTypes';
 
 function NotePopupContainer(props) {
   const [
@@ -45,14 +47,22 @@ function NotePopupContainer(props) {
 
   const handleCopy = React.useCallback(() => {
     const annotManager = core.getAnnotationManager(activeDocumentViewerKey);
+    const currentUser = core.getCurrentUser(activeDocumentViewerKey);
     annotManager.deselectAllAnnotations();
     const copiedAnnotation = annotManager.getAnnotationCopy(annotation);
+    const applyPrivateDefaults = (annot) => {
+      setAnnotationShareType(annot, ShareTypes.NONE);
+      annot.Author = currentUser;
+      annot.setCustomData('isCopy', 'true');
+    };
     if (Array.isArray(copiedAnnotation)) {
       copiedAnnotation.forEach((copiedAnnot) => {
+        applyPrivateDefaults(copiedAnnot);
         annotManager.addAnnotation(copiedAnnot);
         annotManager.redrawAnnotation(copiedAnnot);
       });
     } else if (copiedAnnotation) {
+      applyPrivateDefaults(copiedAnnotation);
       annotManager.addAnnotation(copiedAnnotation);
       annotManager.redrawAnnotation(copiedAnnotation);
     }
@@ -66,7 +76,7 @@ function NotePopupContainer(props) {
 
   const isEditable = canModifyContents;
   const isDeletable = canModify && !annotation?.NoDelete;
-  const isCopyable = true;
+  const isCopyable = annotation?.getCustomData('isCopy') !== 'true';
 
   const passProps = {
     handleEdit,
