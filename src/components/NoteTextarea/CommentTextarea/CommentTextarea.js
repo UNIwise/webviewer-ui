@@ -146,7 +146,11 @@ const CommentTextarea = React.forwardRef(
         contentArray.pop();
         value = contentArray.map((item) => {
           const paragraph = document.createElement('p');
-          paragraph.innerText = item || '<br>';
+          if (item) {
+            paragraph.innerText = item;
+          } else {
+            paragraph.innerHTML = '<br>';
+          }
           return paragraph.outerHTML;
         }
         ).join('');
