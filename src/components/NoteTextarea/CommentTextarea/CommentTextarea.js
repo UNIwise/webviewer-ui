@@ -112,7 +112,24 @@ const CommentTextarea = React.forwardRef(
       e.stopPropagation();
     };
 
-    value = transformTextForQuill(value);
+    // Convert text with newline ("\n") to <p>...</p> format so
+    // that editor handles multiline text correctly
+    if (value) {
+      const contentArray = value.split('\n');
+      if (contentArray.length && contentArray[contentArray.length - 1] === '') {
+        contentArray.pop();
+        value = contentArray.map((item) => {
+          const paragraph = document.createElement('p');
+          if (item) {
+            paragraph.innerText = item;
+          } else {
+            paragraph.innerHTML = '<br>';
+          }
+          return paragraph.outerHTML;
+        }
+        ).join('');
+      }
+    }
     const baseModule = { blurInput: {} };
 
     // onBlur and onFocus have to be outside in the div because of quill bug
