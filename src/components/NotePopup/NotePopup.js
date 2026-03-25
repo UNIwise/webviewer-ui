@@ -46,6 +46,13 @@ function NotePopup(props) {
   const [t] = useTranslation();
   const popupRef = React.useRef();
   const customizableUI = useSelector(state => selectors.getFeatureFlags(state)?.customizableUI);
+  const isEditDisabled = useSelector(state => selectors.isElementDisabled(state, 'notePopupEdit'));
+  const isCopyDisabled = useSelector(state => selectors.isElementDisabled(state, 'notePopupCopy'));
+  const isDeleteDisabled = useSelector(state => selectors.isElementDisabled(state, 'notePopupDelete'));
+
+  const hasEditOption = isEditable && !isEditDisabled;
+  const hasCopyOption = isCopyable && !isCopyDisabled;
+  const hasDeleteOption = isDeletable && !isDeleteDisabled;
 
   const { popupMenuRef, location } = useOverflowContainer(isOpen, { container: '.normal-notes-container' });
 
@@ -83,7 +90,7 @@ function NotePopup(props) {
     handleCopy();
   }
 
-  if (!isEditable && !isDeletable && !isCopyable) {
+  if (!hasEditOption && !hasCopyOption && !hasDeleteOption) {
     return null;
   }
 
@@ -104,7 +111,7 @@ function NotePopup(props) {
       />
       {isOpen && (
         <div className={`${optionsClass} ${location}`} ref={popupMenuRef}>
-          {isEditable && (
+          {hasEditOption && (
             <DataElementWrapper
               tabIndex={0}
               type="button"
@@ -120,7 +127,7 @@ function NotePopup(props) {
               {t('action.edit')}
             </DataElementWrapper>
           )}
-          {isCopyable && (
+          {hasCopyOption && (
             <DataElementWrapper
               tabIndex={0}
               type="button"
@@ -134,7 +141,7 @@ function NotePopup(props) {
               {t('action.copy')}
             </DataElementWrapper>
           )}
-          {isDeletable && (
+          {hasDeleteOption && (
             <DataElementWrapper
               tabIndex={0}
               type="button"
