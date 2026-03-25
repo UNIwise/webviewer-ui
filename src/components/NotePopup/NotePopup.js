@@ -51,6 +51,13 @@ function NotePopup(props) {
   const customizableUI = useSelector((state) => selectors.getFeatureFlags(state)?.customizableUI);
   const flyoutSelector = `${DataElements.NOTE_POPUP_FLYOUT}-${noteId}`;
   const [t] = useTranslation();
+  const isEditDisabled = useSelector((state) => selectors.isElementDisabled(state, 'notePopupEdit'));
+  const isCopyDisabled = useSelector((state) => selectors.isElementDisabled(state, 'notePopupCopy'));
+  const isDeleteDisabled = useSelector((state) => selectors.isElementDisabled(state, 'notePopupDelete'));
+
+  const hasEditOption = isEditable && !isEditDisabled;
+  const hasCopyOption = isCopyable && !isCopyDisabled;
+  const hasDeleteOption = isDeletable && !isDeleteDisabled;
 
   const handleClick = (selection) => {
     if (selection === 'Edit') {
@@ -62,7 +69,7 @@ function NotePopup(props) {
     }
   };
 
-  if (!isEditable && !isDeletable && !isCopyable) {
+  if (!hasEditOption && !hasCopyOption && !hasDeleteOption) {
     return null;
   }
 
@@ -81,9 +88,9 @@ function NotePopup(props) {
       <NotePopupFlyout
         flyoutSelector={flyoutSelector}
         handleClick={handleClick}
-        isEditable={isEditable}
-        isDeletable={isDeletable}
-        isCopyable={isCopyable}
+        isEditable={hasEditOption}
+        isDeletable={hasDeleteOption}
+        isCopyable={hasCopyOption}
       />
     </div>
   );
