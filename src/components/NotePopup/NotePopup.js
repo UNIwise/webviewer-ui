@@ -51,6 +51,13 @@ function NotePopup(props) {
   const customizableUI = useSelector((state) => selectors.getFeatureFlags(state)?.customizableUI);
   const flyoutSelector = `${DataElements.NOTE_POPUP_FLYOUT}-${noteId}`;
   const [t] = useTranslation();
+  const isEditDisabled = useSelector((state) => selectors.isElementDisabled(state, 'notePopupEdit'));
+  const isCopyDisabled = useSelector((state) => selectors.isElementDisabled(state, 'notePopupCopy'));
+  const isDeleteDisabled = useSelector((state) => selectors.isElementDisabled(state, 'notePopupDelete'));
+
+  const hasEditOption = isEditable && !isEditDisabled;
+  const hasCopyOption = isCopyable && !isCopyDisabled;
+  const hasDeleteOption = isDeletable && !isDeleteDisabled;
 
   const handleClick = (selection) => {
     if (selection === 'Edit') {
@@ -62,7 +69,7 @@ function NotePopup(props) {
     }
   };
 
-  if (!isEditable && !isDeletable && !isCopyable) {
+  if (!hasEditOption && !hasCopyOption && !hasDeleteOption) {
     return null;
   }
 
@@ -81,9 +88,9 @@ function NotePopup(props) {
       <NotePopupFlyout
         flyoutSelector={flyoutSelector}
         handleClick={handleClick}
-        isEditable={isEditable}
-        isDeletable={isDeletable}
-        isCopyable={isCopyable}
+        hasEditOption={hasEditOption}
+        hasCopyOption={hasCopyOption}
+        hasDeleteOption={hasDeleteOption}
       />
     </div>
   );
@@ -93,9 +100,9 @@ function NotePopup(props) {
 const NotePopupFlyout = ({
   flyoutSelector,
   handleClick,
-  isEditable,
-  isDeletable,
-  isCopyable,
+  hasEditOption,
+  hasCopyOption,
+  hasDeleteOption,
 }) => {
   const dispatch = useDispatch();
   const currentFlyout = useSelector((state) => selectors.getFlyout(state, flyoutSelector));
@@ -103,13 +110,13 @@ const NotePopupFlyout = ({
 
   useLayoutEffect(() => {
     let items = notePopupFlyoutItems;
-    if (!isEditable) {
+    if (!hasEditOption) {
       items = items.filter((item) => item.option !== 'Edit');
     }
-    if (!isCopyable) {
+    if (!hasCopyOption) {
       items = items.filter((item) => item.option !== 'Copy');
     }
-    if (!isDeletable) {
+    if (!hasDeleteOption) {
       items = items.filter((item) => item.option !== 'Delete');
     }
 
@@ -131,7 +138,7 @@ const NotePopupFlyout = ({
     } else {
       dispatch(actions.updateFlyout(notePopupFlyout.dataElement, notePopupFlyout));
     }
-  }, [isEditable, isDeletable, isCopyable]);
+  }, [hasEditOption, hasCopyOption, hasDeleteOption]);
 
   return null;
 };
@@ -139,9 +146,9 @@ const NotePopupFlyout = ({
 NotePopupFlyout.propTypes = {
   flyoutSelector: PropTypes.string,
   handleClick: PropTypes.func,
-  isEditable: PropTypes.bool,
-  isDeletable: PropTypes.bool,
-  isCopyable: PropTypes.bool,
+  hasEditOption: PropTypes.bool,
+  hasCopyOption: PropTypes.bool,
+  hasDeleteOption: PropTypes.bool,
 };
 
 NotePopup.propTypes = propTypes;
