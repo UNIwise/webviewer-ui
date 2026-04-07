@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { shallowEqual, useDispatch, useSelector, useStore } from 'react-redux';
 import { useTranslation } from 'react-i18next';
@@ -581,6 +581,33 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
   useEffect(() => {
     return () => debouncedSetContents.flush();
   }, [debouncedSetContents]);
+
+  // Always keep a ref to the latest setContents so the unmount cleanup can call it
+  const setContentsRef = useRef(setContents);
+  useLayoutEffect(() => {
+    setContentsRef.current = setContents;
+  });
+
+  // Track whether the user has made unsaved edits — used by the unmount cleanup
+  // to avoid triggering annotationChanged (and SET_CAN_UNDO/SET_CAN_REDO) on scroll
+  const hasUnsavedEditsRef = useRef(false);
+
+  // Save annotation when ContentArea unmounts (panel closed, annotation deselected, etc.).
+  // handleBlur cannot fire here because the component unmounts before the browser dispatches
+  // the blur event (mousedown on PDF → Redux deselect → unmount → blur never fires).
+  // useLayoutEffect cleanup runs synchronously before DOM removal, so textareaRef is still valid.
+  // Only saves if the user actually typed something to avoid spurious undo/redo history entries.
+  useLayoutEffect(() => {
+    return () => {
+      if (textareaRef.current && hasUnsavedEditsRef.current) {
+        console.log('ContentArea unmounting with unsaved edits — saving annotation');
+        debouncedSetContents.flush();
+        setContentsRef.current({ preventDefault: () => {}, type: 'blur' });
+      }
+    };
+  }, []);
+
+
   useEffect(() => {
     // on initial mount, focus the last character of the textarea
     if (isAnyCustomPanelOpen || ((isNotesPanelOpen || isInlineCommentOpen) && textareaRef.current)) {
@@ -708,6 +735,8 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
       core.drawAnnotationsFromList([annotation]);
     }
 
+    hasUnsavedEditsRef.current = false;
+
     if (e && e.type === 'blur') {
       if (textAreaValue !== '') {
         onTextAreaValueChange(undefined, annotation.Id);
@@ -717,6 +746,7 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
   };
 
   const handleBlur = (e) => {
+    console.log('handleBlur called with event:', e);
     debouncedSetContents.flush();
 
     setCurAnnotId(undefined);
@@ -741,6 +771,7 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
   const handleChange = (value) => {
     onTextAreaValueChange(value, annotation.Id);
     setSavedState(AnnotationSavedState.UNSAVED_EDITS);
+    hasUnsavedEditsRef.current = true;
 
     try {
       const storageKey = `annotation_draft_${annotation.Id}`;
