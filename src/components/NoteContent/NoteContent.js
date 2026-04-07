@@ -635,7 +635,6 @@ const ContentArea = ({
   };
 
   const handleBlur = (e) => {
-    console.log('handleBlur called with event:', e);
     debouncedSetContents.flush();
 
     setCurAnnotId(undefined);
