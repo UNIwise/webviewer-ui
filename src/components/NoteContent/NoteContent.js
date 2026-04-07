@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { shallowEqual, useDispatch, useSelector, useStore } from 'react-redux';
 import { useTranslation } from 'react-i18next';
@@ -635,6 +635,7 @@ const ContentArea = ({
   };
 
   const handleBlur = (e) => {
+    console.log('handleBlur called with event:', e);
     debouncedSetContents.flush();
 
     setCurAnnotId(undefined);
@@ -659,6 +660,7 @@ const ContentArea = ({
   const handleChange = (value) => {
     onTextAreaValueChange(value, annotation.Id);
     setSavedState(AnnotationSavedState.UNSAVED_EDITS);
+    hasUnsavedEditsRef.current = true;
 
     try {
       const storageKey = `annotation_draft_${annotation.Id}`;
