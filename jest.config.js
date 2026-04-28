@@ -67,6 +67,9 @@ module.exports = {
   //Specifies the memory limit for workers before they are recycled
   workerIdleMemoryLimit: '512MB',
 
+  // Force Jest to exit after all tests complete (prevents hanging from open handles)
+  forceExit: true,
+
   // An array of directory names to be searched recursively up from the requiring module's location
   moduleDirectories: [
     "node_modules"

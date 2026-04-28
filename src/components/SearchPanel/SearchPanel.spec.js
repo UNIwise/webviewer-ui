@@ -1,4 +1,5 @@
 import React from 'react';
+import { act } from 'react-dom/test-utils';
 import * as reactRedux from 'react-redux';
 import { render, fireEvent, screen, cleanup } from '@testing-library/react';
 import SearchPanelWithOutI18n from './SearchPanel';
@@ -224,7 +225,7 @@ describe('SearchPanel', () => {
 
 describe('SearchPanelContainer', () => {
   beforeEach(() => {
-    cleanup();
+    act(() => { cleanup(); });
     jest.resetAllMocks();
     // test would break if we don't make default return from useSearch as code is trying to destruct undefined value
     useSearch.mockReturnValue({});
