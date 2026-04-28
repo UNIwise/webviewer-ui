@@ -195,7 +195,7 @@ const StaticItem = React.forwardRef((props, ref) => {
       flyoutItem.icon = 'icon-office-editor-number-list';
       flyoutItem.label = 'officeEditor.numberList';
       flyoutItem.className = 'listTypeToggleFlyoutMenu';
-      flyoutItem.children = getListTypeFlyoutItems('number', OFFICE_NUMBER_OPTIONS);
+      flyoutItem.children = getListTypeFlyoutItems('number', OFFICE_NUMBER_OPTIONS());
       flyoutItem.additionalClass = isActive ? 'active' : '';
       return (
         <FlyoutItemContainer {...allProps}
@@ -211,7 +211,7 @@ const StaticItem = React.forwardRef((props, ref) => {
       flyoutItem.icon = 'icon-office-editor-bullet-list';
       flyoutItem.label = 'officeEditor.bulletList';
       flyoutItem.className = 'listTypeToggleFlyoutMenu';
-      flyoutItem.children = getListTypeFlyoutItems('bullet', OFFICE_BULLET_OPTIONS);
+      flyoutItem.children = getListTypeFlyoutItems('bullet', OFFICE_BULLET_OPTIONS());
       flyoutItem.additionalClass = isActive ? 'active' : '';
       return (
         <FlyoutItemContainer {...allProps}

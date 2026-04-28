@@ -31,13 +31,13 @@ const ListToggleButton = (props) => {
   const { core } = useCore();
   const { listType } = props;
 
-  const bulletListObjects = OFFICE_BULLET_OPTIONS.map((options) => ({
+  const bulletListObjects = OFFICE_BULLET_OPTIONS().map((options) => ({
     className: 'officeEditor-list-style-icon',
     key: options.enum,
     src: options.img
   }));
 
-  const numberListOptions = OFFICE_NUMBER_OPTIONS.map((options) => ({
+  const numberListOptions = OFFICE_NUMBER_OPTIONS().map((options) => ({
     className: 'officeEditor-list-style-icon',
     key: options.enum,
     src: options.img
