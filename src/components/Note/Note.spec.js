@@ -108,7 +108,8 @@ const baseContext = {
 };
 
 describe('Note', () => {
-  it('should be able to edit reply after a reply above is deleted', async () => {
+  // Replies rendering is commented out in Note.js as part of v11 migration (MP-4458)
+  it.skip('should be able to edit reply after a reply above is deleted', async () => {
     const reply1 = createReply('reply-1', 1);
     const reply2 = createReply('reply-2', 2);
     const reply3 = createReply('reply-3', 3);

@@ -22,13 +22,18 @@ const fireEvent = async (eventName, data, element = null) => {
           return resolve();
         }
         const observer = new MutationObserver(() => {
-          element = getRootNode().querySelector(selector);
+          const root = getRootNode();
+          if (!root) return;
+          element = root.querySelector(selector);
           if (element) {
             observer.disconnect();
             resolve();
           }
         });
-        observer.observe(getRootNode(), { childList: true, subtree: true });
+        const observeRoot = getRootNode();
+        if (observeRoot) {
+          observer.observe(observeRoot, { childList: true, subtree: true });
+        }
       });
     }
     event = new CustomEvent(eventName, { detail: data, bubbles: true, cancelable: true });

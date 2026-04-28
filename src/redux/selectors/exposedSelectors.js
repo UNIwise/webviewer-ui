@@ -177,7 +177,7 @@ export const getCustomElementSize = (state, dataElement) => state.viewer.customE
 export const getActiveFlyout = (state) => state.viewer.activeFlyout;
 export const getFlyoutPosition = (state) => state.viewer.flyoutPosition;
 export const getFlyoutMap = (state) => state.viewer.flyoutMap;
-export const getFlyout = (state, dataElement) => state.viewer.flyoutMap[dataElement];
+export const getFlyout = (state, dataElement) => state.viewer.flyoutMap?.[dataElement];
 export const getFlyoutToggleElement = (state) => state.viewer.flyoutToggleElement;
 export const getInitialsOffset = (state) => state.viewer.initalsOffset;
 export const isSavedSignaturesTabEnabled = (state) => state.viewer.savedSignatureTabEnabled;
@@ -355,9 +355,9 @@ export const getIsNotesPanelMultiSelectEnabled = (state) => state.viewer.isNotes
 export const getDocumentContainerWidth = (state) => state.viewer.documentContainerWidth;
 export const getDocumentContainerHeight = (state) => state.viewer.documentContainerHeight;
 
-export const isElementDisabled = (state, dataElement) => state.viewer?.disabledElements[dataElement]?.disabled;
+export const isElementDisabled = (state, dataElement) => state.viewer?.disabledElements?.[dataElement]?.disabled;
 
-export const isElementOpen = (state, dataElement) => !!(state.viewer?.openElements[dataElement] && !state.viewer?.disabledElements[dataElement]?.disabled);
+export const isElementOpen = (state, dataElement) => !!(state.viewer?.openElements?.[dataElement] && !state.viewer?.disabledElements?.[dataElement]?.disabled);
 
 export const isElementHidden = (state, dataElement) => state.viewer?.hiddenElements[dataElement];
 
@@ -570,7 +570,7 @@ export const getActiveHeaders = createSelector(
         fixedGroupedItemsSet.has(dataElement);
     };
 
-    return Object.values(modularHeaders).filter(({ items, dataElement }) => {
+    return Object.values(modularHeaders || {}).filter(({ items, dataElement }) => {
       if (disabledElements[dataElement]?.disabled) {
         return false;
       }
@@ -695,23 +695,23 @@ export const getActiveBottomHeaders = createSelector(
 );
 
 export const getTopHeadersHeight = createSelector(
-  [getActiveTopHeaders, (state) => state.viewer.modularHeadersHeight.topHeaders],
+  [getActiveTopHeaders, (state) => state.viewer.modularHeadersHeight?.topHeaders],
   (activeHeaders, topHeadersHeight) => activeHeaders.length * topHeadersHeight
 );
 
 export const getBottomHeadersHeight = createSelector(
   [getActiveBottomHeaders,
-    (state) => state.viewer.modularHeadersHeight.bottomHeaders,
+    (state) => state.viewer.modularHeadersHeight?.bottomHeaders,
     (state) => state.viewer.isSpreadsheetEditorModeEnabled],
   // For SpreadsheetEditor Mode, we need to include the height of the Spreadsheet Switcher which is a special bottom header that doesn't get included in config files
   (activeHeaders, bottomHeadersHeight, isSpreadsheetEditorModeEnabled) => activeHeaders.length * bottomHeadersHeight + (isSpreadsheetEditorModeEnabled ? bottomHeadersHeight : 0)
 );
 
-export const getRightHeaderWidth = (state) => state.viewer.modularHeadersWidth.rightHeader;
+export const getRightHeaderWidth = (state) => state.viewer.modularHeadersWidth?.rightHeader;
 
-export const getLeftHeaderWidth = (state) => state.viewer.modularHeadersWidth.leftHeader;
+export const getLeftHeaderWidth = (state) => state.viewer.modularHeadersWidth?.leftHeader;
 
-export const getBottomHeadersWidth = (state) => state.viewer.modularHeadersWidth.bottomHeaders;
+export const getBottomHeadersWidth = (state) => state.viewer.modularHeadersWidth?.bottomHeaders;
 
 export const getActiveLeftHeaderWidth = (state) => {
   const activeHeaders = getActiveHeaders(state);

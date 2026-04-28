@@ -127,7 +127,7 @@ describe('BookmarksPanel in MultiViewer mode', () => {
     expect(await screen.findByText('Lion')).toBeInTheDocument();
     expect(screen.queryByText('Goat')).not.toBeInTheDocument();
 
-    let addBookmarksButton = await screen.findByRole('button', { name: /Add Bookmark/i });
+    let addBookmarksButton = await screen.findByLabelText('Add Bookmark');
     userEvent.click(addBookmarksButton);
 
     let addSaveButton = await screen.findByText('Add', { exact: true });
@@ -137,7 +137,7 @@ describe('BookmarksPanel in MultiViewer mode', () => {
 
     store.dispatch(actions.setActiveDocumentViewerKey(2));
 
-    addBookmarksButton = await screen.findByRole('button', { name: /Add Bookmark/i });
+    addBookmarksButton = await screen.findByLabelText('Add Bookmark');
     userEvent.click(addBookmarksButton);
     addSaveButton = await screen.findByText('Add', { exact: true });
     expect(addSaveButton).toBeTruthy();

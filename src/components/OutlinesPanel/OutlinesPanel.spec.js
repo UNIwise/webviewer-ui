@@ -304,7 +304,7 @@ describe('OutlinesPanel in MultiViewer mode', () => {
     let setDestinationButton = await screen.findByRole('button', { name: /Set Destination/i });
     userEvent.click(setDestinationButton);
 
-    let saveButton = await screen.findByRole('button', { name: /Save/i });
+    let saveButton = await screen.findByRole('button', { name: 'Save' });
     userEvent.click(saveButton);
     expect(setDestinationSpy).toHaveBeenNthCalledWith(1, expect.anything(), expect.anything(), expect.anything(), expect.anything(), expect.anything(), 1);
 
@@ -317,7 +317,7 @@ describe('OutlinesPanel in MultiViewer mode', () => {
     setDestinationButton = await screen.findByRole('button', { name: /Set Destination/i });
     userEvent.click(setDestinationButton);
 
-    saveButton = await screen.findByRole('button', { name: /Save/i });
+    saveButton = await screen.findByRole('button', { name: 'Save' });
     userEvent.click(saveButton);
     expect(setDestinationSpy).toHaveBeenNthCalledWith(2, expect.anything(), expect.anything(), expect.anything(), expect.anything(), expect.anything(), 2);
   });

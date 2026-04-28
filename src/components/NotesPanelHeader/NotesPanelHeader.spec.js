@@ -56,7 +56,7 @@ describe('NotesPanelHeader', () => {
 
       screen.getByPlaceholderText('Search annotations'); // WISEflow term change
       screen.getByText('Sort:');
-      screen.getByText('Annotations'); // WISEflow term change
+      screen.getByText(/Annotations/, { selector: 'h2' }); // WISEflow term change
     });
 
     it('Should not render NotesPanelHeader if disabled', () => {
@@ -70,7 +70,7 @@ describe('NotesPanelHeader', () => {
 
       expect(screen.queryByPlaceholderText('Search annotations')).not.toBeInTheDocument; // WISEflow term change
       expect(screen.queryByText('Sort:')).not.toBeInTheDocument;
-      expect(screen.queryByText('Annotations')).not.toBeInTheDocument; // WISEflow term change
+      expect(screen.queryByText(/Annotations/)).not.toBeInTheDocument; // WISEflow term change
     });
 
     it('Should not render search input if disabled', () => {
@@ -87,7 +87,7 @@ describe('NotesPanelHeader', () => {
 
       expect(screen.queryByPlaceholderText('Search annotations')).not.toBeInTheDocument(); // WISEflow term change
       screen.getByText('Sort:');
-      screen.getByText('Annotations'); // WISEflow term change
+      screen.getByText(/Annotations/, { selector: 'h2' }); // WISEflow term change
     });
 
     it('Should not render comments counter if disabled', () => {
@@ -104,7 +104,7 @@ describe('NotesPanelHeader', () => {
 
       screen.getByPlaceholderText('Search annotations'); // WISEflow term change
       screen.getByText('Sort:');
-      expect(screen.queryByText('Annotations')).not.toBeInTheDocument; // WISEflow term change
+      expect(screen.queryByText(/Annotations/)).not.toBeInTheDocument; // WISEflow term change
     });
 
     it('Should not render sorting row if disabled', () => {
@@ -122,7 +122,7 @@ describe('NotesPanelHeader', () => {
 
       screen.getByPlaceholderText('Search annotations'); // WISEflow term change
       expect(screen.queryByText('Sort:')).not.toBeInTheDocument();
-      screen.getByText('Annotations'); // WISEflow term change
+      screen.getByText(/Annotations/, { selector: 'h2' }); // WISEflow term change
     });
 
     it('Should have Aria Label on the dropdown', () => {
@@ -145,7 +145,7 @@ describe('NotesPanelHeader', () => {
         </Provider>
       );
 
-      const element = screen.getByText('Comments (0)');
+      const element = screen.getByText(/Annotations/, { selector: 'h2' }); // WISEflow term change
       expect(element.tagName.toLocaleLowerCase()).toEqual('h2');
     });
 

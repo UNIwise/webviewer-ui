@@ -1,5 +1,5 @@
 import hotkeys from 'hotkeys-js';
-import hotkeysManager, { defaultHotkeysScope } from './hotkeysManager';
+import hotkeysManager, { defaultHotkeysScope, Keys as HotkeyManagerKeys } from './hotkeysManager';
 import { Keys, Shortcuts, ShortcutKeys, isShortcutInToolList } from './hotkeysUtils';
 import actions from 'actions';
 import selectors from 'selectors';
@@ -74,9 +74,9 @@ describe('hotkeysManager', () => {
     it('should add an event handler for the hotkey associated with the given tool name', () => {
       const toolName = 'AnnotationCreateRectangle';
       const enableHotkeySpy = jest.spyOn(hotkeysManager, 'enableHotkey');
-      const handler = hotkeysManager.getDefaultKeyHandler(Keys.R);
+      const handler = hotkeysManager.getDefaultKeyHandler(HotkeyManagerKeys.R);
       hotkeysManager.on(toolName);
-      expect(enableHotkeySpy).toHaveBeenCalledWith(Keys.R, handler);
+      expect(enableHotkeySpy).toHaveBeenCalledWith(HotkeyManagerKeys.R, handler);
     });
   });
 

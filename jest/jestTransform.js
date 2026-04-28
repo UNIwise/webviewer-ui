@@ -1,7 +1,7 @@
 const config = {
   babelrc: false,
   presets: [
-    "@babel/preset-env",
+    ["@babel/preset-env", { targets: { node: "current" } }],
     "@babel/preset-react",
   ],
   plugins: [

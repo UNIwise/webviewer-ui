@@ -163,7 +163,7 @@ describe('NotesPanel', () => {
 
       screen.getByPlaceholderText('Search annotations'); // WISEflow term change
       screen.getByText('Sort:');
-      screen.getByText('Annotations'); // WISEflow term change
+      screen.getByText(/Annotations/, { selector: 'h2' }); // WISEflow term change
       screen.getByText(defaultEmptyContentMessage);
     });
 
@@ -184,7 +184,7 @@ describe('NotesPanel', () => {
 
       screen.getByPlaceholderText('Search annotations'); // WISEflow term change
       screen.getByText('Sort:');
-      screen.getByText('Annotations'); // WISEflow term change
+      screen.getByText(/Annotations/, { selector: 'h2' }); // WISEflow term change
       screen.getByText(message);
     });
 
@@ -208,7 +208,7 @@ describe('NotesPanel', () => {
 
       screen.getByPlaceholderText('Search annotations'); // WISEflow term change
       screen.getByText('Sort:');
-      screen.getByText('Annotations'); // WISEflow term change
+      screen.getByText(/Annotations/, { selector: 'h2' }); // WISEflow term change
       screen.getByText(message);
     });
 

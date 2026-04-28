@@ -1,5 +1,5 @@
 import React from 'react';
-import { legacy_createStore as createStore } from 'redux';
+import { createStore } from 'redux';
 import { Provider as ReduxProvider } from 'react-redux';
 import OutlineContent from './OutlineContent';
 import OutlineContext from '../Outline/Context';

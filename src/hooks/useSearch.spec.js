@@ -70,16 +70,16 @@ describe('useSearch', () => {
     const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
     useSelectorMock.mockImplementation((selector) => {
       const selectorString = selector.toString();
-      if (selectorString.includes('getSearchValue')) {
+      if (selectorString.includes('search.value') || selectorString.includes('getSearchValue')) {
         return 'test';
       }
-      if (selectorString.includes('isCaseSensitive')) {
+      if (selectorString.includes('search.isCaseSensitive') || selectorString.includes('isCaseSensitive')) {
         return false;
       }
-      if (selectorString.includes('isWholeWord')) {
+      if (selectorString.includes('search.isWholeWord') || selectorString.includes('isWholeWord')) {
         return false;
       }
-      if (selectorString.includes('getSearchStatus')) {
+      if (selectorString.includes('search.status') || selectorString.includes('getSearchStatus')) {
         return 'SEARCH_NOT_INITIATED';
       }
       return null;

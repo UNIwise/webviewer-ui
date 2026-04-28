@@ -1,5 +1,5 @@
 import React from 'react';
-import { legacy_createStore as createStore, applyMiddleware } from 'redux';
+import { createStore, applyMiddleware } from 'redux';
 import { Provider as ReduxProvider } from 'react-redux';
 import Outline from './Outline';
 import OutlineContext from './Context';

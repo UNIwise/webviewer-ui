@@ -1,6 +1,6 @@
 import React from 'react';
 import * as reactRedux from 'react-redux';
-import { render, fireEvent, screen } from '@testing-library/react';
+import { render, fireEvent, screen, cleanup } from '@testing-library/react';
 import SearchPanelWithOutI18n from './SearchPanel';
 import SearchPanelContainerWithOutI18n from './SearchPanelContainer';
 import useMedia from 'hooks/useMedia';
@@ -185,7 +185,7 @@ describe('SearchPanel', () => {
       />
     );
 
-    const activeResultButton = screen.queryByRole('button');
+    const activeResultButton = screen.queryByRole('button', { name: 'mock active result' });
     expect(activeResultButton).toHaveAttribute('aria-current');
   });
 
@@ -224,6 +224,7 @@ describe('SearchPanel', () => {
 
 describe('SearchPanelContainer', () => {
   beforeEach(() => {
+    cleanup();
     jest.resetAllMocks();
     // test would break if we don't make default return from useSearch as code is trying to destruct undefined value
     useSearch.mockReturnValue({});
@@ -233,6 +234,7 @@ describe('SearchPanelContainer', () => {
   });
 
   afterEach(() => {
+    cleanup();
     jest.restoreAllMocks();
   });
 

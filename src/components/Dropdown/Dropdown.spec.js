@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { Basic as BasicStory, DropdownWithInput, DropdownWithInputAndNoSearch, ImageDropdown } from './Dropdown.stories';
 import userEvent from '@testing-library/user-event';
 
@@ -10,7 +10,7 @@ const DropdownWithInputStory = withI18n(DropdownWithInput);
 
 describe('Dropdown component', () => {
   it('Should select item correctly', () => {
-    render(<DropdownStory />);
+    const { container } = render(<DropdownStory />);
 
     // make sure dropdown items are hidden
     let dropdownItems = screen.getByRole('listbox');
@@ -34,9 +34,9 @@ describe('Dropdown component', () => {
 
     // WISEflow: Changed status translation to Share Type
     // click Status button and make sure active element is changed to Status
-    const statusButton = queryByText(dropdownItems, 'Share Type');
+    const statusButton = within(dropdownItems).queryByText('Share Type');
     fireEvent.click(statusButton);
-    activeButton = container.querySelector('.active');
+    const activeButton = container.querySelector('.active');
     expect(activeButton).toHaveTextContent('Share Type');
   });
 });

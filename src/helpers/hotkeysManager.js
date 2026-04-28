@@ -23,6 +23,7 @@ import {
   getViewOnlyShortcuts,
   keyMap,
   Shortcuts,
+  splitKey,
 } from './hotkeysUtils';
 
 const NOOP = () => { };

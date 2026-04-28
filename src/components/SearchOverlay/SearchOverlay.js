@@ -65,6 +65,7 @@ function SearchOverlay(props) {
   const dispatch = useDispatch();
   const isSearchInProgress = useSelector((state) => selectors.isSearchInProgress(state));
   const officeEditorIsReplaceInProgress = useSelector((state) => selectors.getOfficeEditorIsReplaceInProgress(state));
+  const numberOfResultsFound = searchResults ? searchResults.length : 0;
 
   useEffect(() => {
     try {
@@ -340,7 +341,6 @@ function SearchOverlay(props) {
   if (isSearchOverlayDisabled) {
     return null;
   }
-  const numberOfResultsFound = searchResults ? searchResults.length : 0;
 
   const isSearchDoneAndNotProcessingResults = searchStatus === 'SEARCH_DONE' && !isProcessingSearchResults;
   const showSpinner = (!isSearchDoneAndNotProcessingResults || isSearchInProgress) ? <Spinner /> : null;

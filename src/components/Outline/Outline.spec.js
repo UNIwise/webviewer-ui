@@ -108,7 +108,7 @@ describe('OutlinesPanel in MultiViewer mode', () => {
 
     expect(await screen.findByText('Lion')).toBeInTheDocument();
     expect(screen.queryByText('Goat')).not.toBeInTheDocument();
-    const addOutlinesButton = await screen.findByRole('button', { name: /Add/i });
+    const addOutlinesButton = await screen.findByRole('button', { name: 'Add' });
     userEvent.click(addOutlinesButton);
     expect(addNewOutlineSpy).toHaveBeenNthCalledWith(1, expect.anything(), 1);
 

@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 
 const TestInsertUploadedPagePanel = withProviders(InsertUploadedPagePanel);
 
+const noop = () => { };
 
 const mockDocument = {
   getPageCount: () => 20,
@@ -12,8 +13,6 @@ const mockDocument = {
   loadThumbnail: (pageNumber, callback) => (Promise.resolve(callback({ pageNumber, currentSrc: 'https://placekitten.com/200/300?image=2' }))),
   cancelLoadThumbnail: noop,
 };
-
-const noop = () => { };
 
 
 describe('InsertUploadedPagePanel', () => {

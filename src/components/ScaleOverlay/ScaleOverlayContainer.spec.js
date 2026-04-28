@@ -17,15 +17,6 @@ const createCoreMock = (scales, { canModify = true } = {}) => ({
   deleteScale: jest.fn(),
 });
 
-class MockScale {
-  MockScale(scale) {
-    this.scale = scale;
-  }
-  toString() {
-    return `${this.scale.pageScale.value} ${this.scale.pageScale.unit} = ${this.scale.worldScale.value} ${this.scale.worldScale.unit}`;
-  }
-}
-
 const initialState = {
   viewer: {
     documentContainerHeight: 320,
@@ -62,19 +53,29 @@ const createStore = (stateOverrides = {}) => {
   return configureStore({ reducer: rootReducer });
 };
 
-jest.mock('core', () => ({
-  Scale: MockScale,
-  getViewerElement: jest.fn(),
-  getScrollViewElement: jest.fn(),
-  getDocument: jest.fn(),
-  getScales: jest.fn(() => ({
-    '1 in = 1 in': [{}],
-  })),
-  getScalePrecision: jest.fn(() => 0.1),
-  addEventListener: jest.fn(),
-  removeEventListener: jest.fn(),
-  getDocumentViewer: jest.fn(() => ({})),
-}));
+jest.mock('core', () => {
+  class MockScale {
+    MockScale(scale) {
+      this.scale = scale;
+    }
+    toString() {
+      return `${this.scale.pageScale.value} ${this.scale.pageScale.unit} = ${this.scale.worldScale.value} ${this.scale.worldScale.unit}`;
+    }
+  }
+  return {
+    Scale: MockScale,
+    getViewerElement: jest.fn(),
+    getScrollViewElement: jest.fn(),
+    getDocument: jest.fn(),
+    getScales: jest.fn(() => ({
+      '1 in = 1 in': [{}],
+    })),
+    getScalePrecision: jest.fn(() => 0.1),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    getDocumentViewer: jest.fn(() => ({})),
+  };
+});
 
 jest.mock('hooks/useCore', () => ({
   __esModule: true,

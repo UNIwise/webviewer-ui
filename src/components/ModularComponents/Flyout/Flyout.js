@@ -38,7 +38,10 @@ const Flyout = () => {
   const currentPage = useSelector(selectors.getCurrentPage);
   const isSignatureModalOpen = useSelector((state) => selectors.isElementOpen(state, DataElements.SIGNATURE_MODAL));
 
-  const flyoutProperties = flyoutMap[activeFlyout];
+  const flyoutProperties = flyoutMap?.[activeFlyout];
+  if (!flyoutProperties) {
+    return null;
+  }
   const horizontalHeadersUsedHeight = topHeadersHeight + bottomHeadersHeight + DEFAULT_GAP;
   const { dataElement, items, className } = flyoutProperties;
   const [activePath, setActivePath] = useState([]);
