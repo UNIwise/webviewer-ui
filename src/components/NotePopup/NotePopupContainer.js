@@ -3,8 +3,9 @@ import useCore from 'hooks/useCore';
 import NotePopup from './NotePopup';
 import { deleteOfficeEditorComment } from 'helpers/officeEditorCommentHelper';
 import NoteContext from 'components/Note/Context';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import actions from 'actions';
+import selectors from 'selectors';
 import { setAnnotationShareType } from 'helpers/annotationShareType';
 import ShareTypes from 'constants/shareTypes';
 
@@ -13,6 +14,7 @@ function NotePopupContainer(props) {
   const { core } = useCore();
   const { isOfficeEditorCommentAnnotation } = useContext(NoteContext);
   const dispatch = useDispatch();
+  const activeDocumentViewerKey = useSelector(selectors.getActiveDocumentViewerKey);
   const isReadOnly = core.getIsReadOnly();
   const [canModify, setCanModify] = useState((isOfficeEditorCommentAnnotation && !isReadOnly) || core.canModify(annotation));
   const [canModifyContents, setCanModifyContents] = useState(core.canModifyContents(annotation));
