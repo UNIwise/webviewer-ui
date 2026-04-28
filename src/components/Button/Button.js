@@ -180,7 +180,6 @@ const Button = forwardRef((props, ref) => {
         />
       )}
       {imgToShow && !isGlyph && <img src={imgToShow} />}
-<<<<<<< HEAD
       {
         label && (useI18String ?
           <span>{t(label)}</span> :
