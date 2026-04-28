@@ -26,6 +26,11 @@ module.exports = {
         use: [],
       },
       {
+        test: /\.js$/,
+        include: /node_modules[\\/]react-quill-new[\\/]/,
+        resolve: { fullySpecified: false },
+      },
+      {
         test: /\.(js|jsx|mjs)$/,
         use: {
           loader: 'babel-loader',

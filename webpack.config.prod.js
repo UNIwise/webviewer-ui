@@ -66,6 +66,11 @@ module.exports = (env = {}) => {
           ...(env.UI_BUILD ? { resolve: { fullySpecified: false } } : {}),
         },
         {
+          test: /\.js$/,
+          include: /node_modules[\\/]react-quill-new[\\/]/,
+          resolve: { fullySpecified: false },
+        },
+        {
           test: /\.(js|mjs)$/,
           use: {
             loader: 'babel-loader',

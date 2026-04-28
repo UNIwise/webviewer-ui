@@ -31,7 +31,7 @@ const isMouseOverElement = (elementBoundingRect, e) => {
   );
 };
 
-const Tooltip = forwardRef(({ content = '', translatedContent, children, hideShortcut, forcePosition, hideOnClick = true, xOffset = 0 }, ref) => {
+const Tooltip = forwardRef(({ content = '', translatedContent: propTranslatedContent, children, hideShortcut, forcePosition, hideOnClick = true, xOffset = 0 }, ref) => {
   const timeoutRef = useRef(null);
   const hiddenByClickRef = useRef(false);
   const childRef = useRef(null);
@@ -167,7 +167,7 @@ const Tooltip = forwardRef(({ content = '', translatedContent, children, hideSho
     };
   }, [childRef, hideOnClick]);
 
-  const translatedContent = t(content);
+  const translatedContent = propTranslatedContent || t(content);
 
   useLayoutEffect(() => {
     const childEle = childRef.current;

@@ -22,11 +22,7 @@ import { panelNames } from 'src/constants/panel';
 import {
   getViewOnlyShortcuts,
   keyMap,
-  Keys,
-  ShortcutKeys,
   Shortcuts,
-  splitKey,
-  ToolNameHotkeyMap
 } from './hotkeysUtils';
 
 const NOOP = () => { };
@@ -152,10 +148,6 @@ export const Keys = {
 
 export function concatKeys(...keys) {
   return keys.join(', ');
-}
-
-function splitKey(key) {
-  return key.split(', ');
 }
 
 // Defalut keys for shortcut

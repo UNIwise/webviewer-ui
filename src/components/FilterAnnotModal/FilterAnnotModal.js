@@ -132,7 +132,6 @@ const FilterAnnotModal = ({ isInFormBuilderMode }) => {
           sharetype = shareTypesFilter.includes(getAnnotationShareType(annot));
         }
       }
-      }
       return type && author && color && sharetype;
     };
     dispatch(actions.setCustomNoteFilter(newFilter));
