@@ -21,22 +21,21 @@ jobs:
           scope: '@uniwise'
 
       - name: Install Dependencies
-        run: yarn install --frozen-lockfile
+        run: npm ci
 
       - name: Run tests
         run: |
-          yarn cp-webviewer-core
-          yarn jest
-
+          npm run cp-webviewer-core
+          npm run jest
 
       - name: Build
-        run: yarn build
-        
+        run: npm run build
+
       - name: Version
-        run: yarn version --new-version "${GITHUB_REF:11}" --no-git-tag-version
+        run: npm version "${GITHUB_REF:11}" --no-git-tag-version
 
       - name: Publish
-        run: yarn publish
+        run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
