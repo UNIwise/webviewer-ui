@@ -64,8 +64,8 @@ module.exports = {
   // The maximum amount of workers used to run your tests. Can be specified as % or a number. E.g. maxWorkers: 10% will use 10% of your CPU amount + 1 as the maximum worker number. maxWorkers: 2 will use a maximum of 2 workers.
   // maxWorkers: "50%",
 
-  //Specifies the memory limit for workers before they are recycled
-  workerIdleMemoryLimit: '512MB',
+  // Removed workerIdleMemoryLimit — v11 core is larger and workers exceeded 512MB in CI,
+  // causing them to be continuously recycled without ever completing (infinite loop).
 
   // Force Jest to exit after all tests complete (prevents hanging from open handles)
   forceExit: true,
