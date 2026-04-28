@@ -7,6 +7,7 @@ on:
 jobs:
   publish:
     runs-on: default
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v3

@@ -62,7 +62,8 @@ module.exports = {
   },
 
   // The maximum amount of workers used to run your tests. Can be specified as % or a number. E.g. maxWorkers: 10% will use 10% of your CPU amount + 1 as the maximum worker number. maxWorkers: 2 will use a maximum of 2 workers.
-  // maxWorkers: "50%",
+  // In CI use a single worker to avoid OOM-killing workers (which causes Jest to hang waiting for dead workers).
+  maxWorkers: process.env.CI ? 1 : '50%',
 
   // Removed workerIdleMemoryLimit — v11 core is larger and workers exceeded 512MB in CI,
   // causing them to be continuously recycled without ever completing (infinite loop).
