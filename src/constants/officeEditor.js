@@ -54,13 +54,31 @@ export const OFFICE_NUMBER_OPTIONS = () => {
 export const OFFICE_EDITOR_TRACKED_CHANGE_KEY = 'officeEditorTrackedChangeUID';
 export const OFFICE_EDITOR_COMMENT_KEY = 'officeEditorCommentUID';
 
-export const OfficeEditorEditMode = window.Core.Document.OfficeEditor.EditMode;
+// Proxy-based lazy exports: window.Core.Document.OfficeEditor is not populated at module
+// evaluation time, so all accesses must be deferred until the property is actually read.
+const lazyOE = (prop) => new Proxy({}, {
+  get(_, key) {
+    const ns = window.Core?.Document?.OfficeEditor;
+    const val = ns?.[prop];
+    if (key === Symbol.toPrimitive) return () => val;
+    if (key === 'valueOf') return () => val;
+    return typeof val === 'object' && val !== null ? val[key] : val;
+  },
+  ownKeys() {
+    const val = window.Core?.Document?.OfficeEditor?.[prop];
+    return val && typeof val === 'object' ? Reflect.ownKeys(val) : [];
+  },
+  getOwnPropertyDescriptor(_, key) {
+    const val = window.Core?.Document?.OfficeEditor?.[prop];
+    if (!val || typeof val !== 'object') return undefined;
+    return Object.getOwnPropertyDescriptor(val, key) ?? { configurable: true, enumerable: true, value: val[key] };
+  },
+});
 
-export const EditingStreamType = window.Core.Document.OfficeEditor.EditingStreamType;
-
-export const EditOperationSource = window.Core.Document.OfficeEditor.EditOperationSource;
-
-export const DocElementType = window.Core.Document.OfficeEditor.DocumentElementType;
+export const OfficeEditorEditMode = lazyOE('EditMode');
+export const EditingStreamType = lazyOE('EditingStreamType');
+export const EditOperationSource = lazyOE('EditOperationSource');
+export const DocElementType = lazyOE('DocumentElementType');
 
 export const OFFICE_EDITOR_SCOPE = 'office-editor';
 
@@ -128,9 +146,9 @@ export const AVAILABLE_STYLE_PRESET_MAP = {
 
 export const HEADER_FOOTER_BAR_DEFAULT_POSITION = 100;
 
-export const LAYOUT_UNITS = window.Core.Document.OfficeEditor.LayoutUnits;
+export const LAYOUT_UNITS = lazyOE('LayoutUnits');
 
-export const EDIT_OPERATION_SOURCE = window.Core.Document.OfficeEditor.EditOperationSource;
+export const EDIT_OPERATION_SOURCE = lazyOE('EditOperationSource');
 
 export const MARGIN_UNIT_LABELS = {
   CM: 'cm',
@@ -164,11 +182,11 @@ export const PAGE_LAYOUT_WARNING_TYPE = {
   MARGIN: 'margin',
 };
 
-export const VERTICAL_MARGIN_LIMIT = window.Core.Document.OfficeEditor.VERTICAL_MARGIN_LIMIT; // 0.4
+export const VERTICAL_MARGIN_LIMIT = lazyOE('VERTICAL_MARGIN_LIMIT');
 
-export const DEFAULT_COLUMN_SPACING_IN_POINTS = window.Core.Document.OfficeEditor.DEFAULT_COLUMN_SPACING_IN_POINTS; // 36
+export const DEFAULT_COLUMN_SPACING_IN_POINTS = lazyOE('DEFAULT_COLUMN_SPACING_IN_POINTS');
 
-export const MINIMUM_COLUMN_WIDTH_IN_POINTS = window.Core.Document.OfficeEditor.MINIMUM_COLUMN_WIDTH_IN_POINTS; // 36
+export const MINIMUM_COLUMN_WIDTH_IN_POINTS = lazyOE('MINIMUM_COLUMN_WIDTH_IN_POINTS');
 
 export const OFFICE_EDITOR_TRANSLATION_PREFIX = 'officeEditor.';
 
