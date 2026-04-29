@@ -11,6 +11,7 @@
     "registry": "https://npm.pkg.github.com"
   },
   "scripts": {
+    "preinstall": "npx only-allow pnpm",
     "start": "npx babel-node ./dev-server.js",
     "download-webviewer": "npx @pdftron/webviewer-downloader --core-only --path ./lib",
     "cp-webviewer-core": "rm -rf ./lib && mkdir -p ./lib && cp -r ./node_modules/@pdftron/webviewer/public/core ./lib",
