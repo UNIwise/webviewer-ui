@@ -37,6 +37,10 @@ module.exports = (env = {}) => {
           to: '../build/index.html',
         },
         {
+          from: './src/index.webcomponent.html',
+          to: '../build/index-wc.html',
+        },
+        {
           from: './i18n',
           to: '../build/i18n',
         },
