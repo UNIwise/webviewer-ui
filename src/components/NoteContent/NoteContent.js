@@ -94,7 +94,6 @@ const NoteContent = ({
     sortStrategy,
     showAnnotationNumbering,
     setPendingEditText,
-    noteFlyoutIdSuffix,
   } = useContext(NoteContext);
 
   const dispatch = useDispatch();
@@ -342,35 +341,38 @@ const NoteContent = ({
       contentStyle.color = textColor.toHexString();
     }
 
-      return (
-        <>
-          {(isEditing && isSelected) ? (
-            <ContentArea
-              annotation={annotation}
-              editingKey={editingKey}
-              setIsEditing={setIsEditing}
-              textAreaValue={textAreaValue}
-              onTextAreaValueChange={setPendingEditText}
-              pendingText={pendingEditTextMap[annotation.Id]}
-            />
-          ) : (
-            contentsToRender && (
-              <div className={classNames('container', { 'reply-content': isReply })} onClick={handleNoteClick}>
-                {isReply && (attachments.length > 0) && (
-                  <ReplyAttachmentList
-                    files={attachments}
-                    isEditing={false}
-                  />
-                )}
-                {renderContents(contentsToRender, richTextStyle, contentStyle, skipAutoLink)}
-              </div>
-            )
-          )}
-        </>
-      );
-    },
-    [annotation, isSelected, isEditing, setIsEditing, contents, renderContents, textAreaValue, setPendingEditText, attachments]
-  );
+    return (
+      <>
+        {isEditing && isSelected ? (
+          <ContentArea
+            annotation={annotation}
+            noteIndex={editingKey}
+            setIsEditing={setIsEditing}
+            textAreaValue={textAreaValue}
+            onTextAreaValueChange={setPendingEditText}
+            pendingText={pendingEditTextMap[annotation.Id]}
+          />
+        ) : (
+          contentsToRender && (
+            <div className={classNames('container', { 'reply-content': isReply })} onClick={handleNoteClick}>
+              {isReply && attachments.length > 0 && <ReplyAttachmentList files={attachments} isEditing={false} />}
+              {renderContents(contentsToRender, richTextStyle, contentStyle, skipAutoLink)}
+            </div>
+          )
+        )}
+      </>
+    );
+  }, [
+    annotation,
+    isSelected,
+    isEditing,
+    setIsEditing,
+    contents,
+    renderContents,
+    textAreaValue,
+    setPendingEditText,
+    attachments,
+  ]);
 
   const text = annotation.getCustomData('trn-annot-preview');
   const textPreview = useMemo(() => {
@@ -378,23 +380,11 @@ const NoteContent = ({
       return null;
     }
 
-      const highlightSearchResult = highlightSearchInput(text, searchInput);
-      const shouldCollapseAnnotationText = !isReply && canCollapseTextPreview;
-      // If we have a search result do not use text
-      // preview but instead show the entire text
-      if (isString(highlightSearchResult) && shouldCollapseAnnotationText) {
-        return (
-          <DataElementWrapper
-            onClick={handleNoteClick}
-            className="selected-text-preview"
-            dataElement="notesSelectedTextPreview">
-            <NoteTextPreview linesToBreak={3}>
-              {`"${highlightSearchResult}"`}
-            </NoteTextPreview>
-          </DataElementWrapper>
-        );
-      }
-      
+    const highlightSearchResult = highlightSearchInput(text, searchInput);
+    const shouldCollapseAnnotationText = !isReply && canCollapseTextPreview;
+    // If we have a search result do not use text
+    // preview but instead show the entire text
+    if (isString(highlightSearchResult) && shouldCollapseAnnotationText) {
       return (
         <DataElementWrapper className="selected-text-preview" dataElement="notesSelectedTextPreview">
           <NoteTextPreview linesToBreak={3}>{`"${highlightSearchResult}"`}</NoteTextPreview>
@@ -409,39 +399,60 @@ const NoteContent = ({
     );
   }, [text, searchInput]);
 
-  const header = useMemo(
-    () => {
-      return (
-        <NoteHeader
-          icon={icon}
-          iconColor={iconColor}
-          annotation={annotation}
-          language={language}
-          noteDateFormat={noteDateFormat}
-          isSelected={isSelected}
-          setIsEditing={setIsEditing}
-          notesShowLastUpdatedDate={notesShowLastUpdatedDate}
-          isReply={isReply}
-          isUnread={isUnread}
-          renderAuthorName={renderAuthorName}
-          renderAnnotationReference={renderAnnotationReference}
-          isNoteStateDisabled={isNoteStateDisabled}
-          isEditing={isEditing}
-          editingKey={editingKey}
-          sortStrategy={sortStrategy}
-          activeTheme={activeTheme}
-          handleMultiSelect={handleMultiSelect}
-          isMultiSelected={isMultiSelected}
-          isMultiSelectMode={isMultiSelectMode}
-          isGroupMember={isGroupMember}
-          showAnnotationNumbering={showAnnotationNumbering}
-          timezone={timezone}
-          isTrackedChange={isTrackedChange}
-          flyoutIdSuffix={noteFlyoutIdSuffix}
-        />
-      );
-    }, [icon, iconColor, annotation, language, noteDateFormat, isSelected, setIsEditing, notesShowLastUpdatedDate, isReply, isUnread, renderAuthorName, core.getDisplayAuthor(annotation['Author']), isNoteStateDisabled, isEditing, editingKey, getLatestActivityDate(annotation), sortStrategy, handleMultiSelect, isMultiSelected, isMultiSelectMode, isGroupMember, timezone, isTrackedChange, noteFlyoutIdSuffix]
-  );
+  const header = useMemo(() => {
+    return (
+      <NoteHeader
+        icon={icon}
+        iconColor={iconColor}
+        annotation={annotation}
+        language={language}
+        noteDateFormat={noteDateFormat}
+        isSelected={isSelected}
+        setIsEditing={setIsEditing}
+        notesShowLastUpdatedDate={notesShowLastUpdatedDate}
+        isReply={isReply}
+        isUnread={isUnread}
+        renderAuthorName={renderAuthorName}
+        renderAnnotationReference={renderAnnotationReference}
+        isNoteStateDisabled={isNoteStateDisabled}
+        isEditing={isEditing}
+        editingKey={editingKey}
+        sortStrategy={sortStrategy}
+        activeTheme={activeTheme}
+        handleMultiSelect={handleMultiSelect}
+        isMultiSelected={isMultiSelected}
+        isMultiSelectMode={isMultiSelectMode}
+        isGroupMember={isGroupMember}
+        showAnnotationNumbering={showAnnotationNumbering}
+        timezone={timezone}
+        isTrackedChange={isTrackedChange}
+      />
+    );
+  }, [
+    icon,
+    iconColor,
+    annotation,
+    language,
+    noteDateFormat,
+    isSelected,
+    setIsEditing,
+    notesShowLastUpdatedDate,
+    isReply,
+    isUnread,
+    renderAuthorName,
+    core.getDisplayAuthor(annotation['Author']),
+    isNoteStateDisabled,
+    isEditing,
+    editingKey,
+    getLatestActivityDate(annotation),
+    sortStrategy,
+    handleMultiSelect,
+    isMultiSelected,
+    isMultiSelectMode,
+    isGroupMember,
+    timezone,
+    isTrackedChange,
+  ]);
 
   return (
     <div className={noteContentClass} onClick={handleNoteContentClicked}>
@@ -456,15 +467,73 @@ NoteContent.propTypes = propTypes;
 
 export default NoteContent;
 
-// a component that contains the content textarea, the save button and the cancel button
-const ContentArea = ({
-  annotation,
-  editingKey,
-  setIsEditing,
-  textAreaValue,
-  onTextAreaValueChange,
-  pendingText
-}) => {
+const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTextAreaValueChange, pendingText }) => {
+  const [savedState, setSavedState] = useState(AnnotationSavedState.NONE);
+
+  useEffect(() => {
+    try {
+      const keys = Object.keys(localStorage);
+      const draftKeys = keys.filter((key) => key.startsWith('annotation_draft_'));
+      const oneDayAgo = Date.now() - ONE_DAY_MS;
+
+      draftKeys.forEach((key) => {
+        try {
+          const stored = localStorage.getItem(key);
+          if (stored) {
+            const draft = JSON.parse(stored);
+            if (draft.timestamp < oneDayAgo) {
+              localStorage.removeItem(key);
+            }
+          }
+        } catch (e) {
+          localStorage.removeItem(key);
+        }
+      });
+    } catch (e) {
+      console.error('Failed to cleanup old drafts:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    const storageKey = `annotation_draft_${annotation.Id}`;
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        const draft = JSON.parse(stored);
+        const isRecent = Date.now() - draft.timestamp < ONE_DAY_MS;
+        if (isRecent && draft.value && !pendingText) {
+          handleChange(draft.value);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load from localStorage:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    function handleAnnotationStateChange(event) {
+      const { state, annotations } = event.detail || {};
+      if (!annotations) {
+        return;
+      }
+      if (annotations.some((a) => a.Id === annotation.Id)) {
+        setSavedState(state);
+
+        if (state === AnnotationSavedState.SAVED) {
+          try {
+            const storageKey = `annotation_draft_${annotation.Id}`;
+            localStorage.removeItem(storageKey);
+          } catch (e) {
+            console.error('Failed to clear localStorage:', e);
+          }
+        }
+      }
+    }
+    window.addEventListener(AnnotationCustomEvents.ANNOTATION_SAVED_STATE_CHANGED, handleAnnotationStateChange);
+    return () => {
+      window.removeEventListener(AnnotationCustomEvents.ANNOTATION_SAVED_STATE_CHANGED, handleAnnotationStateChange);
+    };
+  }, [annotation]);
   const [
     autoFocusNoteOnAnnotationSelectionEnabled,
     isMentionEnabled,
@@ -500,6 +569,37 @@ const ContentArea = ({
   const autoFocusNoteOnAnnotationSelection =
     autoFocusNoteOnAnnotationSelectionEnabled && (!isOfficeEditorCommentAnnotation || isNoteEditingTriggeredByAnnotationPopup);
   const { core } = useCore();
+
+  const debouncedSetContents = useRef(
+    debounce(() => {
+      if (textareaRef.current) {
+        setContents({ preventDefault: () => {} }, 'change');
+      }
+    }, 2000),
+  ).current;
+
+  useEffect(() => {
+    return () => debouncedSetContents.flush();
+  }, [debouncedSetContents]);
+
+  // Always keep a ref to the latest setContents so the unmount cleanup can call it
+  const setContentsRef = useRef(setContents);
+  useLayoutEffect(() => {
+    setContentsRef.current = setContents;
+  });
+
+  const hasUnsavedEditsRef = useRef(false);
+
+  useLayoutEffect(() => {
+    return () => {
+      if (textareaRef.current && hasUnsavedEditsRef.current) {
+        debouncedSetContents.flush();
+        setContentsRef.current({ preventDefault: () => {}, type: 'blur' });
+      }
+    };
+  }, []);
+
+
   useEffect(() => {
     // on initial mount, focus the last character of the textarea
     if (isAnyCustomPanelOpen || ((isNotesPanelOpen || isInlineCommentOpen) && textareaRef.current)) {
@@ -627,10 +727,13 @@ const ContentArea = ({
       core.drawAnnotationsFromList([annotation]);
     }
 
-    setIsEditing(false, editingKey);
-    // Only set comment to unposted state if it is not empty
-    if (textAreaValue !== '') {
-      onTextAreaValueChange(undefined, annotation.Id);
+    hasUnsavedEditsRef.current = false;
+
+    if (e && e.type === 'blur') {
+      if (textAreaValue !== '') {
+        onTextAreaValueChange(undefined, annotation.Id);
+      }
+      clearAttachments(annotation.Id);
     }
   };
 
@@ -698,33 +801,21 @@ const ContentArea = ({
         onBlur={handleBlur}
         onFocus={onFocus}
       />
-      <div className="edit-buttons">
-        <Button
-          className="cancel-button"
-          label={t('action.cancel')}
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsEditing(false, editingKey);
-            // Clear pending text
-            onTextAreaValueChange(undefined, annotation.Id);
-            clearAttachments(annotation.Id);
-          }}
-        />
-        <Button
-          className={`save-button`}
-          label={t('action.save')}
-          onClick={(e) => {
-            e.stopPropagation();
-            setContents(e);
-          }}
-        />
-      </div>
+      <SavedStateIndicator
+        state={savedState}
+        labels={{
+          saved: t('saveStateIndicator.saved'),
+          saving: t('saveStateIndicator.saving'),
+          unsaved: t('saveStateIndicator.unsaved'),
+          error: t('saveStateIndicator.error'),
+        }}
+      />
     </div>
   );
 };
 
 ContentArea.propTypes = {
-  editingKey: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  noteIndex: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
   annotation: PropTypes.object.isRequired,
   setIsEditing: PropTypes.func.isRequired,
   textAreaValue: PropTypes.string,

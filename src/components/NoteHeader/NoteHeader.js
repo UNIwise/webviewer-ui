@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { useSelector } from 'react-redux';
+import NoteState from 'components/NoteState';
 import NoteShareType from 'components/NoteShareType';
 import NotePopup from 'components/NotePopup';
 import Icon from 'components/Icon';
@@ -27,6 +28,7 @@ import getWiseflowCustomValues from 'helpers/getWiseflowCustomValues';
 import Tooltip from '../Tooltip';
 
 const { Annotations } = window.Core;
+
 const propTypes = {
   icon: PropTypes.string,
   iconColor: PropTypes.string,
@@ -275,18 +277,9 @@ function NoteHeader(props) {
                   handleMultiSelect(!isMultiSelected);
                 }}
               />
-            }
-            <NoteUnpostedCommentIndicator
-              annotationId={annotation.Id}
-              ariaLabel={`Unposted Comment, ${renderAuthorName(annotation)}, ${noteDateAndTime}`}
-            />
-            {showNoteState &&
-              <NoteState
-                annotation={annotation}
-                isSelected={isSelected}
-                flyoutId={flyoutId}
-              />
-            }
+            )}
+
+            {/* WISEflow: Note share type menu */}
             {!isNoteStateDisabled &&
               !isReply &&
               !isMultiSelectMode &&
@@ -319,7 +312,7 @@ function NoteHeader(props) {
                   iconClassName="tracked-change-icon"
                 />
               </>
-            )}
+            }
           </div>
         </div>
         <div className="annot-id">

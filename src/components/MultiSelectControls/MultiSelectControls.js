@@ -205,7 +205,7 @@ const MultiSelectControls = ({
         <NoteStateFlyout
           isMultiSelectMode={true}
           handleStateChange={handleStateChange}
-        />
+        />*/}
         {customizableUI
           ? <ToggleElementButton
             {...multiStyleButtonProps}
@@ -226,7 +226,7 @@ const MultiSelectControls = ({
               setShowMultiStyle(false);
             }}
           />
-        )}
+        }
         {/* {!canUngroup &&
           <Button
             dataElement={DataElements.NOTE_MULTI_GROUP_BUTTON}
@@ -237,7 +237,7 @@ const MultiSelectControls = ({
             }}
             title="action.group"
             forceTooltipPosition={multiSelectTooltipPosition}
-          />}
+          />} */}
         {canUngroup &&
           <Button
             dataElement={DataElements.NOTE_MULTI_UNGROUP_BUTTON}

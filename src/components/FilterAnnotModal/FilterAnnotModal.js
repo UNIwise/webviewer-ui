@@ -85,12 +85,11 @@ const FilterAnnotModal = ({ isInFormBuilderMode }) => {
   };
 
   const filterApply = () => {
-  const newFilter = (annot, documentViewerKey = 1) => {
-    let type = true;
-    let author = true;
-    let color = true;
-    let status = true;
-    let sharetype = true;
+    const newFilter = (annot, documentViewerKey = 1) => {
+      let type = true;
+      let author = true;
+      let color = true;
+      let sharetype = true;
 
       if (typesFilter.length > 0) {
         const isMeasurementAnnotation = annot.IT || annot.getCustomData('trn-is-count');
@@ -133,25 +132,13 @@ const FilterAnnotModal = ({ isInFormBuilderMode }) => {
           sharetype = shareTypesFilter.includes(getAnnotationShareType(annot));
         }
       }
-    }
-    if (statusFilter.length > 0) {
-      if (annot.getStatus()) {
-        status = statusFilter.includes(annot.getStatus());
-      } else {
-        status = statusFilter.includes('None');
-      }
-    }
-    return type && author && color && status && sharetype;
-  };
-
-    dispatch(actions.setInternalNoteFilter(newFilter));
+      return type && author && color && sharetype;
+    };
+    dispatch(actions.setCustomNoteFilter(newFilter));
     dispatch(actions.setAnnotationFilters({
-      isDocumentFilterActive,
-      includeReplies: checkRepliesForAuthorFilter,
       authorFilter,
       colorFilter,
       typeFilter: typesFilter,
-      statusFilter,
       shareTypesFilter,
     }));
 
@@ -511,7 +498,7 @@ const FilterAnnotModal = ({ isInFormBuilderMode }) => {
               <fieldset className="settings-body">
                 <legend id="filter-settings" className="settings-header">{t('option.filterAnnotModal.filterSettings')}</legend>
                 <div className="settings" role="group" aria-labelledby='filter-settings'>
-                  <Choice
+                  {/* <Choice
                     label={t('option.filterAnnotModal.includeReplies')}
                     checked={checkRepliesForAuthorFilter}
                     onChange={(e) => setCheckRepliesForAuthorFilter(e.target.checked)}
