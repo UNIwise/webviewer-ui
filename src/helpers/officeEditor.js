@@ -296,7 +296,7 @@ export const showPageLayoutWarning = (dispatch, actions, type) => {
   dispatch(actions.showWarningMessage(warning));
 };
 
-export const convertBetweenUnits = window.Core.Document.OfficeEditor.Layout.convertBetweenUnits;
+export const convertBetweenUnits = (...args) => window.Core.Document.OfficeEditor.Layout.convertBetweenUnits(...args);
 
 export const getMinimumColumnWidth = (unit) => {
   return convertBetweenUnits(MINIMUM_COLUMN_WIDTH_IN_POINTS, LAYOUT_UNITS.PHYSICAL_POINT, unit);
