@@ -1,35 +1,37 @@
-const Scale = window.Core.Scale;
+// Scale constructor wrapper — window.Core.Scale is not available at module load time
+function Scale(...args) { return new (window.Core.Scale)(...args); }
 
 export const PresetMeasurementSystems = {
   METRIC: 'metric',
   IMPERIAL: 'imperial'
 };
 
-const metricPreset = [
-  ['1:10', new Scale([[1, 'mm'], [10, 'mm']])],
-  ['1:20', new Scale([[1, 'mm'], [20, 'mm']])],
-  ['1:50', new Scale([[1, 'mm'], [50, 'mm']])],
-  ['1:100', new Scale([[1, 'mm'], [100, 'mm']])],
-  ['1:200', new Scale([[1, 'mm'], [200, 'mm']])],
-  ['1:500', new Scale([[1, 'mm'], [500, 'mm']])],
-  ['1:1000', new Scale([[1, 'mm'], [1000, 'mm']])]
-];
-const imperialPreset = [
-  ['1/16"=1\'-0"', new Scale([[1 / 16, 'in'], [1, 'ft-in']])],
-  ['3/32"=1\'-0"', new Scale([[3 / 32, 'in'], [1, 'ft-in']])],
-  ['1/8"=1\'-0"', new Scale([[1 / 8, 'in'], [1, 'ft-in']])],
-  ['3/16"=1\'-0"', new Scale([[3 / 16, 'in'], [1, 'ft-in']])],
-  ['1/4"=1\'-0"', new Scale([[1 / 4, 'in'], [1, 'ft-in']])],
-  ['3/8"=1\'-0"', new Scale([[3 / 8, 'in'], [1, 'ft-in']])],
-  ['1/2"=1\'-0"', new Scale([[1 / 2, 'in'], [1, 'ft-in']])],
-  ['3/4"=1\'-0"', new Scale([[3 / 4, 'in'], [1, 'ft-in']])],
-  ['1"=1\'-0"', new Scale([[1, 'in'], [1, 'ft-in']])]
-];
-
-export const getMeasurementScalePreset = () => ({
-  [PresetMeasurementSystems.METRIC]: metricPreset,
-  [PresetMeasurementSystems.IMPERIAL]: imperialPreset
-});
+export const getMeasurementScalePreset = () => {
+  const metricPreset = [
+    ['1:10', new Scale([[1, 'mm'], [10, 'mm']])],
+    ['1:20', new Scale([[1, 'mm'], [20, 'mm']])],
+    ['1:50', new Scale([[1, 'mm'], [50, 'mm']])],
+    ['1:100', new Scale([[1, 'mm'], [100, 'mm']])],
+    ['1:200', new Scale([[1, 'mm'], [200, 'mm']])],
+    ['1:500', new Scale([[1, 'mm'], [500, 'mm']])],
+    ['1:1000', new Scale([[1, 'mm'], [1000, 'mm']])]
+  ];
+  const imperialPreset = [
+    ['1/16"=1\'-0"', new Scale([[1 / 16, 'in'], [1, 'ft-in']])],
+    ['3/32"=1\'-0"', new Scale([[3 / 32, 'in'], [1, 'ft-in']])],
+    ['1/8"=1\'-0"', new Scale([[1 / 8, 'in'], [1, 'ft-in']])],
+    ['3/16"=1\'-0"', new Scale([[3 / 16, 'in'], [1, 'ft-in']])],
+    ['1/4"=1\'-0"', new Scale([[1 / 4, 'in'], [1, 'ft-in']])],
+    ['3/8"=1\'-0"', new Scale([[3 / 8, 'in'], [1, 'ft-in']])],
+    ['1/2"=1\'-0"', new Scale([[1 / 2, 'in'], [1, 'ft-in']])],
+    ['3/4"=1\'-0"', new Scale([[3 / 4, 'in'], [1, 'ft-in']])],
+    ['1"=1\'-0"', new Scale([[1, 'in'], [1, 'ft-in']])]
+  ];
+  return {
+    [PresetMeasurementSystems.METRIC]: metricPreset,
+    [PresetMeasurementSystems.IMPERIAL]: imperialPreset
+  };
+};
 
 const decimalPrecisions = [
   ['0.1', 0.1],
@@ -135,16 +137,17 @@ export const convertUnit = (value, unit, newUnit) => {
   return value * unitConversion[unit] / unitConversion[newUnit];
 };
 
+// Keys are the literal label strings from imperialPreset
 export const scalePresetPrecision = {
-  [imperialPreset[0][0]]: fractionalPrecisions[1],
-  [imperialPreset[1][0]]: fractionalPrecisions[2],
-  [imperialPreset[2][0]]: fractionalPrecisions[0],
-  [imperialPreset[3][0]]: fractionalPrecisions[1],
-  [imperialPreset[4][0]]: fractionalPrecisions[0],
-  [imperialPreset[5][0]]: fractionalPrecisions[0],
-  [imperialPreset[6][0]]: fractionalPrecisions[0],
-  [imperialPreset[7][0]]: fractionalPrecisions[0],
-  [imperialPreset[8][0]]: fractionalPrecisions[0]
+  '1/16"=1\'-0"': fractionalPrecisions[1],
+  '3/32"=1\'-0"': fractionalPrecisions[2],
+  '1/8"=1\'-0"': fractionalPrecisions[0],
+  '3/16"=1\'-0"': fractionalPrecisions[1],
+  '1/4"=1\'-0"': fractionalPrecisions[0],
+  '3/8"=1\'-0"': fractionalPrecisions[0],
+  '1/2"=1\'-0"': fractionalPrecisions[0],
+  '3/4"=1\'-0"': fractionalPrecisions[0],
+  '1"=1\'-0"': fractionalPrecisions[0]
 };
 
-export const initialScale = new Scale({ pageScale: { value: 1, unit: 'in' }, worldScale: { value: 1, unit: 'in' } });
+export const initialScale = () => new Scale({ pageScale: { value: 1, unit: 'in' }, worldScale: { value: 1, unit: 'in' } });

@@ -1,6 +1,27 @@
 import DataElements from './dataElement';
 
-export const SpreadsheetEditorEditMode = window.Core.SpreadsheetEditor.SpreadsheetEditorEditMode;
+// Proxy-based lazy export: window.Core.SpreadsheetEditor is not populated at module
+// evaluation time, so property access must be deferred until runtime.
+const lazySpreadsheetEditor = (prop) => new Proxy({}, {
+  get(_, key) {
+    const ns = window.Core?.SpreadsheetEditor;
+    const val = ns?.[prop];
+    if (key === Symbol.toPrimitive) return () => val;
+    if (key === 'valueOf') return () => val;
+    return typeof val === 'object' && val !== null ? val[key] : val;
+  },
+  ownKeys() {
+    const val = window.Core?.SpreadsheetEditor?.[prop];
+    return val && typeof val === 'object' ? Reflect.ownKeys(val) : [];
+  },
+  getOwnPropertyDescriptor(_, key) {
+    const val = window.Core?.SpreadsheetEditor?.[prop];
+    if (!val || typeof val !== 'object') return undefined;
+    return Object.getOwnPropertyDescriptor(val, key) ?? { configurable: true, enumerable: true, value: val[key] };
+  },
+});
+
+export const SpreadsheetEditorEditMode = lazySpreadsheetEditor('SpreadsheetEditorEditMode');
 
 export const AVAILABLE_FONT_SIZES = ['8', '9', '10', '11', '12', '14', '18', '24', '30', '36', '48', '60', '72'];
 

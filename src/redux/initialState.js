@@ -96,7 +96,7 @@ export default {
     },
     enabledRibbonsStash: [],
     enabledToolsStash: [],
-    selectedScale: initialScale,
+    selectedScale: initialScale(),
     isAddingNewScale: false,
     calibrationInfo: {
       isCalibration: false,

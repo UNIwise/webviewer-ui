@@ -28,7 +28,7 @@ const initialState = {
       from: ['in', 'mm', 'cm', 'pt'],
       to: ['in', 'mm', 'cm', 'pt', 'ft', 'ft-in', 'm', 'yd', 'km', 'mi'],
     },
-    selectedScale: initialScale,
+    selectedScale: initialScale(),
     customElementOverrides: {},
     isAddingNewScale: true,
   }
