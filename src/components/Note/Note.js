@@ -181,6 +181,14 @@ const Note = ({
     }
   }, [isDocumentReadOnly, isContentEditable, setIsEditing, annotation, isMultiSelectMode, pendingEditTextMap]);
 
+  // Auto-enter edit mode whenever this note becomes selected (handles both panel
+  // clicks via handleNoteClick AND annotation canvas clicks that bypass handleNoteClick)
+  useEffect(() => {
+    if (isSelected && isContentEditable && !isDocumentReadOnly && !isMultiSelectMode) {
+      setIsEditing(true, annotation.Id);
+    }
+  }, [isSelected, isContentEditable, isDocumentReadOnly, isMultiSelectMode, setIsEditing, annotation.Id]);
+
   useDidUpdate(() => {
     if (isDocumentReadOnly || !isContentEditable) {
       setIsEditing(false, annotation.Id);
@@ -218,6 +226,9 @@ const Note = ({
       setCurAnnotId(annotation.Id);
       core.jumpToAnnotation(annotation, documentViewerKey);
       dispatch(actions.triggerNoteEditing());
+      if (isContentEditable && !isDocumentReadOnly) {
+        setIsEditing(true, annotation.Id);
+      }
       if (!isRightClickAnnotationPopupEnabled) {
         dispatch(actions.openElement(DataElements.ANNOTATION_POPUP));
       }
