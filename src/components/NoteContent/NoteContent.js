@@ -319,7 +319,7 @@ const NoteContent = ({
         // already editing, do nothing
       } else if (isSelected && setIsEditing && core.canModifyContents(annotation)) {
         // if already selected, enter edit mode on click
-        setIsEditing(true, noteIndex);
+        setIsEditing(true, editingKey);
       } else {
         // collapse expanded note when top noteContent is clicked if it's not being edited
         onTopNoteContentClicked();
@@ -398,6 +398,7 @@ const NoteContent = ({
       </div>
     );
   }, [text, searchInput]);
+  void textPreview;
 
   const header = useMemo(() => {
     return (

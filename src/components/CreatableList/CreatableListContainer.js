@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Button from '../Button';
 import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
@@ -14,6 +14,8 @@ const propTypes = {
 
 const CreatableListContainer = ({
   popupRef,
+  options,
+  onOptionsUpdated,
   fieldSelectionOptions,
   setFieldSelectionOptions,
 }) => {
