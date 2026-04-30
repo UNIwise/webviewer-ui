@@ -198,7 +198,9 @@ const Note = ({
   const handleNoteClick = async (e) => {
     // stop bubbling up otherwise the note will be closed
     // due to annotation deselection
-    e && e.stopPropagation();
+    if (e) {
+      e.stopPropagation();
+    }
 
     const isTextSelected = window.getSelection().toString();
     if (isTextSelected) {
@@ -213,7 +215,9 @@ const Note = ({
       dispatch(actions.setAnnotationReadState({ isRead: true, annotationId: annotation.Id }));
     }
 
-    customNoteSelectionFunction && customNoteSelectionFunction(annotation);
+    if (customNoteSelectionFunction) {
+      customNoteSelectionFunction(annotation);
+    }
     if (!isSelected) {
       core.deselectAllAnnotations(documentViewerKey);
 
@@ -283,7 +287,7 @@ const Note = ({
   }, [isMultiSelectMode]);
 
   const isNoteOrReplyBeingEdited = isEditingMap[annotation.Id] || replies.some((reply) => isEditingMap[reply.Id]);
-  const showReplyArea = !isNoteOrReplyBeingEdited;
+  void isNoteOrReplyBeingEdited;
 
   const handleNoteKeydown = (e) => {
     // Click if enter or space is pressed and is current target.
@@ -294,13 +298,13 @@ const Note = ({
     }
   };
 
-  // const handleReplyClicked = (reply) => {
-  //   // set clicked reply as read
-  //   if (unreadReplyIdSet.has(reply.Id)) {
-  //     dispatch(actions.setAnnotationReadState({ isRead: true, annotationId: reply.Id }));
-  //     core.getAnnotationManager(documentViewerKey).selectAnnotation(reply);
-  //   }
-  // };
+  const handleReplyClicked = (reply) => {
+    // set clicked reply as read
+    if (unreadReplyIdSet.has(reply.Id)) {
+      dispatch(actions.setAnnotationReadState({ isRead: true, annotationId: reply.Id }));
+      core.getAnnotationManager(documentViewerKey).selectAnnotation(reply);
+    }
+  };
 
   const markAllRepliesRead = () => {
     // set all replies to read state if user starts to type in reply textarea
@@ -319,6 +323,7 @@ const Note = ({
   const shouldShowGroupSection = isGroup && !isTrackedChange && !isOfficeEditorComment;
   // apply unread reply style to replyArea if the last reply is unread
   const lastReplyId = replies.length > 0 ? replies[replies.length - 1].Id : null;
+  void lastReplyId;
   const isRenderableInCurrentDisplayMode =  isAnnotationRenderedInDisplayMode(core, annotation);
   const isRenderingConnectorLine = isSelected && (isInNotesPanel || isCustomPanelOpen) && !shouldHideConnectorLine && isRenderableInCurrentDisplayMode;
 
@@ -330,15 +335,16 @@ const Note = ({
       style={
         showShareType
           ? {
-              borderBottom: `4px solid ${getAnnotationStatusColor()}`,
-              borderTop: `4px solid ${getAnnotationStatusColor()}`,
-            }
+            borderBottom: `4px solid ${getAnnotationStatusColor()}`,
+            borderTop: `4px solid ${getAnnotationStatusColor()}`,
+          }
           : undefined
       }
     >
       <Button
         className='note-button'
         onClick={(e) => handleNoteClick(e)}
+        onKeyDown={handleNoteKeydown}
         ariaLabelledby={`note_${annotation.Id}`}
         ariaCurrent={isSelected}
         dataElement="expandNoteButton"
@@ -386,7 +392,7 @@ const Note = ({
                     handleNoteClick={handleNoteClick}
                   />
                 </div>
-              ))} */}
+              ))}
             </div>
           )}
           {shouldShowGroupSection &&
