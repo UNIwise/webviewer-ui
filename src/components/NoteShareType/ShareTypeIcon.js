@@ -16,9 +16,9 @@ function ShareTypeIcon(props) {
   const { backgroundColor, borderColor } = shareType
     ? ShareTypeColors[shareType]
     : {
-        backgroundColor: 'transparent',
-        borderColor: '#9e9e9e',
-      };
+      backgroundColor: 'transparent',
+      borderColor: '#9e9e9e',
+    };
   const iconRef = useRef();
 
   return (

@@ -4,14 +4,16 @@
 
 const annotationHashCache = {};
 
-/** 
+/**
  * Get hash of the annotation information
  * @param {Annotation} annotation
  * @return {string} The hash of the annotation information
  */
 function getAnnotationHash(annotation) {
   const annotationHash = annotationHashCache[annotation.Id];
-  if (annotationHash) return annotationHash;
+  if (annotationHash) {
+    return annotationHash;
+  }
   const annotationString = `${annotation.Author} ${annotation.DateCreated} ${annotation.Id}`;
   const newAnnotationHash = numbersToLetters(hashString16(annotationString));
   annotationHashCache[annotation.Id] = newAnnotationHash;
@@ -33,7 +35,7 @@ function numbersToLetters(n) {
   return n
     .toString()
     .split('')
-    .map(c => String.fromCharCode(parseInt(c) + 97))
+    .map((c) => String.fromCharCode(parseInt(c) + 97))
     .join('')
     .toUpperCase();
 }

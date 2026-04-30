@@ -38,7 +38,7 @@ const Tooltip = forwardRef(({ content = '', children, hideShortcut, forcePositio
   const showRef = useRef(false); // track current show state to avoid redundant enqueues from high-frequency pointermove
   const opacityRef = useRef(0); // track current opacity to avoid redundant enqueues
   useImperativeHandle(ref, () => childRef.current);
-  const isDisabled = useSelector(state => selectors.isElementDisabled(state, 'tooltip'));
+  const isDisabled = useSelector((state) => selectors.isElementDisabled(state, 'tooltip'));
 
   const tooltipRef = useRef(null);
   const [show, setShow] = useState(false);
@@ -95,7 +95,7 @@ const Tooltip = forwardRef(({ content = '', children, hideShortcut, forcePositio
       hideTooltip();
     };
 
-    const changeToolTipState = e => {
+    const changeToolTipState = (e) => {
       if (childRef.current?.contains(e.target) || tooltipRef.current?.contains(e.target)) {
         showToolTip();
       } else {
@@ -105,17 +105,17 @@ const Tooltip = forwardRef(({ content = '', children, hideShortcut, forcePositio
         const isMouseOverTooltip = tooltipBoundingRect && isMouseOverElement(tooltipBoundingRect, e);
         const rectBetweenChildAndTooltip = tooltipBoundingRect &&
           childBoundingRect && {
-            top: Math.min(childBoundingRect.top, tooltipBoundingRect.top),
-            bottom: Math.max(childBoundingRect.bottom, tooltipBoundingRect.bottom),
-            left: Math[childBoundingRect.bottom < tooltipBoundingRect.top ? 'max' : 'min'](
-              childBoundingRect.left,
-              tooltipBoundingRect.left,
-            ),
-            right: Math[childBoundingRect.bottom < tooltipBoundingRect.top ? 'min' : 'max'](
-              childBoundingRect.right,
-              tooltipBoundingRect.right,
-            ),
-          };
+          top: Math.min(childBoundingRect.top, tooltipBoundingRect.top),
+          bottom: Math.max(childBoundingRect.bottom, tooltipBoundingRect.bottom),
+          left: Math[childBoundingRect.bottom < tooltipBoundingRect.top ? 'max' : 'min'](
+            childBoundingRect.left,
+            tooltipBoundingRect.left,
+          ),
+          right: Math[childBoundingRect.bottom < tooltipBoundingRect.top ? 'min' : 'max'](
+            childBoundingRect.right,
+            tooltipBoundingRect.right,
+          ),
+        };
         const isMouseBetweenChildAndTooltip =
           rectBetweenChildAndTooltip && isMouseOverElement(rectBetweenChildAndTooltip, e);
         if (!isMouseOverChild && !isMouseOverTooltip && !isMouseBetweenChildAndTooltip) {
@@ -141,7 +141,7 @@ const Tooltip = forwardRef(({ content = '', children, hideShortcut, forcePositio
       childRef.current?.addEventListener('blur', hideByBlur);
     }
 
-    const observer = new MutationObserver(mutations => {
+    const observer = new MutationObserver((mutations) => {
       // hide tooltip when button get disabled, disable buttons don't have "mouseleave" events
       const lastMutation = mutations[mutations.length - 1];
       if (lastMutation && lastMutation.attributeName === 'disabled' && lastMutation.target.disabled) {
@@ -217,7 +217,7 @@ const Tooltip = forwardRef(({ content = '', children, hideShortcut, forcePositio
       // starting from placing the tooltip at the bottom location
       // if the tooltip can't fit into the window, try placing it counterclockwise until we can find a location to fit it
       const bestLocation =
-        Object.keys(locationTopLeftMap).find(location => {
+        Object.keys(locationTopLeftMap).find((location) => {
           if (forcePosition) {
             return location === forcePosition;
           }

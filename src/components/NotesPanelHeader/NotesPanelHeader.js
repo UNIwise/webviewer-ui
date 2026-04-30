@@ -202,20 +202,20 @@ function NotesPanelHeader({
                   img="icon-header-chat-line"
                   onClick={() => {
                     const selectedAnnotations = core.getSelectedAnnotations(activeDocumentViewerKey);
-                    if(selectedAnnotations.length > 0) {
+                    if (selectedAnnotations.length > 0) {
                       core.deselectAllAnnotations();
                     } else {
                       core.selectAnnotations(notes, activeDocumentViewerKey);
-                    } 
+                    }
                   }}
                   className={classNames({
                     'inactive': notes.length === 0,
                     'select-all-button': true,
                     active: core.getSelectedAnnotations(activeDocumentViewerKey).length === notes.length,
                   })}
-                  style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
                     flexDirection: 'row',
                     justifyContent: 'center',
                     width: '38px',
@@ -225,7 +225,7 @@ function NotesPanelHeader({
                   title={t('action.selectAll')}
                 />
               )}
-              
+
               <Button
                 dataElement={DataElements.NOTE_MULTI_SELECT_MODE_BUTTON}
                 className={classNames({

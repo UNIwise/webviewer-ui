@@ -33,7 +33,7 @@ const propTypes = {
 
 const getParentAnnotations = (core, annotations) => {
   const annotSet = new Set();
-  annotations.forEach(annotation => {
+  annotations.forEach((annotation) => {
     if (annotation.isGrouped()) {
       const parentAnnotation = core.getAnnotationById(annotation['InReplyTo']);
       if (parentAnnotation) {

@@ -200,14 +200,16 @@ const sortStrategies = {
     },
   },
   shareType: {
-    getSortedNotes: notes =>
+    getSortedNotes: (notes) =>
       notes.sort((a, b) => {
         const shareTypeA = getAnnotationShareType(a);
         const shareTypeB = getAnnotationShareType(b);
         return ShareTypeOrder[shareTypeA] - ShareTypeOrder[shareTypeB];
       }),
     shouldRenderSeparator: (prevNote, currNote) => {
-      if (prevNote === null) return true;
+      if (prevNote === null) {
+        return true;
+      }
       const prevShareType = getAnnotationShareType(prevNote);
       const currShareType = getAnnotationShareType(currNote);
       return prevShareType !== currShareType;

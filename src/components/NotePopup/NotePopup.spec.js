@@ -70,7 +70,7 @@ describe('NotePopup', () => {
   beforeEach(() => {
     jest.resetAllMocks();
 
-    useSelectorMock.mockImplementation(function (selector) {
+    useSelectorMock.mockImplementation(function(selector) {
       return selector({ viewer: { disabledElements: {}, customElementOverrides: {} } });
     });
   });

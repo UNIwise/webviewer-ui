@@ -90,7 +90,7 @@ const NotesPanel = ({
   // this will result in losing the scroll position and we will use this ref to recover
   const scrollTopRef = useRef(0);
   const VIRTUALIZATION_THRESHOLD = enableNotesPanelVirtualizedList ? (isIE ? 25 : 100) : Infinity;
-    
+
   useEffect(() => {
     const onAnnotationNumberingUpdated = (isEnabled) => {
       dispatch(actions.setAnnotationNumbering(isEnabled));

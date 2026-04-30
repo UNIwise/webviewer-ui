@@ -24,7 +24,7 @@ export default (documentViewerKey) => (annotations, action, info) => {
   // Add default share type
   const { defaultShareType } = getWiseflowCustomValues();
   if (defaultShareType && action === 'add' && !info.imported && !info.isUndoRedo) {
-    annotations = annotations.map(annot => setAnnotationShareType(annot, defaultShareType));
+    annotations = annotations.map((annot) => setAnnotationShareType(annot, defaultShareType));
   }
 
   // Call custom WISEFLOW_ANNOTATION_CHANGED event

@@ -12,7 +12,7 @@ import { createAnnouncement } from 'helpers/accessibility';
 
 import './Button.scss';
 
-const NOOP = e => {
+const NOOP = (e) => {
   e?.stopPropagation();
   e?.preventDefault();
 };
@@ -43,7 +43,7 @@ const propTypes = {
 // eslint-disable-next-line react/display-name
 const Button = forwardRef((props, ref) => {
   const [removeElement, isCustomUI, customOverrides = {}, activeDocumentViewerKey = 1] = useSelector(
-    state => [
+    (state) => [
       selectors.isElementDisabled(state, props.dataElement),
       selectors.getFeatureFlags(state)?.customizableUI,
       selectors.getCustomElementOverrides(state, props.dataElement),
@@ -121,7 +121,7 @@ const Button = forwardRef((props, ref) => {
       }
     };
   } else {
-    onClickHandler = e => {
+    onClickHandler = (e) => {
       createAnnouncement(onClickAnnouncement);
       getClickMiddleWare()?.(dataElement, { type: ClickedItemTypes.BUTTON });
       if (onClick) {

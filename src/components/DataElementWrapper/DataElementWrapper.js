@@ -38,7 +38,7 @@ const DataElementWrapper = React.forwardRef(({ tabbable = false, type = 'div', c
     return null;
   }
 
-  const tabIndex = tabbable ? (typeof tabbable === "number" ? tabbable : 0) : undefined;
+  const tabIndex = tabbable ? (typeof tabbable === 'number' ? tabbable : 0) : undefined;
 
   if (type === 'button') {
     return (
@@ -48,7 +48,7 @@ const DataElementWrapper = React.forwardRef(({ tabbable = false, type = 'div', c
     );
   }
 
-  const onKeyPress = e => {
+  const onKeyPress = (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       props.onClick(e);
     }

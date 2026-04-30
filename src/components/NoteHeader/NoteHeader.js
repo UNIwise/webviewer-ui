@@ -207,11 +207,11 @@ function NoteHeader(props) {
   const authorAndDateClass = classNames('author-and-date', { isReply });
   const noteHeaderClass = classNames('NoteHeader', { parent: !isReply && !isGroupMember });
 
-  const acceptTrackedChange = trackedChangeAnnot => {
+  const acceptTrackedChange = (trackedChangeAnnot) => {
     const trackedChangeId = trackedChangeAnnot.getCustomData(OFFICE_EDITOR_TRACKED_CHANGE_KEY);
     core.getOfficeEditor().acceptTrackedChange(trackedChangeId);
   };
-  const rejectTrackedChange = trackedChangeAnnot => {
+  const rejectTrackedChange = (trackedChangeAnnot) => {
     const trackedChangeId = trackedChangeAnnot.getCustomData(OFFICE_EDITOR_TRACKED_CHANGE_KEY);
     core.getOfficeEditor().rejectTrackedChange(trackedChangeId);
   };
@@ -231,7 +231,7 @@ function NoteHeader(props) {
 
   const copyTooltipText = `${t('option.notesPanel.noteHeader.copyReferenceButton')} ${annotationReference}`;
 
-  const handleCopyAnnotId = e => {
+  const handleCopyAnnotId = (e) => {
     e.stopPropagation();
     navigator.clipboard.writeText(annotationReference);
     setCopied(true);
@@ -271,7 +271,7 @@ function NoteHeader(props) {
                 id={`note-multi-select-toggle_${annotation.Id}`}
                 aria-label={`${renderAuthorName(annotation)} ${t('option.notesPanel.toggleMultiSelect')}`}
                 checked={isMultiSelected}
-                onClick={e => {
+                onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   handleMultiSelect(!isMultiSelected);
