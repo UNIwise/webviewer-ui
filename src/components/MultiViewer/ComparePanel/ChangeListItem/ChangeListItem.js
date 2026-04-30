@@ -49,6 +49,11 @@ const ChangeListItem = (props) => {
 
   let isSelected = props.selectedAnnotationId && props.old?.Id === props.selectedAnnotationId;
 
+  let isSelected = false;
+  if (props.selectedAnnotationId && props.old.Id === props.selectedAnnotationId) {
+    isSelected = true;
+  }
+
   return (
     <div className={classNames('ChangeListItem', { 'selected': isSelected })} onClick={onClickItem}>
       <div className="icon-change">

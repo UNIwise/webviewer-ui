@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, forwardRef } from 'react';
 import selectors from 'selectors';
 import { useTranslation } from 'react-i18next';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector, useDispatch, shallowEqual } from 'react-redux';
 import actions from 'actions';
 import PropTypes from 'prop-types';
 import Button from 'components/Button';

@@ -13,6 +13,9 @@ import { mobileStoryParameters } from 'helpers/storybookParams';
 export default {
   title: 'Components/DocumentCropPopup',
   component: DocumentCropPopup,
+  parameters: {
+    customizableUI: true
+  }
 };
 
 const basicInitialState = {

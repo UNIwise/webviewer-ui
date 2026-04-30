@@ -558,6 +558,14 @@
         border-top: solid 1px transparent;
       }
 
+      .scale-overlay-list {
+        display: flex;
+        row-gap: 4px;
+        flex-direction: column;
+        /* match the border of the button so they line up */
+        border-top: solid 1px transparent;
+      }
+      
       & ul {
         margin: 0;
         list-style-type: none;

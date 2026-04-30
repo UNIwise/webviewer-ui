@@ -103,6 +103,15 @@
             color: var(--faded-text);
           }
         }
+
+        .specify-pages-wrapper {
+          display: flex;
+          justify-content: space-between;
+
+          .input-sub-text {
+            color: var(--faded-text);
+          }
+        }
       }
 
       @include mobile {

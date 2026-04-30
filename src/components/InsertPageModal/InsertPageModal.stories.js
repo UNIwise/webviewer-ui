@@ -7,6 +7,9 @@ import { mobileStoryParameters } from 'helpers/storybookParams';
 export default {
   title: 'Components/InsertPageModal',
   component: InsertPageModalComponent,
+  parameters: {
+    customizableUI: true
+  }
 };
 
 const initialState = {

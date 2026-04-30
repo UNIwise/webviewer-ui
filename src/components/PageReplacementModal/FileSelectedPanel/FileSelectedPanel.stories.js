@@ -7,6 +7,9 @@ import { mobileStoryParameters } from 'helpers/storybookParams';
 export default {
   title: 'Components/PageReplacementModal/FileSelectedPanel',
   component: FileSelectedPanel,
+  parameters: {
+    customizableUI: true,
+  },
 };
 
 function noop() { }

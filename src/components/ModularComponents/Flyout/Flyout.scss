@@ -121,6 +121,10 @@
           margin-inline-end: 10px;
         }
       }
+      
+      &:hover:not(.disabled) {
+        background-color: var(--blue-6);
+      }
 
       &:hover:not(.disabled) {
         background-color: var(--blue-6);

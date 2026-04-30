@@ -8,6 +8,9 @@ import { getTranslatedText } from 'src/helpers/testTranslationHelper';
 export default {
   title: 'Components/PageReplacementModal',
   component: PageReplacementModal,
+  parameters: {
+    customizableUI: true,
+  }
 };
 
 const initialState = {

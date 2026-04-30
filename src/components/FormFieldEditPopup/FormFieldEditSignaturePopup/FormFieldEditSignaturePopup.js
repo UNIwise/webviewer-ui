@@ -112,10 +112,10 @@ const FormFieldEditSignaturePopup = ({
       <div className="form-buttons-container">
         <Button
           className="ok-form-field-button"
-          onClick={closeFormFieldEditPopup}
           dataElement="formFieldOK"
           label={t('action.close')}
           disabled={!isValid}
+          onClick={onConfirm}
         />
       </div>
     </div>

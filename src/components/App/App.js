@@ -176,6 +176,23 @@ const App = ({ removeEventHandlers, initialDirection }) => {
         dispatch(actions.setAccessibleMode(false));
       }
     }
+    if (isOfficeEditingEnabled) {
+      // set default UI for Office Editor
+      dispatch(actions.setModularHeadersAndComponents(defaultOfficeEditorModularComponents, defaultOfficeEditorModularHeaders));
+      dispatch(actions.setGenericPanels(defaultOfficeEditorPanels));
+      // set panel width for tracked changes panel to 330px for the new UI
+      dispatch(actions.setPanelWidth(DataElements.LEFT_PANEL, 330));
+    } else {
+      // set default UI for WebViewer
+      dispatch(actions.setModularHeadersAndComponents(defaultModularComponents, defaultModularHeaders));
+      dispatch(actions.setGenericPanels(defaultPanels));
+      // set panel width for notes panel to 330px for the new UI
+      dispatch(actions.setPanelWidth(DataElements.NOTES_PANEL, 330));
+    }
+    // set panel width for search panel to 330px for the new UI
+    // we dont want to change this for the legacy panels at this time.
+    dispatch(actions.setPanelWidth(DataElements.SEARCH_PANEL, 330));
+    dispatch(actions.enableFeatureFlag(FeatureFlags.CUSTOMIZABLE_UI));
   }, []);
 
   const loadSpreadsheetEditorUI = () => {

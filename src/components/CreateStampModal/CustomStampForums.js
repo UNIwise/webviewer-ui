@@ -126,6 +126,7 @@ const CustomStampForums = ({
   const inputRef = useRef();
 
   const updateCanvas = (title, subtitle, newState = state) => {
+    canvasRef.current.role = 'img';
     const parameters = {
       canvas: canvasRef.current,
       title,

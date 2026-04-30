@@ -15,11 +15,13 @@ const InsertBlankPagePanel = ({
   insertNewPageBelow,
   insertNewPageIndexes,
   numberOfBlankPagesToInsert,
+  pageNumberError,
   setInsertNewPageBelow,
   setInsertNewPageIndexes,
   setNumberOfBlankPagesToInsert,
   setInsertPageHeight,
   setInsertPageWidth,
+  setPageNumberError,
   loadedDocumentPageCount,
 }) => {
   const [presetNewPageDimensions] = useSelector((state) => [

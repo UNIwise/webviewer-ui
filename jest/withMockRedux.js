@@ -1,4 +1,5 @@
 import { Provider } from 'react-redux';
+import thunk from 'redux-thunk';
 import React from 'react';
 import { configureStore } from '@reduxjs/toolkit';
 import { defaultPopups } from 'src/redux/modularComponents';

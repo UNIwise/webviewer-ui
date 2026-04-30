@@ -8,6 +8,9 @@ import { disableRtlModeParameters } from 'helpers/storybookParams';
 export default {
   title: 'Components/LineStyleOptions',
   component: LineStyleOptions,
+  parameters: {
+    customizableUI: true
+  }
 };
 
 function noop() { }

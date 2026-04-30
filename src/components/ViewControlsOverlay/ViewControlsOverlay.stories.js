@@ -7,6 +7,9 @@ import { disableRtlModeParameters, disableChromaticParameters } from 'helpers/st
 export default {
   title: 'Components/ViewControlsOverlay',
   component: ViewControlsOverlay,
+  parameters: {
+    customizableUI: true,
+  },
 };
 
 const initialState = {

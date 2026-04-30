@@ -36,10 +36,12 @@ const FormFieldEditPopup = ({
   flags,
   closeFormFieldEditPopup,
   isValid,
+  setIsValid,
   validationMessage,
+  setValidationMessage,
   radioButtonGroups,
   options,
-  onOptionsChange,
+  confirmFieldOptionsChange,
   annotation,
   selectedRadioGroup,
   getPageHeight,
@@ -72,6 +74,17 @@ const FormFieldEditPopup = ({
     selectedRadioGroup === '' ? null : { value: selectedRadioGroup, label: selectedRadioGroup },
   );
 
+  // In order to be draggable, each item needs a unique Id
+  // These are managed internally in this component and not exposed to the user
+  const draggableItems = options?.map((option, index) => {
+    return {
+      id: index,
+      displayValue: option.displayValue,
+      value: option.value,
+    };
+  });
+  const [fieldSelectionOptions, setFieldSelectionOptions] = useState(draggableItems ?? []);
+
   useEffect(() => {
     // When we open up the popup the async call to set the right radio group may not be finished
     // we deal with this timing issue by updating state when the prop is refreshed
@@ -84,10 +97,10 @@ const FormFieldEditPopup = ({
 
   function onSelectInputChange(field, input) {
     if (input === null) {
-      field.onChange('');
+      field.setValue('');
       setRadioButtonGroup(null);
     } else {
-      field.onChange(input.value);
+      field.setValue(input.value);
       setRadioButtonGroup({ value: input.value, label: input.value });
     }
   }
@@ -98,6 +111,13 @@ const FormFieldEditPopup = ({
     }
     if (field.type === 'select') {
       return renderSelectInput(field);
+    }
+  }
+
+  function handleTextChange(event, field) {
+    field.setValue(event.target.value);
+    if (event.target.value.trim().length > 0) {
+      setIsValid(true);
     }
   }
 
@@ -137,7 +157,12 @@ const FormFieldEditPopup = ({
     return (
       <div className="field-options-container">
         {t('formField.formFieldPopup.options')}
-        <CreatableList options={options} onOptionsUpdated={onOptionsChange} popupRef={popupRef}/>
+        <CreatableList
+          draggableItems={draggableItems}
+          popupRef={popupRef}
+          fieldSelectionOptions={fieldSelectionOptions}
+          setFieldSelectionOptions={setFieldSelectionOptions}
+        />
       </div>
     );
   }
@@ -173,7 +198,7 @@ const FormFieldEditPopup = ({
       <div className="form-buttons-container">
         <Button
           className="ok-form-field-button"
-          onClick={closeFormFieldEditPopup}
+          onClick={onConfirm}
           dataElement="formFieldOK"
           label={t('action.close')}
           disabled={!isValid}

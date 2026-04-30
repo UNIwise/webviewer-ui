@@ -67,6 +67,17 @@
       &.default:hover:not(.selected),
       &.default.hover:not(.selected) {
         background: none;
+        outline: 1px solid var(--secondary-button-hover);
+      }
+
+      &:focus-visible {
+        outline: var(--focus-visible-outline) !important;
+      }
+
+      .bookmark-outline-input {
+        @include mobile {
+          font-size: 13px;
+        }
       }
 
       &:focus-visible {
@@ -88,6 +99,12 @@
   .bookmark-outline-control-button,
   .bookmark-outline-save-button,
   .bookmark-outline-cancel-button {
+    @include mobile {
+      font-size: 13px;
+    }
+  }
+
+  .bookmark-outline-control-button, .bookmark-outline-save-button, .bookmark-outline-cancel-button {
     @include mobile {
       font-size: 13px;
     }

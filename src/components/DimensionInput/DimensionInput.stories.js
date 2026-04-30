@@ -5,6 +5,9 @@ import { disableRtlModeParameters } from 'helpers/storybookParams';
 export default {
   title: 'Components/DimensionInput',
   component: DimensionInput,
+  parameters: {
+    customizableUI: true
+  }
 };
 
 export function Basic() {

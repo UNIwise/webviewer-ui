@@ -102,6 +102,11 @@
         @include mobile {
           font-size: 13px;
         }
+
+        @include mobile {
+          font-size: 13px;
+          margin-top: 16px;
+        }
       }
 
       .Dropdown__wrapper {
@@ -341,6 +346,10 @@
 
         &:hover {
           @extend %default-button-hover;
+        }
+
+        @include mobile {
+          font-size: 13px;
         }
 
         @include mobile {

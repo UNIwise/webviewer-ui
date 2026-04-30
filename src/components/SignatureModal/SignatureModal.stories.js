@@ -8,6 +8,9 @@ import { getTranslatedText } from 'src/helpers/testTranslationHelper';
 export default {
   title: 'Components/SignatureModal',
   component: SignatureModalComponent,
+  parameters: {
+    customizableUI: true,
+  },
 };
 
 const initialState = {

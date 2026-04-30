@@ -386,7 +386,7 @@ const Note = ({
                     handleNoteClick={handleNoteClick}
                   />
                 </div>
-              ))}
+              ))} */}
             </div>
           )}
           {shouldShowGroupSection &&

@@ -8,6 +8,9 @@ const noop = () => { };
 export default {
   title: 'Components/AlignmentPopup',
   component: AlignmentPopup,
+  parameters: {
+    customizableUI: true
+  }
 };
 
 const initialState = {

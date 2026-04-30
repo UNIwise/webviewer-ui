@@ -201,7 +201,7 @@ const RibbonGroup = (props) => {
     return (
       <div className="Dropdown__item-object">
         {glyph &&
-          <Icon glyph={glyph} className={item.className || ''} />
+          <Icon glyph={glyph} className={item.className || ''}/>
         }
         {(text) &&
           <span className={'Dropdown__item-text'}>{text}</span>

@@ -43,6 +43,16 @@ function FormFieldEditPopupContainer({ annotation }) {
   const mountedRef = useRef(true);
   const sixtyFramesPerSecondIncrement = 16;
 
+  const { RectangleAnnotation, EllipseAnnotation } = window.Core.Annotations;
+
+  function validateEditingPlaceHolder(annot) {
+    return (
+      (annot instanceof RectangleAnnotation || annot instanceof EllipseAnnotation) &&
+        !!annot.getCustomData(formFieldCreationManager.getFieldLabels().WIDGET_ID)
+    );
+  }
+  const isEditingPlaceHolder = validateEditingPlaceHolder(annotation);
+
   const [isOpen] = useSelector(
     (state) => [selectors.isElementOpen(state, DataElements.FORM_FIELD_EDIT_POPUP)],
     shallowEqual,
@@ -68,6 +78,12 @@ function FormFieldEditPopupContainer({ annotation }) {
     setIsValid(true);
     setShowIndicator(false);
     setIndicatorText('');
+    const isTempDataPlaceholder = !isEditingPlaceHolder;
+    if (isConfirmingChanges) {
+      handleFieldConfirmation();
+    } else if (isTempDataPlaceholder) {
+      core.getAnnotationManager().deleteAnnotations([annotation]);
+    }
   }
 
   useEffect(() => {
@@ -233,18 +249,16 @@ function FormFieldEditPopupContainer({ annotation }) {
     annotation.setFieldOptions(options);
   }, [annotation]);
 
-  const onShowFieldIndicatorChange = useCallback((showIndicator) => {
-    setShowIndicator(showIndicator);
+  const confirmShowFieldIndicatorChange = useCallback((showIndicator) => {
     formFieldCreationManager.setShowIndicator(annotation, showIndicator);
   }, [annotation]);
 
-  const onFieldIndicatorTextChange = useCallback((indicatorText) => {
-    setIndicatorText(indicatorText);
+  const confirmFieldIndicatorTextChange = useCallback((indicatorText) => {
     formFieldCreationManager.setIndicatorText(annotation, indicatorText);
   }, [annotation]);
 
-  const closeFormFieldEditPopup = useCallback(() => {
-    closeAndReset();
+  const closeFormFieldEditPopup = useCallback((isConfirmingChanges) => {
+    closeAndReset(isConfirmingChanges);
   }, []);
 
   const onCloseRadioButtonPopup = useCallback(() => {
@@ -252,7 +266,7 @@ function FormFieldEditPopupContainer({ annotation }) {
     if (isValid && radioButtonGroups.indexOf(fieldName) === -1 && fieldName !== '') {
       setRadioButtonGroups([fieldName, ...radioButtonGroups]);
     }
-    closeAndReset();
+    closeAndReset(isConfirmingChanges);
   }, [fieldName, radioButtonGroups]);
 
   const redrawAnnotation = useCallback((annotation) => {
@@ -279,22 +293,25 @@ function FormFieldEditPopupContainer({ annotation }) {
   const fields = {
     NAME: {
       label: 'formField.formFieldPopup.fieldName',
-      onChange: onFieldNameChange,
+      confirmChange: onFieldNameChange,
       value: fieldName,
+      setValue: setFieldName,
       required: true,
       type: 'text',
       focus: true,
     },
     VALUE: {
       label: 'formField.formFieldPopup.fieldValue',
-      onChange: onFieldValueChange,
+      confirmChange: onFieldValueChange,
       value: fieldValue,
+      setValue: setFieldValue,
       type: 'text',
     },
     RADIO_GROUP: {
       label: 'formField.formFieldPopup.fieldName',
-      onChange: onFieldNameChange,
+      confirmChange: onFieldNameChange,
       value: fieldName,
+      setValue: setFieldName,
       required: true,
       type: 'select',
     },
@@ -304,23 +321,27 @@ function FormFieldEditPopupContainer({ annotation }) {
   const flags = {
     READ_ONLY: {
       label: 'formField.formFieldPopup.readOnly',
-      onChange: onReadOnlyChange,
+      confirmChange: confirmReadOnlyChange,
       isChecked: isReadOnly,
+      setIsChecked: setReadOnly,
     },
     MULTI_LINE: {
       label: 'formField.formFieldPopup.multiLine',
-      onChange: onMultiLineChange,
+      confirmChange: confirmMultiLineChange,
       isChecked: isMultiLine,
+      setIsChecked: setMultiLine,
     },
     REQUIRED: {
       label: 'formField.formFieldPopup.required',
-      onChange: onRequiredChange,
+      confirmChange: confirmRequiredChange,
       isChecked: isRequired,
+      setIsChecked: setIsRequired
     },
     MULTI_SELECT: {
       label: 'formField.formFieldPopup.multiSelect',
-      onChange: onMultiSelectChange,
+      confirmChange: confirmMultiSelectChange,
       isChecked: isMultiSelect,
+      setIsChecked: setIsMultiSelect
     },
   };
 
@@ -343,10 +364,12 @@ function FormFieldEditPopupContainer({ annotation }) {
 
   const indicator = {
     label: 'formField.formFieldPopup.documentFieldIndicator',
-    toggleIndicator: onShowFieldIndicatorChange,
+    confirmToggleIndicator: confirmShowFieldIndicatorChange,
+    confirmTextChange: confirmFieldIndicatorTextChange,
     isChecked: showIndicator,
-    onChange: onFieldIndicatorTextChange,
-    value: indicatorText,
+    setIsChecked: setShowIndicator,
+    textValue: indicatorText,
+    setTextValue: setIndicatorText
   };
 
   const renderTextFormFieldEditPopup = () => (
@@ -355,7 +378,9 @@ function FormFieldEditPopupContainer({ annotation }) {
       flags={textFieldFlags}
       closeFormFieldEditPopup={closeFormFieldEditPopup}
       isValid={isValid}
+      setIsValid={setIsValid}
       validationMessage={validationMessage}
+      setValidationMessage={setValidationMessage}
       annotation={annotation}
       redrawAnnotation={redrawAnnotation}
       getPageHeight={getPageHeight}
@@ -370,12 +395,13 @@ function FormFieldEditPopupContainer({ annotation }) {
       flags={signatureFlags}
       closeFormFieldEditPopup={closeFormFieldEditPopup}
       isValid={isValid}
+      setIsValid={setIsValid}
       validationMessage={validationMessage}
+      setValidationMessage={setValidationMessage}
       annotation={annotation}
       redrawAnnotation={redrawAnnotation}
       getPageHeight={getPageHeight}
       getPageWidth={getPageWidth}
-      onSignatureOptionChange={onSignatureOptionChange}
       getSignatureOptionHandler={getSignatureOption}
       indicator={indicator}
     />
@@ -387,7 +413,9 @@ function FormFieldEditPopupContainer({ annotation }) {
       flags={checkBoxFlags}
       closeFormFieldEditPopup={closeFormFieldEditPopup}
       isValid={isValid}
+      setIsValid={setIsValid}
       validationMessage={validationMessage}
+      setValidationMessage={setValidationMessage}
       annotation={annotation}
       redrawAnnotation={redrawAnnotation}
       getPageHeight={getPageHeight}
@@ -402,7 +430,9 @@ function FormFieldEditPopupContainer({ annotation }) {
       flags={radioButtonFlags}
       closeFormFieldEditPopup={onCloseRadioButtonPopup}
       isValid={isValid}
+      setIsValid={setIsValid}
       validationMessage={validationMessage}
+      setValidationMessage={setValidationMessage}
       radioButtonGroups={radioButtonGroups}
       annotation={annotation}
       selectedRadioGroup={fieldName}
@@ -421,10 +451,12 @@ function FormFieldEditPopupContainer({ annotation }) {
         fields={listBoxFields}
         flags={listBoxFlags}
         options={fieldOptions}
-        onOptionsChange={onFieldOptionsChange}
+        confirmFieldOptionsChange={confirmFieldOptionsChange}
         closeFormFieldEditPopup={closeFormFieldEditPopup}
         isValid={isValid}
+        setIsValid={setIsValid}
         validationMessage={validationMessage}
+        setValidationMessage={setValidationMessage}
         annotation={annotation}
         redrawAnnotation={redrawAnnotation}
         getPageHeight={getPageHeight}
@@ -442,10 +474,12 @@ function FormFieldEditPopupContainer({ annotation }) {
         fields={comboBoxFields}
         flags={comboBoxFlags}
         options={fieldOptions}
-        onOptionsChange={onFieldOptionsChange}
+        confirmFieldOptionsChange={confirmFieldOptionsChange}
         closeFormFieldEditPopup={closeFormFieldEditPopup}
         isValid={isValid}
+        setIsValid={setIsValid}
         validationMessage={validationMessage}
+        setValidationMessage={setValidationMessage}
         annotation={annotation}
         redrawAnnotation={redrawAnnotation}
         getPageHeight={getPageHeight}

@@ -8,6 +8,16 @@ import { disableRtlModeParameters } from 'helpers/storybookParams';
 export default {
   title: 'Components/Header',
   component: Header,
+  parameters: {
+    customizableUI: true
+  }
+};
+
+const mockedState = {
+  ...initialState,
+  featureFlags: {
+    customizableUI: true,
+  },
 };
 
 const mockedState = {

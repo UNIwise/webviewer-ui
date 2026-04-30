@@ -64,6 +64,10 @@
     flex: inherit;
     height: 16px;
     width: 16px;
+    
+    @include mobile {
+      margin-right: 4px;
+    }
 
     @include mobile {
       margin-inline-end: 4px;

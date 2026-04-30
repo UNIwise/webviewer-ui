@@ -111,6 +111,7 @@ const ScaleSelector = ({ scalesInfo = [], selectedScales = [], onScaleSelected, 
   return (
     <DataElementWrapper
       className="scale-overlay-selector"
+      aria-label={t('option.measurementOption.scale')}
       dataElement="scaleSelector"
       tabIndex={-1}
       ref={selectorRef}

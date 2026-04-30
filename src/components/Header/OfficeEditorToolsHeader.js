@@ -197,7 +197,6 @@ const OfficeEditorToolsHeader = () => {
   const [
     isOpen,
     cursorProperties,
-    isCursorInTable,
     selectionProperties,
     availableFontFaces,
     activeTheme,
@@ -207,7 +206,6 @@ const OfficeEditorToolsHeader = () => {
     (state) => [
       selectors.isElementOpen(state, DataElement.OFFICE_EDITOR_TOOLS_HEADER),
       selectors.getOfficeEditorCursorProperties(state),
-      selectors.isCursorInTable(state),
       selectors.getOfficeEditorSelectionProperties(state),
       selectors.getAvailableFontFaces(state),
       selectors.getActiveTheme(state),

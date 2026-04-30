@@ -152,6 +152,20 @@ const FileSelectedPanel = React.forwardRef((
     }
   };
 
+  const handleSourcePageNumbersChanged = (pageNumbers) => {
+    if (pageNumbers.length > 0) {
+      setSourceDocSelectedPageNumbers(pageNumbers);
+      onSourceDocumentNumberInputChange(pageNumbers);
+    } else {
+      getPageNumbersFromSelectedThumbnails();
+    }
+  };
+  const handleSourceDocPagesNumberError = (pageNumber) => {
+    if (pageNumber) {
+      setSourceDocPagesNumberError(`${t('message.errorPageNumber')} ${sourceDocumentPageCount}`);
+    }
+  };
+
   const onCloseHandler = () => {
     closeModalWarning();
   };
@@ -179,6 +193,7 @@ const FileSelectedPanel = React.forwardRef((
                 onSelectedPageNumbersChange={handlePageNumbersChanged}
                 onBlurHandler={setCurrentDocSelectedPageNumbers}
                 onError={handlePageNumberError}
+                pageNumberError={pageNumberError}
               />
             </div>
             <div className="replace-page-input"><span className="page-replace-doc-name">{currentDocumentName}</span></div>

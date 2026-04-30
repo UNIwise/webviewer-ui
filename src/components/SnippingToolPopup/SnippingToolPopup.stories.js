@@ -12,6 +12,9 @@ import { mobileStoryParameters } from 'helpers/storybookParams';
 export default {
   title: 'Components/SnippingToolPopup',
   component: SnippingToolPopup,
+  parameters: {
+    customizableUI: true,
+  },
 };
 
 const basicInitialState = {

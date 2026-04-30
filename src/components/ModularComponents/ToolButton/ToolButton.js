@@ -238,6 +238,7 @@ ToolButton.propTypes = {
   allFlyoutItems: PropTypes.array,
   style: PropTypes.object,
 };
+ToolButton.displayName = 'ToolButton';
 
 ToolButton.displayName = 'ToolButton';
 

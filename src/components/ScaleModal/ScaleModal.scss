@@ -31,6 +31,7 @@
         .custom-scale-option {
           padding: 4px 0px;
         }
+
         .custom-option-wrapper {
           display: flex;
           align-items: center;
@@ -169,6 +170,7 @@
               -webkit-appearance: none;
               margin: 0;
             }
+
             /* Firefox */
             input[type='number'] {
               -moz-appearance: textfield;
@@ -194,6 +196,7 @@
               display: block;
             }
           }
+
           .warning-alert-icon {
             display: none;
           }

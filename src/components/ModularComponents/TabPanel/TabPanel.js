@@ -113,6 +113,7 @@ const TabPanel = ({ dataElement: tabPanelDataElement, redactionAnnotationsList }
   };
 
   const setOverflowFlyout = () => {
+
     const flyout = {
       dataElement: FLYOUT_NAME,
       className: 'tabPanelOverflowFlyout',

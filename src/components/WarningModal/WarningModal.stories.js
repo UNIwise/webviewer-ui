@@ -12,6 +12,9 @@ import { mobileStoryParameters } from 'helpers/storybookParams';
 export default {
   title: 'Components/WarningModal',
   component: WarningModal,
+  parameters: {
+    customizableUI: true
+  }
 };
 
 const initialState = {

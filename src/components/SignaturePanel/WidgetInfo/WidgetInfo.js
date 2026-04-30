@@ -365,7 +365,7 @@ const WidgetInfo = ({ name, field }) => {
   };
 
   return (
-    <div className="signature-widget-info">
+    <div className="signature-widget-info" tabIndex='0'>
       {signed ? (
         <React.Fragment>
           <PanelListItem

@@ -13,6 +13,9 @@ import { disableRtlModeParameters } from 'helpers/storybookParams';
 export default {
   title: 'Components/NotesPanel/NoteState',
   component: NoteState,
+  parameters: {
+    customizableUI: true,
+  }
 };
 
 function getAnnotationWithStatus(status) {

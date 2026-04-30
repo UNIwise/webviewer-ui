@@ -8,6 +8,9 @@ import { disableRtlModeParameters } from 'helpers/storybookParams';
 export default {
   title: 'Components/ColorPickerOverlay',
   component: ColorPickerOverlay,
+  parameters: {
+    customizableUI: true
+  }
 };
 
 const store = configureStore({ reducer: () => initialState });

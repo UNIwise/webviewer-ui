@@ -13,6 +13,11 @@
     margin: 16px;
   }
 
+  @include mobile {
+    width: inherit;
+    margin: 16px;
+  }
+
   .thumbnail-slider {
     width: 100%;
     height: 20px;

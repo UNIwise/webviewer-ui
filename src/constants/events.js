@@ -343,3 +343,8 @@ export default {
  * @property {number} activeDocumentViewerKey The key of the newly active document viewer.
  * @property {number} previousDocumentViewerKey The key of the previously active document viewer.
  */
+
+/** Triggered when a tooltip is opened
+ * @name UI#tooltipOpened
+ * @event
+ */

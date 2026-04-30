@@ -160,6 +160,10 @@
           font-size: 13px;
         }
 
+        @include mobile {
+          font-size: 13px;
+        }
+
         &:hover {
           color: var(--secondary-button-hover);
         }

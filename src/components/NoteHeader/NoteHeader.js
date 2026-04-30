@@ -312,7 +312,7 @@ function NoteHeader(props) {
                   iconClassName="tracked-change-icon"
                 />
               </>
-            }
+            )}
           </div>
         </div>
         <div className="annot-id">

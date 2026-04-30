@@ -13,12 +13,6 @@ const FORM_FIELD_INDICATOR_INPUT_ID = 'field-indicator-input';
 
 const FormFieldEditPopupIndicator = ({ indicator, indicatorPlaceholder }) => {
   const { t } = useTranslation();
-  const onIndicatorChange = (showIndicator) => {
-    if (indicator.value.length < 1 && showIndicator) {
-      indicator.onChange(indicatorPlaceholder);
-    }
-    indicator.toggleIndicator(showIndicator);
-  };
 
   return (
     <div className="form-field-indicator-container">
@@ -28,7 +22,7 @@ const FormFieldEditPopupIndicator = ({ indicator, indicatorPlaceholder }) => {
       <Choice
         id="field-indicator"
         checked={indicator.isChecked}
-        onChange={(event) => onIndicatorChange(event.target.checked)}
+        onChange={(event) => indicator.setIsChecked(event.target.checked)}
         label={t(indicator.label)}
         aria-label={t(indicator.label)}
         aria-checked={indicator.isChecked}
@@ -37,8 +31,8 @@ const FormFieldEditPopupIndicator = ({ indicator, indicatorPlaceholder }) => {
         <Input
           id="indicator-input"
           type="text"
-          onChange={(event) => indicator.onChange(event.target.value)}
-          value={indicator.value}
+          onChange={(event) => indicator.setTextValue(event.target.value)}
+          value={indicator.textValue}
           fillWidth="false"
           placeholder={indicatorPlaceholder}
           disabled={!indicator.isChecked}

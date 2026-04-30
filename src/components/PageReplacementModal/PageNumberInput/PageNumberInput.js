@@ -26,6 +26,8 @@ function PageNumberInput({
   id,
   selectedPageNumbers,
   pageCount,
+  enablePageLabels = false,
+  customPageLabels = null,
   placeholder,
   onSelectedPageNumbersChange,
   ariaLabel,

@@ -217,7 +217,7 @@ describe('DocumentCropPopup', () => {
   });
 });
 
-describe('Dimensions Input Menu', () => {
+describe.only('Dimensions Input Menu', () => {
   it(`Should open when ${COLLAPSIBLE_MENU_TITLE} is clicked`, () => {
     render(testPopup);
     const collapsibleMenu = screen.getByText('Crop Dimensions');

@@ -7,6 +7,9 @@ import { disableRtlModeParameters } from 'helpers/storybookParams';
 export default {
   title: 'Components/PageThumbnailsGrid',
   component: PageThumbnailsGrid,
+  parameters: {
+    customizableUI: true,
+  }
 };
 
 function noop() { }

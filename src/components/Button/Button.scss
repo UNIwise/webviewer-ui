@@ -145,4 +145,13 @@
       height: 12px;
     }
   }
+
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    outline: var(--focus-visible-outline) !important;
+    z-index: 2;
+  }
 }

@@ -10,6 +10,9 @@ import { disableRtlModeParameters } from 'helpers/storybookParams';
 export default {
   title: 'Components/FormFieldEditPopup',
   component: FormFieldEditSignaturePopup,
+  parameters: {
+    customizableUI: true
+  }
 };
 
 const initialState = {

@@ -9,6 +9,9 @@ import { mobileStoryParameters } from 'helpers/storybookParams';
 export default {
   title: 'Components/InsertPageModal/InsertUploadedPagePanel',
   component: InsertUploadedPagePanel,
+  parameters: {
+    customizableUI: true
+  }
 };
 
 function noop() { }

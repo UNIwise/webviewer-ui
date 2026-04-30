@@ -7,6 +7,9 @@ import { disableRtlModeParameters } from 'helpers/storybookParams';
 export default {
   title: 'Components/Panel',
   component: Panel,
+  parameters: {
+    customizableUI: true,
+  }
 };
 
 function noop() {

@@ -11,6 +11,10 @@
     font-size: 13px;
   }
 
+  @include mobile {
+    font-size: 13px;
+  }
+
   cursor: pointer;
   border-radius: 4px;
   box-shadow: 0px 0px 3px 0px var(--box-shadow);
@@ -26,6 +30,7 @@
   }
 
   &.modular-ui {
+
     &.selected,
     &:hover {
       border: 1px solid var(--focus-border);

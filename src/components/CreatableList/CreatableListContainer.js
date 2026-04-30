@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import Button from '../Button';
 import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
@@ -13,9 +13,10 @@ const propTypes = {
 };
 
 const CreatableListContainer = ({
-  options,
-  onOptionsUpdated,
+  draggableItems,
   popupRef,
+  fieldSelectionOptions,
+  setFieldSelectionOptions,
 }) => {
 
   const isInitialized = useRef(false);
@@ -109,14 +110,14 @@ const CreatableListContainer = ({
   }, [nextId, items]);
 
   const handleDeleteItem = (id) => () => {
-    const updatedItems = items.filter((item) => {
+    const updatedItems = fieldSelectionOptions.filter((item) => {
       return id !== item.id;
     });
     setItems(updatedItems);
   };
 
   const handleItemValueChange = (id) => (value) => {
-    const updatedItems = items.map((item) => {
+    const updatedItems = fieldSelectionOptions.map((item) => {
       if (item.id !== id) {
         return item;
       }
@@ -135,17 +136,17 @@ const CreatableListContainer = ({
 
   const moveListItem = useCallback(
     (dragIndex, hoverIndex) => {
-      const dragItem = items[dragIndex];
+      const dragItem = fieldSelectionOptions[dragIndex];
 
       // Update items array without mutating original items array for perf reasons
       // First we remove the element being dragged
-      const itemsWithoutDraggedElement = items.filter((_item, index) => index !== dragIndex);
+      const itemsWithoutDraggedElement = fieldSelectionOptions.filter((_item, index) => index !== dragIndex);
       // Now we add the dragged element at the index it's currently hovering
       const itemsWithDraggedElementAtNewPosition = addItemAtIndex(itemsWithoutDraggedElement, hoverIndex, dragItem);
 
-      setItems(itemsWithDraggedElementAtNewPosition);
+      setFieldSelectionOptions(itemsWithDraggedElementAtNewPosition);
     },
-    [items],
+    [fieldSelectionOptions],
   );
 
   const validatePopupHeight = () => {
@@ -167,7 +168,7 @@ const CreatableListContainer = ({
   return (
     <div>
       <div className="creatable-list" ref={containerRef}>
-        {items.map((item, index) => (
+        {fieldSelectionOptions.map((item, index) => (
           <CreatableListItem
             key={item.id}
             index={index}

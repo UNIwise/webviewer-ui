@@ -6,6 +6,9 @@ import { disableRtlModeParameters } from 'helpers/storybookParams';
 export default {
   title: 'Components/RedactionSearchPanel/RedactionSearchOverlay',
   component: RedactionSearchOverlay,
+  parameters: {
+    customizableUI: true,
+  }
 };
 
 const noop = () => { };
