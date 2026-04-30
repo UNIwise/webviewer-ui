@@ -212,40 +212,6 @@ const ContextMenuPopup = ({
 
   };
 
-  const modifierKey = isMac ? '⌘ Command' : 'Ctrl';
-  const modifierKeyShort = isMac ? '⌘Cmd' : 'Ctrl';
-
-  const handlePaste = (withFormatting = true) => {
-    if (!isFirefox) {
-      core.getOfficeEditor().pasteText(withFormatting);
-      return;
-    }
-
-    const title = withFormatting ? t('officeEditor.pastingTitle') : t('officeEditor.pastingWithoutFormatTitle');
-    const message = withFormatting ? t('officeEditor.pastingMessage') : t('officeEditor.pastingWithoutFormatMessage');
-    const keyboardShortcut = withFormatting ? `${modifierKey} + V` : `${modifierKey} + Shift + V`;
-    const confirmBtnText = t('action.close');
-
-    const warning = {
-      message: `${message}:\n\n${keyboardShortcut}`,
-      title,
-      confirmBtnText,
-      onConfirm: () => {
-        // setTimeout needed because the focus can not be set immediately after closing the warning modal
-        setTimeout(() => {
-          core.getViewerElement().focus();
-        });
-      },
-      onCancel: () => {
-        setTimeout(() => {
-          core.getViewerElement().focus();
-        });
-      },
-    };
-    dispatch(actions.showWarningMessage(warning));
-
-  };
-
   if (isDisabled) {
     return null;
   }

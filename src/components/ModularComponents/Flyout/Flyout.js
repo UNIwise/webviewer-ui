@@ -302,59 +302,6 @@ const Flyout = () => {
     }
   };
 
-  const moveFocus = (delta) => {
-    const newFocusIndex = (currentFocusIndex + delta + focusableElements.length) % focusableElements.length;
-    const newFocusableItem = focusableElements[newFocusIndex];
-    newFocusableItem.focus();
-    setCurrentFocusIndex(newFocusIndex);
-  };
-
-  const onKeyDownHandler = (e) => {
-    if (e.shiftKey && e.key === 'Tab') {
-      e.preventDefault();
-      closeFlyout();
-    } else {
-      switch (e.code) {
-        case 'ArrowDown':
-          e.preventDefault();
-          moveFocus(1);
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          moveFocus(-1);
-          break;
-        case 'Home':
-          e.preventDefault();
-          setCurrentFocusIndex(0);
-          break;
-        case 'End':
-          e.preventDefault();
-          setCurrentFocusIndex(itemsToRender.length - 1);
-          break;
-        case 'Escape':
-        case 'Tab':
-          e.preventDefault();
-          closeFlyout();
-          break;
-        case 'Enter':
-        case 'Space': {
-          e.preventDefault();
-          const focusedElement = focusableElements[currentFocusIndex];
-          const elementType = focusedElement.tagName.toLowerCase();
-
-          if (elementType === 'button') {
-            focusedElement.click();
-          } else if (elementType === 'input') {
-            focusedElement.parentNode.dispatchEvent(new Event('submit', { bubbles: true }));
-          }
-          break;
-        }
-        default:
-          break;
-      }
-    }
-  };
-
   const renderBackButton = () => {
     const isZoomOptions = activeItem.dataElement === 'zoomOptionsButton';
     return (

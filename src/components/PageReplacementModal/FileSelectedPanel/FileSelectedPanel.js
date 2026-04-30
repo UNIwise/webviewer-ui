@@ -151,15 +151,6 @@ const FileSelectedPanel = React.forwardRef((
       getPageNumbersFromSelectedThumbnails();
     }
   };
-
-  const handleSourcePageNumbersChanged = (pageNumbers) => {
-    if (pageNumbers.length > 0) {
-      setSourceDocSelectedPageNumbers(pageNumbers);
-      onSourceDocumentNumberInputChange(pageNumbers);
-    } else {
-      getPageNumbersFromSelectedThumbnails();
-    }
-  };
   const handleSourceDocPagesNumberError = (pageNumber) => {
     if (pageNumber) {
       setSourceDocPagesNumberError(`${t('message.errorPageNumber')} ${sourceDocumentPageCount}`);

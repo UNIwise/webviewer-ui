@@ -30,12 +30,6 @@ const RedactionSearchPanel = (props) => {
     dispatch(actions.closeElement('redactionPanel'));
   };
 
-  const isMobile = isMobileSize();
-
-  const onCloseButtonClick = () => {
-    dispatch(actions.closeElement('redactionPanel'));
-  };
-
   return (
     <>
       {isMobile &&

@@ -13,7 +13,6 @@ const propTypes = {
 };
 
 const CreatableListContainer = ({
-  draggableItems,
   popupRef,
   fieldSelectionOptions,
   setFieldSelectionOptions,

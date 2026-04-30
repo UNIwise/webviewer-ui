@@ -146,34 +146,6 @@ const PortfolioItemContent = ({
     handleOnClick,
   };
 
-  const handleOnClick = (val) => {
-    switch (val) {
-      case menuTypes.OPENFILE:
-        if (isOpenableFile(extension)) {
-          setContextMenuOpen(false);
-          openPortfolioItem(portfolioItem);
-        }
-        break;
-      case menuTypes.RENAME:
-        setContextMenuOpen(false);
-        setPortfolioRenaming(true);
-        break;
-      case menuTypes.DOWNLOAD:
-        setContextMenuOpen(false);
-        downloadPortfolioItem(portfolioItem);
-        break;
-      case menuTypes.DELETE:
-        setContextMenuOpen(false);
-        removePortfolioItem(id);
-        break;
-      default:
-        break;
-    }
-  };
-
-  const flyoutSelector = `${DataElements.BOOKMARK_OUTLINE_FLYOUT}-${id}`;
-  const currentFlyout = useSelector((state) => selectors.getFlyout(state, flyoutSelector));
-
   return (
     <div className='bookmark-outline-single-container'>
       {isDefault &&
