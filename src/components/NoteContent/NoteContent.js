@@ -599,36 +599,6 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
     };
   }, []);
 
-
-  const debouncedSetContents = useRef(
-    debounce(() => {
-      if (textareaRef.current) {
-        setContents({ preventDefault: () => {} }, 'change');
-      }
-    }, 2000),
-  ).current;
-
-  useEffect(() => {
-    return () => debouncedSetContents.flush();
-  }, [debouncedSetContents]);
-
-  // Always keep a ref to the latest setContents so the unmount cleanup can call it
-  const setContentsRef = useRef(setContents);
-  useLayoutEffect(() => {
-    setContentsRef.current = setContents;
-  });
-
-  const hasUnsavedEditsRef = useRef(false);
-
-  useLayoutEffect(() => {
-    return () => {
-      if (textareaRef.current && hasUnsavedEditsRef.current) {
-        debouncedSetContents.flush();
-        setContentsRef.current({ preventDefault: () => {}, type: 'blur' });
-      }
-    };
-  }, []);
-
   useEffect(() => {
     // on initial mount, focus the last character of the textarea
     if (isAnyCustomPanelOpen || ((isNotesPanelOpen || isInlineCommentOpen) && textareaRef.current)) {
