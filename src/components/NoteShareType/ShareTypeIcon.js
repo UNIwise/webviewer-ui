@@ -2,7 +2,7 @@
 import React, { useRef } from 'react';
 import PropTypes from 'prop-types';
 
-import ShareTypes, { ShareTypeColors } from 'constants/shareTypes';
+import { ShareTypeColors } from 'constants/shareTypes';
 import './ShareTypeIcon.scss';
 import Tooltip from '../Tooltip';
 
@@ -17,6 +17,7 @@ function ShareTypeIcon(props) {
     ? ShareTypeColors[shareType]
     : {
       backgroundColor: 'transparent',
+      // eslint-disable-next-line custom/no-hex-colors
       borderColor: '#9e9e9e',
     };
   const iconRef = useRef();

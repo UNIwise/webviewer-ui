@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { useSelector } from 'react-redux';
-import NoteState from 'components/NoteState';
 import NoteShareType from 'components/NoteShareType';
 import NotePopup from 'components/NotePopup';
 import Icon from 'components/Icon';
@@ -191,8 +190,6 @@ function NoteHeader(props) {
   let date = getDateCreatedInTimezone(sortStrategy, notesShowLastUpdatedDate, annotation, timezone);
   const noteDateAndTime = date ? dayjs(date).locale(language).format(noteDateFormat) : t('option.notesPanel.noteContent.noDate');
 
-  const numberOfReplies = annotation.getReplies().length;
-
   let color = getColorFromAnnotation(annotation, iconColor);
   if (color === '') {
     color = getColorFromTheme(activeTheme, color);
@@ -216,7 +213,6 @@ function NoteHeader(props) {
     core.getOfficeEditor().rejectTrackedChange(trackedChangeId);
   };
 
-  const showNoteState = !isNoteStateDisabled && !isReply && !isMultiSelectMode && !isGroupMember && !isTrackedChange;
   const showNotePopup = !isEditing && isSelected && !isMultiSelectMode && !isGroupMember && !isTrackedChange && !isOfficeEditorViewOnly;
   const flyoutId = flyoutIdSuffix ? `${annotation.Id}-${flyoutIdSuffix}` : annotation.Id;
 

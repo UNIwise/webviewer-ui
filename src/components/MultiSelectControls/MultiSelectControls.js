@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 
@@ -6,10 +6,8 @@ import Button from 'components/Button';
 import ReplyAreaMultiSelect from 'components/Note/ReplyArea/ReplyAreaMultiSelect';
 import MultiStylePopup from 'components/MultiSelectControls/MultiStylePopup';
 import NoteContext from 'components/Note/Context';
-import NoteStateFlyout from 'components/ModularComponents/NoteStateFlyout';
 import ToggleElementButton from 'components/ModularComponents/ToggleElementButton';
 
-import { createStateAnnotation } from 'helpers/NoteStateUtils';
 import DataElements from 'constants/dataElement';
 import PropTypes from 'prop-types';
 import actions from 'actions';
@@ -17,13 +15,10 @@ import useCore from 'hooks/useCore';
 import selectors from 'selectors';
 
 import './MultiSelectControls.scss';
-import NoteShareTypeMultiControl from '../NoteShareType/NoteShareTypeMultiControl';
 
 const propTypes = {
   showMultiReply: PropTypes.bool.isRequired,
   setShowMultiReply: PropTypes.func.isRequired,
-  setShowMultiState: PropTypes.func.isRequired,
-  showMultiStyle: PropTypes.bool.isRequired,
   setShowMultiStyle: PropTypes.func.isRequired,
   setMultiSelectMode: PropTypes.func.isRequired,
   multiSelectedMap: PropTypes.object.isRequired,
@@ -49,7 +44,6 @@ const getParentAnnotations = (core, annotations) => {
 const MultiSelectControls = ({
   showMultiReply,
   setShowMultiReply,
-  setShowMultiState,
   showMultiStyle,
   setShowMultiStyle,
   setMultiSelectMode,
@@ -65,7 +59,6 @@ const MultiSelectControls = ({
   const dispatch = useDispatch();
   const [t] = useTranslation();
 
-  const activeDocumentViewerKey = useSelector(selectors.getActiveDocumentViewerKey);
   const customizableUI = useSelector(selectors.getIsCustomUIEnabled);
 
   useEffect(() => {
@@ -140,17 +133,6 @@ const MultiSelectControls = ({
   const canGroup = numberOfGroups > 1;
   const canUngroup = !canGroup && (modifiableMultiSelectAnnotations.length > 2 ||
     (modifiableMultiSelectAnnotations.length > 0 && core.getGroupAnnotations(modifiableMultiSelectAnnotations[0]).length > 1));
-
-  const handleStateChange = useCallback((newValue) => {
-    getParentAnnotations(core, multiSelectedAnnotations).forEach((annot) => {
-      const stateAnnotation = createStateAnnotation(annot, newValue, activeDocumentViewerKey);
-      annot.addReply(stateAnnotation);
-      const annotationManager = core.getAnnotationManager(activeDocumentViewerKey);
-      annotationManager.addAnnotation(stateAnnotation);
-      annotationManager.trigger('addReply', [stateAnnotation, annot, annotationManager.getRootAnnotation(annot)]);
-    });
-    setShowMultiState(false);
-  }, [multiSelectedAnnotations, activeDocumentViewerKey, core]);
 
   const memoizedContextValue = useMemo(
     () => ({
