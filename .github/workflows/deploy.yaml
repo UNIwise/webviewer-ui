@@ -28,7 +28,7 @@ jobs:
       - name: Run tests
         run: |
           pnpm cp-webviewer-core
-          pnpm jest
+          pnpm jest --maxWorkers=2 --forceExit
 
 
       - name: Build
