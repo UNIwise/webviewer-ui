@@ -82,7 +82,10 @@ const ZoomControlsContainer = ({ dataElement = 'zoom-container', headerDirection
 
   useEffect(() => {
     const onZoomUpdated = () => {
-      setZoomValue(Math.ceil(core.getZoom() * 100).toString());
+      const zoom = core.getZoom();
+      if (Number.isFinite(zoom)) {
+        setZoomValue(Math.ceil(zoom * 100).toString());
+      }
     };
 
     core.addEventListener('zoomUpdated', onZoomUpdated);

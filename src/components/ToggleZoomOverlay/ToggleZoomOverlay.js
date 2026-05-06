@@ -33,7 +33,12 @@ const ToggleZoomOverlay = ({ documentViewerKey = undefined }) => {
 
   useEffect(() => {
     const onDocumentLoaded = () => setValue(Math.ceil(core.getZoom(documentViewerKey) * 100).toString());
-    const onZoomUpdated = () => setValue(Math.ceil(core.getZoom(documentViewerKey) * 100).toString());
+    const onZoomUpdated = () => {
+      const zoom = core.getZoom(documentViewerKey);
+      if (Number.isFinite(zoom)) {
+        setValue(Math.ceil(zoom * 100).toString());
+      }
+    };
     const onDocumentUnloaded = () => setValue('100');
 
     core.addEventListener('documentLoaded', onDocumentLoaded, undefined, documentViewerKey);

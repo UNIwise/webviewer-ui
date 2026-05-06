@@ -5,6 +5,7 @@ import core from 'core';
 import { createAnnouncement } from 'helpers/accessibility';
 
 export default (dispatch, documentViewerKey, store) => (zoom) => {
+  if (!Number.isFinite(zoom)) return;
   dispatch(actions.setZoom(zoom, documentViewerKey));
   const featureFlags = selectors.getFeatureFlags(store.getState());
   const { customizableUI } = featureFlags;
