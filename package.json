@@ -15,7 +15,7 @@
     "start": "npx babel-node ./dev-server.js",
     "download-webviewer": "npx @pdftron/webviewer-downloader --core-only --path ./lib",
     "cp-webviewer-core": "rm -rf ./lib && mkdir -p ./lib && cp -r ./node_modules/@pdftron/webviewer/public/core ./lib",
-    "postinstall": "patch-package",
+    "postinstall": "[ -d patches ] && patch-package || true",
     "devinstall": "INSTALL_PATH=./scripts/postinstall.sh && npx path-exists $INSTALL_PATH && $INSTALL_PATH || true",
     "lint": "eslint ./src --fix --ext .js,.jsx,.ts,.tsx",
     "lint:ci": "eslint ./src --quiet --ext .js,.jsx,.ts,.tsx",
