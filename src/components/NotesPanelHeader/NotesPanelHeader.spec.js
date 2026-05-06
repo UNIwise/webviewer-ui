@@ -54,7 +54,7 @@ describe('NotesPanelHeader', () => {
         </Provider>
       );
 
-      screen.getByPlaceholderText('Search annotations'); // WISEflow term change
+      screen.getByPlaceholderText('Search comments'); // WISEflow term change
       screen.getByText('Sort:');
       screen.getByText('Comments (0)');
     });
@@ -68,7 +68,7 @@ describe('NotesPanelHeader', () => {
         </Provider>
       );
 
-      expect(screen.queryByPlaceholderText('Search annotations')).not.toBeInTheDocument; // WISEflow term change
+      expect(screen.queryByPlaceholderText('Search comments')).not.toBeInTheDocument; // WISEflow term change
       expect(screen.queryByText('Sort:')).not.toBeInTheDocument;
       expect(screen.queryByText('Comments (0)')).not.toBeInTheDocument;
     });
@@ -85,7 +85,7 @@ describe('NotesPanelHeader', () => {
         </Provider>
       );
 
-      expect(screen.queryByPlaceholderText('Search annotations')).not.toBeInTheDocument(); // WISEflow term change
+      expect(screen.queryByPlaceholderText('Search comments')).not.toBeInTheDocument(); // WISEflow term change
       screen.getByText('Sort:');
       screen.getByText('Comments (0)');
     });
@@ -102,7 +102,7 @@ describe('NotesPanelHeader', () => {
         </Provider>
       );
 
-      screen.getByPlaceholderText('Search annotations'); // WISEflow term change
+      screen.getByPlaceholderText('Search comments'); // WISEflow term change
       screen.getByText('Sort:');
       expect(screen.queryByText('Comments (0)')).not.toBeInTheDocument;
     });
@@ -120,7 +120,7 @@ describe('NotesPanelHeader', () => {
         </Provider>
       );
 
-      screen.getByPlaceholderText('Search annotations'); // WISEflow term change
+      screen.getByPlaceholderText('Search comments'); // WISEflow term change
       expect(screen.queryByText('Sort:')).not.toBeInTheDocument();
       screen.getByText('Comments (0)');
     });

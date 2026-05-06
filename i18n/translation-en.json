@@ -247,7 +247,7 @@
 
     "outlinePanel": "Outline",
     "menuOverlay": "More options",
-    "notesPanel": "Annotations",
+    "notesPanel": "Comments",
     "outlinesPanel": "Outlines",
     "newOutlineTitle": "New Outline Title",
     "outlineTitle": "Outline Title",
@@ -312,7 +312,7 @@
     "printTotalPageCount_plural": "Total: {{count}} pages",
     "processing": "Processing...",
     "searching": "Searching...",
-    "searchCommentsPlaceholder": "Search annotations",
+    "searchCommentsPlaceholder": "Search comments",
     "searchDocumentPlaceholder": "Search document",
     "clearSearchResults": "Clear search results",
     "toggleReplaceInput": "Toggle replace input",
@@ -1687,5 +1687,10 @@
     "saving": "Saving...",
     "unsaved": "Editing...",
     "error": "Last edits backed up but not saved"
+  },
+  "formulaBar": {
+    "label": "Formula Bar",
+    "range": "Range",
+    "formulas": "Formulas"
   }
 }

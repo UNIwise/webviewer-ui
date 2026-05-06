@@ -218,6 +218,13 @@ describe('DocumentCropPopup', () => {
 });
 
 describe.only('Dimensions Input Menu', () => {
+  beforeEach(() => {
+    useCore.mockReturnValue({
+      core: createMockCore(),
+      documentViewer: {},
+    });
+  });
+
   it(`Should open when ${COLLAPSIBLE_MENU_TITLE} is clicked`, () => {
     render(testPopup);
     const collapsibleMenu = screen.getByText('Crop Dimensions');

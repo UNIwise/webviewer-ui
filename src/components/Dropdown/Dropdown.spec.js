@@ -34,9 +34,9 @@ describe('Dropdown component', () => {
 
     // WISEflow: Changed status translation to Share Type
     // click Status button and make sure active element is changed to Status
-    const statusOption = screen.getByRole('option', { name: 'Status' });
+    const statusOption = screen.getByRole('option', { name: 'Share Type' });
     userEvent.click(statusOption);
-    expect(dropDownCombobox).toHaveTextContent('Status');
+    expect(dropDownCombobox).toHaveTextContent('Share Type');
   });
 });
 

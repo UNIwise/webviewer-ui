@@ -177,7 +177,7 @@ export const getCustomElementSize = (state, dataElement) => state.viewer.customE
 export const getActiveFlyout = (state) => state.viewer.activeFlyout;
 export const getFlyoutPosition = (state) => state.viewer.flyoutPosition;
 export const getFlyoutMap = (state) => state.viewer.flyoutMap;
-export const getFlyout = (state, dataElement) => state.viewer.flyoutMap[dataElement];
+export const getFlyout = (state, dataElement) => state.viewer.flyoutMap?.[dataElement];
 export const getFlyoutToggleElement = (state) => state.viewer.flyoutToggleElement;
 export const getInitialsOffset = (state) => state.viewer.initalsOffset;
 export const isSavedSignaturesTabEnabled = (state) => state.viewer.savedSignatureTabEnabled;
@@ -355,11 +355,11 @@ export const getIsNotesPanelMultiSelectEnabled = (state) => state.viewer.isNotes
 export const getDocumentContainerWidth = (state) => state.viewer.documentContainerWidth;
 export const getDocumentContainerHeight = (state) => state.viewer.documentContainerHeight;
 
-export const isElementDisabled = (state, dataElement) => state.viewer?.disabledElements[dataElement]?.disabled;
+export const isElementDisabled = (state, dataElement) => state.viewer?.disabledElements?.[dataElement]?.disabled;
 
-export const isElementOpen = (state, dataElement) => !!(state.viewer?.openElements[dataElement] && !state.viewer?.disabledElements[dataElement]?.disabled);
+export const isElementOpen = (state, dataElement) => !!(state.viewer?.openElements?.[dataElement] && !state.viewer?.disabledElements?.[dataElement]?.disabled);
 
-export const isElementHidden = (state, dataElement) => state.viewer?.hiddenElements[dataElement];
+export const isElementHidden = (state, dataElement) => state.viewer?.hiddenElements?.[dataElement];
 
 export const allButtonsInGroupDisabled = (state, toolGroup) => {
   const toolButtonObjects = getToolButtonObjects(state);
@@ -570,7 +570,7 @@ export const getActiveHeaders = createSelector(
         fixedGroupedItemsSet.has(dataElement);
     };
 
-    return Object.values(modularHeaders).filter(({ items, dataElement }) => {
+    return Object.values(modularHeaders || {}).filter(({ items, dataElement }) => {
       if (disabledElements[dataElement]?.disabled) {
         return false;
       }
@@ -1182,7 +1182,7 @@ export const getWv3dPropertiesPanelSchema = (state) => state.wv3dPropertiesPanel
 
 export const getOfficeEditorCursorProperties = (state) => state.officeEditor.cursorProperties;
 export const getOfficeEditorSelectionProperties = (state) => state.officeEditor.selectionProperties;
-export const isCursorInTable = (state) => getOfficeEditorCursorProperties(state).locationProperties.inTable;
+export const isCursorInTable = (state) => getOfficeEditorCursorProperties(state)?.locationProperties?.inTable;
 
 export const getOfficeEditorEditMode = (state) => state.officeEditor.editMode;
 

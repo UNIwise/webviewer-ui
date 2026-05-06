@@ -1,6 +1,7 @@
 import React from 'react';
 import { configureStore } from '@reduxjs/toolkit';
 import NoteHeader from 'components/NoteHeader';
+import ShareTypes from 'constants/shareTypes';
 import NoteContext from '../Note/Context';
 import { Provider } from 'react-redux';
 import { initialColors } from 'helpers/initialColorStates';

@@ -71,7 +71,25 @@ describe('NotePopup', () => {
     jest.resetAllMocks();
 
     useSelectorMock.mockImplementation(function(selector) {
-      return selector({ viewer: { disabledElements: {}, customElementOverrides: {} } });
+      return selector({
+        viewer: {
+          disabledElements: {},
+          customElementOverrides: {},
+          flyoutMap: {
+            'notePopupFlyout-foo': { dataElement: 'notePopupFlyout-foo', items: notePopupFlyoutItems },
+          },
+          openElements: { 'notePopupFlyout-foo': true },
+          modularHeaders: {},
+          modularComponents: {},
+          modularHeadersHeight: { topHeaders: 49 },
+          activeFlyout: 'notePopupFlyout-foo',
+          flyoutPosition: { x: 0, y: 0 },
+          flyoutToggleElement: null,
+          activeTabInPanel: {},
+        },
+        featureFlags: { customizableUI: true },
+        officeEditor: {},
+      });
     });
   });
 

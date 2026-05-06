@@ -59,7 +59,7 @@ const DataElementWrapper = React.forwardRef(({ tabbable = false, type = 'div', c
       tabIndex={tabIndex}
       ref={ref}
       data-element={dataElement}
-      role="button"
+      role={tabbable ? 'button' : undefined}
       onKeyDown={tabbable ? onKeyPress : undefined}
       {...props}
     >

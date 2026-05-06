@@ -198,7 +198,7 @@ const FormFieldEditPopup = ({
       <div className="form-buttons-container">
         <Button
           className="ok-form-field-button"
-          onClick={onConfirm}
+          onClick={closeFormFieldEditPopup}
           dataElement="formFieldOK"
           label={t('action.close')}
           disabled={!isValid}

@@ -22,7 +22,9 @@ const fireEvent = async (eventName, data, element = null) => {
           return resolve();
         }
         const observer = new MutationObserver(() => {
-          element = getRootNode().querySelector(selector);
+          const rootNode = getRootNode();
+          if (!rootNode) { observer.disconnect(); return; }
+          element = rootNode.querySelector(selector);
           if (element) {
             observer.disconnect();
             resolve();

@@ -74,9 +74,7 @@ const FileAttachmentPanel = ({ initialFiles = initialFilesDefault }) => {
   useEffect(() => {
     const updateFileAttachments = async () => {
       const attachments = await getFileAttachments(core);
-      if (isMounted) {
-        setFileAttachments(attachments);
-      }
+      setFileAttachments(attachments);
     };
     const clearSpinner = () => {
       setFileIdProcessSpinner(null);

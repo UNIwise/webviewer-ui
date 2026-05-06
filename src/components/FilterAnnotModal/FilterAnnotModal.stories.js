@@ -31,7 +31,8 @@ const initialState = {
       authorFilter: [],
       colorFilter: [],
       typeFilter: [],
-      statusFilter: []
+      statusFilter: [],
+      shareTypesFilter: []
     },
   },
   featureFlags: {

@@ -20,13 +20,6 @@ const mockedState = {
   },
 };
 
-const mockedState = {
-  ...initialState,
-  featureFlags: {
-    customizableUI: true,
-  },
-};
-
 const store = configureStore({
   reducer: () => mockedState
 });
