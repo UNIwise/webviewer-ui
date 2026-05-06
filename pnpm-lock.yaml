@@ -183,6 +183,9 @@ importers:
       '@hot-loader/react-dom':
         specifier: ^17.0.2
         version: 17.0.2(react@17.0.2)
+      '@pdftron/webviewer':
+        specifier: 11.12.0
+        version: 11.12.0
       '@pdftron/webviewer-downloader':
         specifier: ^1.4.4
         version: 1.4.4
@@ -1744,6 +1747,9 @@ packages:
     peerDependencies:
       react: ^16.12.0
       react-dom: ^16.12.0
+
+  '@pdftron/webviewer@11.12.0':
+    resolution: {integrity: sha512-9GqjbLQTIR5jgFVKX99dcRHtfqFk0ctej3vy4eD9u3Xx5wAhrnZJjYCD4H7l+IWdr8CIqMSkl0K2RNWeiq86rw==}
 
   '@protobufjs/aspromise@1.1.2':
     resolution: {integrity: sha512-j+gKExEuLmKwvz3OgROXtrJ2UG2x8Ch2YZUxahh+s1F2HZ+wAceUNLkvy6zKCPVRkU++ZWQrdxsUeQXmcg4uoQ==}
@@ -9522,6 +9528,8 @@ snapshots:
     dependencies:
       react: 17.0.2
       react-dom: 17.0.2(react@17.0.2)
+
+  '@pdftron/webviewer@11.12.0': {}
 
   '@protobufjs/aspromise@1.1.2': {}
 

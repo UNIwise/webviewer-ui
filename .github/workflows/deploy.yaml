@@ -27,7 +27,7 @@ jobs:
 
       - name: Run tests
         run: |
-          pnpm download-webviewer
+          pnpm cp-webviewer-core
           pnpm jest
 
 
