@@ -65,8 +65,8 @@ import Events from 'constants/events';
 import overlays from 'constants/overlays';
 import { panelNames } from 'constants/panel';
 import DataElements from 'constants/dataElement';
-import { defaultPanels } from '../../redux/modularComponents';
-import { defaultOfficeEditorPanels } from '../../redux/officeEditorModularComponents';
+import { defaultModularComponents, defaultModularHeaders, defaultPanels } from '../../redux/modularComponents';
+import { defaultOfficeEditorModularHeaders, defaultOfficeEditorModularComponents, defaultOfficeEditorPanels } from '../../redux/officeEditorModularComponents';
 
 import setLanguage from 'src/apis/setLanguage';
 import { loadDefaultFonts } from 'src/helpers/loadFont';
@@ -178,13 +178,13 @@ const App = ({ removeEventHandlers, initialDirection }) => {
     }
     if (isOfficeEditingEnabled) {
       // set default UI for Office Editor
-      dispatch(actions.setModularHeadersAndComponents(defaultOfficeEditorModularComponents, defaultOfficeEditorModularHeaders));
+      dispatch(actions.setModularHeadersAndComponents(defaultOfficeEditorModularHeaders, defaultOfficeEditorModularComponents));
       dispatch(actions.setGenericPanels(defaultOfficeEditorPanels));
       // set panel width for tracked changes panel to 330px for the new UI
       dispatch(actions.setPanelWidth(DataElements.LEFT_PANEL, 330));
     } else {
       // set default UI for WebViewer
-      dispatch(actions.setModularHeadersAndComponents(defaultModularComponents, defaultModularHeaders));
+      dispatch(actions.setModularHeadersAndComponents(defaultModularHeaders, defaultModularComponents));
       dispatch(actions.setGenericPanels(defaultPanels));
       // set panel width for notes panel to 330px for the new UI
       dispatch(actions.setPanelWidth(DataElements.NOTES_PANEL, 330));
