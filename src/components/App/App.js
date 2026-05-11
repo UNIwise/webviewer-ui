@@ -280,7 +280,9 @@ const App = ({ removeEventHandlers, initialDirection }) => {
       const isMultiDoc = initialDoc.length > 1;
       const startOffline = getHashParameters('startOffline', false);
       const basePath = getHashParameters('basePath', '');
-      window.Core.setBasePath(basePath);
+      if (typeof window.Core?.setBasePath === 'function') {
+        window.Core.setBasePath(basePath);
+      }
 
       if (isMultiDoc && !isMultiTabAlreadyEnabled) {
         prepareMultiTab(initialDoc, store);
