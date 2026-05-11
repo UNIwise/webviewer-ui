@@ -7,129 +7,157 @@
   border-radius: 4px;
   box-shadow: 0 0 3px 0 var(--document-box-shadow);
   background: var(--component-background);
-  top: 0;
+  inset-block-start: 0;
+
+  .collapsible-page-group-header > button {
+    font-weight: bold;
+    margin: 0;
+    @include mobile {
+      padding: 16px 16px;
+    }
+  }
 
   .SnippingToolPopup {
     width: 250px;
-  
-    .snipping-section {
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-  
-      .ui__choice {
-        margin: 0;
-      }
-  
-      .ui__choice:not(:last-of-type) {
-        padding-bottom: 12px;
-      }
+  }
+
+  .snipping-section {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+
+    .ui__choice {
+      margin: 0;
     }
-  
-    .menu-title {
-      padding-bottom: 16px;
-      font-weight: bold;
+
+    .ui__choice:not(:last-of-type) {
+      padding-bottom: 12px;
     }
-  
-    .crop-inactive {
-      color: var(--gray-6);
-    }
-  
-    .Icon {
-      height: 18px;
-      width: 18px;
-    }
-  
-    .divider {
-      border-top: 1px solid var(--divider);
+  }
+
+  .menu-title {
+    padding-bottom: 16px;
+    font-weight: bold;
+  }
+
+  .crop-inactive {
+    color: var(--gray-6);
+  }
+
+  .Icon {
+    height: 18px;
+    width: 18px;
+  }
+
+  .divider {
+    border-top: 1px solid var(--divider);
+    width: 100%;
+  }
+
+  .buttons {
+    padding: 12px;
+    text-align: end;
+    font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+
+    @include mobile {
       width: 100%;
     }
-  
-    .buttons {
-      padding: 12px;
-      text-align: right;
+  }
+
+  .Button {
+    @include mobile {
+      width: auto;
+      height: 32px;
       font-size: 13px;
-      display: flex;
-      justify-content: space-between;
+      margin: 0;
     }
-  
-    .Button {
-      &.save-button {
-        color: var(--primary-button-text);
-        padding: 6px 16px;
-        background: var(--primary-button);
-        border-radius: 4px;
+
+    &.save-button {
+      color: var(--primary-button-text);
+      padding: 6px 16px;
+      background: var(--primary-button);
+      border-radius: 4px;
+      border: 0;
+      height: 32px;
+      width: fit-content;
+      cursor: pointer;
+
+      @include mobile {
+        min-width: 75px;
+      }
+
+      &:hover:not(:disabled) {
+        @extend %default-button-hover;
+        background-color: var(--primary-button-hover);
+      }
+
+      &:disabled {
+        @extend %default-button-disabled;
+        cursor: auto;
         border: 0;
-        height: 32px;
-        width: fit-content;
-        cursor: pointer;
-    
-        &:hover:not(:disabled) {
-          @extend %default-button-hover;
-          background-color: var(--primary-button-hover);
-        }
-    
-        &:disabled {
-          @extend %default-button-disabled;
-          cursor: auto;
-          border: 0;
-          span {
-            color: var(--primary-button-text);
-          }
+        span {
+          color: var(--primary-button-text);
         }
       }
-    
-      &.cancel-button {
-        cursor: pointer;
-        background: none;
-        border: 0;
-        color: var(--secondary-button-text);
-        padding: 6px 16px;
-        margin-right: 4px;
-        height: 32px;
+    }
+
+    &.cancel-button {
+      cursor: pointer;
+      background: none;
+      border: 0;
+      color: var(--secondary-button-text);
+      padding: 6px 16px;
+      margin-inline-end: 4px;
+      height: 32px;
+      width: fit-content;
+
+      @include mobile {
         width: fit-content;
-    
-        &:hover {
-          @extend %secondary-button-hover;
-          background-color: transparent;
-          box-shadow: none;
-        }
-    
-        &:focus {
-          outline: none;
-        }
-    
-        &:disabled {
-          opacity: 0.5;
-          cursor: auto;
-          color: var(--secondary-button-text);
-        }
+        margin-inline-start: 8px;
+      }
+
+      &:hover {
+        @extend %secondary-button-hover;
+        background-color: transparent;
+        box-shadow: none;
+      }
+
+      &:focus {
+        outline: none;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: auto;
+        color: var(--secondary-button-text);
       }
     }
   }
-  
+
   .custom-select {
     flex-grow: 2;
     max-width: 100%;
-  
+
     .customSelector {
-      margin-left: 0;
+      margin-inline-start: 0;
       width: 100% !important;
-  
+
       .customSelector__selectedItem {
         width: 100%;
       }
-  
+
       ul {
         width: 100%;
       }
-  
+
       .customSelector__arrow {
         height: 18px;
         width: 18px;
       }
     }
-  
+
     select {
       height: 28px;
       width: 100%;
@@ -139,16 +167,12 @@
   @include mobile {
     width: 100%;
     position: fixed;
-    bottom: 0 !important;
+    inset-block-end: 0 !important;
     border-radius: 0;
     justify-content: start;
-    top: auto;
+    inset-block-start: auto;
 
     .snipping-mobile-section {
-      padding-top: 8px;
-      padding-bottom: 8px;
-      padding-left: 12px;
-      padding-right: 12px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -178,14 +202,13 @@
 
         .picked-option .picked-option-text {
           width: 150px;
-          text-align: left;
+          text-align: start;
         }
       }
 
       .Dropdown__items {
-        top: -52px;
+        inset-block-start: -52px;
         z-index: 80;
-        width: 100%;
       }
 
       .wrapper {
@@ -193,7 +216,7 @@
       }
 
       .save-button {
-        margin-left: 6px;
+        margin-inline-start: 6px;
         min-width: 75px;
       }
     }

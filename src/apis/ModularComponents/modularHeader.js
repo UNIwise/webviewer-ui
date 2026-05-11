@@ -6,6 +6,7 @@ const { checkTypes, TYPES } = window.Core;
 
 /**
    * @typedef {Object} ContainerProperties
+   * @memberof UI.Components
    * @property {string} [label] The label of the container.
    * @property {string} [dataElement] The data element of the container.
    * @property {'top' | 'bottom' | 'left' | 'right'} [placement] A string that determines the placement of the header.
@@ -15,6 +16,7 @@ const { checkTypes, TYPES } = window.Core;
    * @property {'start' | 'center' | 'end'} [position] A string that determines the position of the container.
    * @property {Array<Object>} [items] The items or other containers within the container.
    * @property {Object} [style] An object that can set the CSS style of the container.
+   * @property {boolean} [stroke] A boolean that determines if the container has a stroke. The default is true.
    */
 /**
    * Creates a new instance of ModularHeader.
@@ -31,11 +33,6 @@ const defaultTopHeader = new instance.UI.Components.ModularHeader({
   gap: 12,
   position: 'start',
   stroke: true,
-  dimension: {
-    paddingTop: 8,
-    paddingBottom: 8,
-    borderWidth: 1
-  },
   style: {},
   items: [
     // these items would need to be defined in your code
@@ -208,7 +205,7 @@ export class ModularHeader {
     }
 
     return style;
-  }
+  };
 
   getDimensionTotal() {
     const { paddingTop, paddingBottom, borderWidth } = this.dimension;
@@ -245,8 +242,9 @@ export class ModularHeader {
   }
 
   /**
-   * @typedef {('modularHeader' | 'customButton' | 'statefulButton' | 'groupedItems' | 'ribbonItem' | 'divider' | 'toggleButton' | 'ribbonGroup' | 'toolButton' | 'zoom' | 'flyout' | 'pageControls' | 'presetButton' | 'viewControls' | 'menu' | 'tabPanel')} ItemType
    * Description of allowable item types.
+   * @typedef {('modularHeader' | 'customButton' | 'statefulButton' | 'groupedItems' | 'ribbonItem' | 'divider' | 'toggleButton' | 'ribbonGroup' | 'toolButton' | 'zoom' | 'flyout' | 'pageControls' | 'presetButton' | 'viewControls' | 'menu' | 'tabPanel')} ItemType
+   * @memberof UI.Components
    */
 
   /**

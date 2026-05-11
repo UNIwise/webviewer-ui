@@ -1,13 +1,19 @@
 import React, { useEffect, useState, useCallback } from 'react';
+/* eslint-disable custom/use-core-hook-in-components */
 import core from 'core';
 import NotesPanel from './NotesPanel';
 import { useSelector, shallowEqual } from 'react-redux';
 import selectors from 'selectors';
 import DataElements from 'constants/dataElement';
 import { mapAnnotationToKey, annotationMapKeys } from 'constants/map';
+import MultiViewerWrapper from 'components/MultiViewer/MultiViewerWrapper';
+import NotesPanelErrorBoundary from './NotesPanelErrorBoundary';
+
+const getPanelDataElement = ({ parentDataElement, dataElement }) => parentDataElement || dataElement || DataElements.NOTES_PANEL;
 
 function NotesPanelContainer(props) {
   const { isCustomPanelOpen, parentDataElement = undefined, dataElement } = props;
+  const panelDataElement = getPanelDataElement({ parentDataElement, dataElement });
   const [
     isOpen,
     notesInLeftPanel,
@@ -17,7 +23,7 @@ function NotesPanelContainer(props) {
     isOfficeEditorMode,
   ] = useSelector(
     (state) => [
-      selectors.isElementOpen(state, parentDataElement || dataElement || DataElements.NOTES_PANEL),
+      selectors.isElementOpen(state, panelDataElement),
       selectors.getNotesInLeftPanel(state),
       selectors.getIsNotesPanelMultiSelectEnabled(state),
       selectors.isMultiViewerMode(state),
@@ -46,12 +52,35 @@ function NotesPanelContainer(props) {
   }, [activeDocumentViewerKey, selectedNoteIdsMap[1], selectedNoteIdsMap[2], setSelectedNoteIdsMap]);
   const selectedNoteIds = selectedNoteIdsMap[activeDocumentViewerKey] || selectedNoteIdsMap[1];
 
-  const [isMultiSelectedViewerMap, setIsMultiSelectedViewerMap] = useState({ 1: {}, 2: {}, });
-  const setIsMultiSelectedMap = useCallback((isMultiSelected, documentViewerKey = activeDocumentViewerKey) => {
-    isMultiSelectedViewerMap[documentViewerKey] = isMultiSelected;
-    setIsMultiSelectedViewerMap({ ...isMultiSelectedViewerMap });
-  }, [activeDocumentViewerKey, isMultiSelectedViewerMap[1], isMultiSelectedViewerMap[2], setIsMultiSelectedViewerMap]);
-  const isMultiSelectedMap = isMultiSelectedViewerMap[activeDocumentViewerKey] || isMultiSelectedViewerMap[1];
+  const [multiSelectedViewerMap, setMultiSelectedViewerMap] = useState({ 1: {}, 2: {}, });
+  const setMultiSelectedMap = useCallback((isMultiSelected, documentViewerKey = activeDocumentViewerKey) => {
+    multiSelectedViewerMap[documentViewerKey] = isMultiSelected;
+    setMultiSelectedViewerMap({ ...multiSelectedViewerMap });
+  }, [activeDocumentViewerKey, multiSelectedViewerMap[1], multiSelectedViewerMap[2], setMultiSelectedViewerMap]);
+  const multiSelectedMap = multiSelectedViewerMap[activeDocumentViewerKey] || multiSelectedViewerMap[1];
+
+  const isValidAnnotation = (annot) => {
+    const annotationManager = core.getAnnotationManager();
+    const formFieldCreationManager = annotationManager.getFormFieldCreationManager();
+    const isWidgetAnnotation = annot instanceof window.Core.Annotations.WidgetAnnotation;
+
+    const isListableAnnotation = annot.Listable && !isWidgetAnnotation;
+    const isInFormCreationMode = isWidgetAnnotation && formFieldCreationManager.isInFormFieldCreationMode();
+    const annotationKey = mapAnnotationToKey(annot);
+    const isOfficeEditorComment = dataElement === DataElements.OFFICE_EDITOR_COMMENT_PANEL && annotationKey === annotationMapKeys.OFFICE_EDITOR_COMMENT;
+    const isTrackedChange = dataElement === DataElements.OFFICE_EDITOR_REVIEW_PANEL && annotationKey === annotationMapKeys.TRACKED_CHANGE;
+    const isValidForOfficeEditor = !isOfficeEditorMode || isOfficeEditorComment || isTrackedChange;
+
+    return (
+      (isListableAnnotation || isInFormCreationMode) &&
+      !annot.isReply() &&
+      !annot.Hidden &&
+      !annot.isGrouped() &&
+      annot.ToolName !== window.Core.Tools.ToolNames.CROP &&
+      !annot.isContentEditPlaceholder() &&
+      isValidForOfficeEditor
+    );
+  };
 
   useEffect(() => {
     const onDocumentUnloaded = (documentViewerKey = activeDocumentViewerKey) => () => {
@@ -62,6 +91,15 @@ function NotesPanelContainer(props) {
     const _setNotes = (documentViewerKey = activeDocumentViewerKey) => () => {
       const selectedAnnotations = core.getSelectedAnnotations(documentViewerKey);
       const groupedAnnots = getGroupedAnnots(selectedAnnotations);
+      const shouldDisplayMultiSelect = (selectedAnnotations.length > 1 && groupedAnnots.length !== selectedAnnotations.length) || isMultiSelectMode;
+
+      if (isNotesPanelMultiSelectEnabled && shouldDisplayMultiSelect) {
+        setMultiSelectMode(true);
+        selectedAnnotations.forEach((selectedAnnot) => {
+          multiSelectedMap[selectedAnnot.Id] = selectedAnnot;
+        });
+        setMultiSelectedMap({ ...multiSelectedMap }, documentViewerKey);
+      }
 
       if (isMultiSelectMode && groupedAnnots.length === selectedAnnotations.length) {
         setMultiSelectMode(false);
@@ -70,15 +108,7 @@ function NotesPanelContainer(props) {
       setNotes(
         core
           .getAnnotationsList(documentViewerKey)
-          .filter(
-            (annot) => annot.Listable &&
-              !annot.isReply() &&
-              !annot.Hidden &&
-              !annot.isGrouped() &&
-              annot.ToolName !== window.Core.Tools.ToolNames.CROP &&
-              !annot.isContentEditPlaceholder() &&
-              (!isOfficeEditorMode || mapAnnotationToKey(annot) === annotationMapKeys.TRACKED_CHANGE),
-          ),
+          .filter(isValidAnnotation),
         documentViewerKey,
       );
     };
@@ -136,14 +166,14 @@ function NotesPanelContainer(props) {
         && shouldDisplayMultiSelect) {
         setMultiSelectMode(true);
         selectedAnnotations.forEach((selectedAnnot) => {
-          isMultiSelectedMap[selectedAnnot.Id] = selectedAnnot;
+          multiSelectedMap[selectedAnnot.Id] = selectedAnnot;
         });
-        setIsMultiSelectedMap({ ...isMultiSelectedMap }, documentViewerKey);
+        setMultiSelectedMap({ ...multiSelectedMap }, documentViewerKey);
       } else if (action === 'deselected') {
         annotations.forEach((a) => {
-          delete isMultiSelectedMap[a.Id];
+          delete multiSelectedMap[a.Id];
         });
-        setIsMultiSelectedMap({ ...isMultiSelectedMap }, documentViewerKey);
+        setMultiSelectedMap({ ...multiSelectedMap }, documentViewerKey);
       }
     };
     const onAnnotationSelected1 = onAnnotationSelected(1);
@@ -161,7 +191,15 @@ function NotesPanelContainer(props) {
         core.removeEventListener('annotationSelected', onAnnotationSelected2, 2);
       }
     };
-  }, [isCustomPanelOpen, isOpen, notesInLeftPanel, isMultiSelectMode, isMultiSelectedMap, isNotesPanelMultiSelectEnabled, isMultiViewerMode]);
+  }, [isCustomPanelOpen, isOpen, notesInLeftPanel, isMultiSelectMode, multiSelectedMap, isNotesPanelMultiSelectEnabled, isMultiViewerMode]);
+
+  // Exit multi-select mode when multi-select is disabled via API
+  useEffect(() => {
+    if (!isNotesPanelMultiSelectEnabled && isMultiSelectMode) {
+      setMultiSelectMode(false);
+      core.getAnnotationManager().deselectAnnotations(core.getSelectedAnnotations(), activeDocumentViewerKey);
+    }
+  }, [isNotesPanelMultiSelectEnabled]);
 
   function getGroupedAnnots(selectedAnnotations) {
     const mainAnnot = selectedAnnotations.find((annot) => annot.isGrouped());
@@ -187,16 +225,29 @@ function NotesPanelContainer(props) {
     setSearchInput,
     isMultiSelectMode,
     setMultiSelectMode,
-    isMultiSelectedMap,
-    setIsMultiSelectedMap,
+    multiSelectedMap,
+    setMultiSelectedMap,
     scrollToSelectedAnnot,
     setScrollToSelectedAnnot,
   };
 
-  // We wrap the element in a div so the tooltip works properly
+  return <NotesPanel {...props} {...passProps} />;
+}
+
+function NotesPanelWrapper(props) {
+  const activeDocumentViewerKey = useSelector((state) => selectors.getActiveDocumentViewerKey(state));
+  const panelDataElement = getPanelDataElement(props);
+  const boundaryResetKey = `${activeDocumentViewerKey}-${panelDataElement}`;
+
   return (
-    <NotesPanel {...props} {...passProps} />
+    <MultiViewerWrapper wrapOnlyInMultiViewerMode>
+      <NotesPanelErrorBoundary
+        resetKey={boundaryResetKey}
+      >
+        <NotesPanelContainer {...props}/>
+      </NotesPanelErrorBoundary>
+    </MultiViewerWrapper>
   );
 }
 
-export default NotesPanelContainer;
+export default NotesPanelWrapper;

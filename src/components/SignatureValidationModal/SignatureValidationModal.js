@@ -16,6 +16,7 @@ import SignatureIcon from 'components/SignaturePanel/SignatureIcon';
 import actions from 'actions';
 
 import './SignatureValidationModal.scss';
+import useFocusOnClose from 'src/hooks/useFocusOnClose';
 
 const SignatureValidationModal = () => {
   const [translate] = useTranslation();
@@ -23,20 +24,19 @@ const SignatureValidationModal = () => {
   const [isOpen, verificationResult] = useSelector(
     (state) => {
       const { validationModalWidgetName } = state.digitalSignatureValidation;
+      const activeDocumentViewerKey = selectors.getActiveDocumentViewerKey(state);
       return [
         selectors.isElementOpen(state, DataElements.SIGNATURE_VALIDATION_MODAL),
-        selectors.getVerificationResult(state, validationModalWidgetName),
+        selectors.getVerificationResult(state, validationModalWidgetName, activeDocumentViewerKey),
       ];
     },
     shallowEqual,
   );
 
   const dispatch = useDispatch();
-
-  const closeModal = () => {
+  const closeModal = useFocusOnClose(() => {
     dispatch(actions.closeElements([DataElements.SIGNATURE_VALIDATION_MODAL]));
-  };
-
+  });
 
   useEffect(() => {
     if (isOpen) {
@@ -51,28 +51,6 @@ const SignatureValidationModal = () => {
       );
     }
   }, [dispatch, isOpen]);
-
-  /**
-   * @todo Figure out if this useEffect is still needed? Component appears to be
-   * operating normally without it.
-   */
-  /*
-  useEffect(() => {
-    const onDigitalSignatureAvailable = widget => {
-      setWidgetName(widget.getField().name);
-      dispatch(actions.openElements(['signatureValidationModal']));
-    };
-
-    core.addEventListener(
-      'digitalSignatureAvailable',
-      onDigitalSignatureAvailable,
-    );
-    return () => core.removeEventListener(
-      'digitalSignatureAvailable',
-      onDigitalSignatureAvailable,
-    );
-  }, [dispatch]);
-  */
 
   const {
     badgeIcon,
@@ -449,6 +427,8 @@ const SignatureValidationModal = () => {
                 ModificationPermissionsStatus,
                 permissionStatus,
                 translate,
+                digestStatus,
+                DigestStatusErrorCodes: DigestStatus,
               })
             }
             {renderDocumentPermission()}

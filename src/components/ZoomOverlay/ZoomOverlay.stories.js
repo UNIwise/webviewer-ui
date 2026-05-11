@@ -3,6 +3,7 @@ import { createStore } from 'redux';
 import { Provider } from 'react-redux';
 import ZoomOverlay from './ZoomOverlay';
 import { BASIC_PALETTE } from 'constants/commonColors';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/ZoomOverlay',
@@ -63,3 +64,5 @@ export function Basic() {
     </Provider>
   );
 }
+
+Basic.parameters = disableRtlModeParameters;

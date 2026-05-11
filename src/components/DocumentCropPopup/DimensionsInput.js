@@ -29,6 +29,7 @@ const DimensionsInput = ({
             data-testid="width-input"
             type="number"
             min="0"
+            step="any"
             className="dimension-input-field"
             onChange={(e) => {
               onDimensionChange(e.target.value, e.target.name);
@@ -48,6 +49,7 @@ const DimensionsInput = ({
             data-testid="height-input"
             type="number"
             min="0"
+            step="any"
             className="dimension-input-field"
             onChange={(e) => {
               onDimensionChange(e.target.value, e.target.name);
@@ -67,6 +69,7 @@ const DimensionsInput = ({
             data-testid="xOffset-input"
             type="number"
             min="0"
+            step="any"
             className="dimension-input-field"
             onChange={(e) => {
               onDimensionChange(e.target.value, e.target.name);
@@ -86,6 +89,7 @@ const DimensionsInput = ({
             data-testid="yOffset-input"
             type="number"
             min="0"
+            step="any"
             className="dimension-input-field"
             onChange={(e) => {
               onDimensionChange(e.target.value, e.target.name);
@@ -101,10 +105,11 @@ const DimensionsInput = ({
       </div>
       <div className="crop-dimensions-settings">
         <div className="dimensions-settings-title-container">
-          <label htmlFor='document-crop-unit-dropdown' className="dimensions-settings-title">{t('cropPopUp.dimensionInput.unitOfMeasurement')}</label>
+          <label id="crop-dimensions-unit-label" htmlFor='document-crop-unit-dropdown' className="dimensions-settings-title">{t('cropPopUp.dimensionInput.unitOfMeasurement')}</label>
         </div>
         <Dropdown
           id='document-crop-unit-dropdown'
+          labelledById='crop-dimensions-unit-label'
           className='document-crop-dropdown'
           ariaLabel={t('cropPopUp.dimensionInput.unitOfMeasurement')}
           items={Object.keys(supportedUnits)}
@@ -114,10 +119,11 @@ const DimensionsInput = ({
       </div>
       <div className="crop-dimensions-settings">
         <div className="dimensions-settings-title-container">
-          <label htmlFor='document-crop-auto-trim-dropdown' className="dimensions-settings-title">{t('cropPopUp.dimensionInput.autoTrim')}</label>
+          <label id="crop-auto-trim-label" htmlFor='document-crop-auto-trim-dropdown' className="dimensions-settings-title">{t('cropPopUp.dimensionInput.autoTrim')}</label>
         </div>
         <Dropdown
           id='document-crop-auto-trim-dropdown'
+          labelledById='crop-auto-trim-label'
           className='document-crop-dropdown'
           ariaLabel={t('cropPopUp.dimensionInput.autoTrim')}
           items={autoTrimOptions}

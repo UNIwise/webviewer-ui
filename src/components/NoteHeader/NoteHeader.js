@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
+import { useSelector } from 'react-redux';
 import NoteShareType from 'components/NoteShareType';
 import NotePopup from 'components/NotePopup';
 import Icon from 'components/Icon';
 import Choice from 'components/Choice';
-import Tooltip from 'components/Tooltip';
+import Button from 'components/Button';
 
 import getLatestActivityDate from 'helpers/getLatestActivityDate';
 import getColor from 'helpers/getColor';
@@ -12,15 +13,20 @@ import { isDarkColorHex, isLightColorHex } from 'helpers/color';
 import dayjs from 'dayjs';
 import classNames from 'classnames';
 import { useTranslation } from 'react-i18next';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import { NotesPanelSortStrategy } from 'constants/sortStrategies';
 import Theme from 'constants/theme';
-import { OFFICE_EDITOR_TRACKED_CHANGE_KEY } from 'constants/officeEditor';
+import { OFFICE_EDITOR_TRACKED_CHANGE_KEY, OfficeEditorEditMode } from 'constants/officeEditor';
 import { COMMON_COLORS } from 'constants/commonColors';
+import selectors from 'selectors';
 
 import './NoteHeader.scss';
 import getAnnotationReference from 'src/helpers/getAnnotationReference';
 import getWiseflowCustomValues from 'helpers/getWiseflowCustomValues';
+
+import Tooltip from '../Tooltip';
+
+const { Annotations } = window.Core;
 
 const propTypes = {
   icon: PropTypes.string,
@@ -38,7 +44,7 @@ const propTypes = {
   renderAuthorName: PropTypes.func,
   isNoteStateDisabled: PropTypes.bool,
   isEditing: PropTypes.bool,
-  noteIndex: PropTypes.number,
+  editingKey: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   sortStrategy: PropTypes.string,
   renderAnnotationReference: PropTypes.func,
   activeTheme: PropTypes.string,
@@ -48,7 +54,99 @@ const propTypes = {
   isGroupMember: PropTypes.bool,
   showAnnotationNumbering: PropTypes.bool,
   isTrackedChange: PropTypes.bool,
+  flyoutIdSuffix: PropTypes.string,
 };
+
+/**
+ * Determines the color to use for the comment box header, considering its icon color and rich text style.
+ *
+ * If the annotation contains rich text styles, the function analyzes the styles to select the most representative color.
+ * - If there is only one rich text style and it covers more than half of the text, its color is used.
+ * - If there are multiple rich text styles, the majority color is determined by `getMajorityTextColor`.
+ * - Otherwise, the annotation's icon color is used.
+ *
+ * @param {Object} annotation - The annotation object containing color and rich text style information.
+ * @param {string} iconColor - The property name for the icon color in the annotation object.
+ * @returns {string|undefined} The determined color as a hex string, or undefined if not found.
+ * @ignore
+ */
+function getColorFromAnnotation(annotation, iconColor) {
+  let color = annotation[iconColor]?.toHexString?.();
+
+  const isFreeText = annotation instanceof Annotations.FreeTextAnnotation;
+
+  if (!isFreeText) {
+    return color;
+  }
+
+  // If the annotation has rich text style, we need to determine the color based on the rich text style
+  const richTextStyle = annotation.getRichTextStyle();
+
+  if (!richTextStyle) {
+    return color;
+  }
+
+  const numberOfRichTextStyles = Object.keys(richTextStyle).length;
+  const textLength = annotation.getContents().length;
+  const firstRichTextStyle = richTextStyle[0];
+  const isSingleColorRichText = numberOfRichTextStyles === 1 && firstRichTextStyle && firstRichTextStyle.color;
+  if (isSingleColorRichText) {
+    const richTextLength = textLength - Object.keys(richTextStyle)[0];
+    color = richTextLength / textLength > 0.5 ? firstRichTextStyle.color : color;
+  } else if (numberOfRichTextStyles > 1) {
+    const majorityColors = annotation.getEditor()?.getMajorityTextColors() || [];
+    color = majorityColors.length < 1 ? color : majorityColors[0];
+  }
+
+  return color;
+}
+
+/**
+ * Returns a color from the common colors palette based on the active theme and the provided color.
+ *
+ * If the active theme is DARK and the color is a dark hex color, returns white.
+ * If the active theme is LIGHT and the color is a light hex color, returns black.
+ *
+ * @param {Theme} activeTheme - The current theme (e.g., Theme.DARK or Theme.LIGHT).
+ * @param {string} color - The hex color string to evaluate.
+ * @returns {string|undefined} The selected color from COMMON_COLORS, or undefined if no condition matches.
+ * @ignore
+ */
+function getColorFromTheme(activeTheme, color) {
+  if (activeTheme === Theme.DARK && color && isDarkColorHex(color)) {
+    return COMMON_COLORS['white'];
+  } else if (activeTheme === Theme.LIGHT && color && isLightColorHex(color)) {
+    return COMMON_COLORS['black'];
+  }
+}
+
+/**
+ * Returns the creation date of an annotation in the specified timezone.
+ *
+ * Depending on the sort strategy and settings, it either returns the latest activity date
+ * or the original creation date of the annotation. If a timezone is provided, the date is
+ * converted to that timezone.
+ *
+ * @param {string} sortStrategy - The strategy used for sorting notes (e.g., by modified or created date).
+ * @param {boolean} notesShowLastUpdatedDate - Whether to show the last updated date for notes.
+ * @param {Object} annotation - The annotation object containing date information.
+ * @param {string} [timezone] - The IANA timezone string (e.g., 'America/New_York').
+ * @returns {Date} The date created or last updated, optionally converted to the specified timezone.
+ * @ignore
+ */
+function getDateCreatedInTimezone(sortStrategy, notesShowLastUpdatedDate, annotation, timezone) {
+  const dateCreated = (
+    sortStrategy === NotesPanelSortStrategy.MODIFIED_DATE ||
+    (notesShowLastUpdatedDate && sortStrategy !== NotesPanelSortStrategy.CREATED_DATE)) ?
+    getLatestActivityDate(annotation) : annotation.DateCreated;
+
+  if (timezone && dateCreated) {
+    const datetimeStr = dateCreated.toLocaleString('en-US', { timeZone: timezone });
+    return new Date(datetimeStr);
+  }
+
+  return dateCreated;
+}
 
 function NoteHeader(props) {
   const {
@@ -65,7 +163,7 @@ function NoteHeader(props) {
     renderAuthorName,
     isNoteStateDisabled,
     isEditing,
-    noteIndex,
+    editingKey,
     sortStrategy,
     renderAnnotationReference,
     activeTheme,
@@ -76,33 +174,28 @@ function NoteHeader(props) {
     showAnnotationNumbering,
     timezone,
     isTrackedChange,
+    flyoutIdSuffix,
   } = props;
+  const { core } = useCore();
 
   const [t] = useTranslation();
 
-  let date;
-  const dateCreated =
-    sortStrategy === NotesPanelSortStrategy.MODIFIED_DATE ||
-    (notesShowLastUpdatedDate && sortStrategy !== NotesPanelSortStrategy.CREATED_DATE)
-      ? getLatestActivityDate(annotation)
-      : annotation.DateCreated;
-  if (timezone && dateCreated) {
-    const datetimeStr = dateCreated.toLocaleString('en-US', { timeZone: timezone });
-    date = new Date(datetimeStr);
-  } else {
-    date = dateCreated;
+  const isOfficeEditorMode = useSelector(selectors.getIsOfficeEditorMode);
+  const officeEditorEditMode = useSelector(selectors.getOfficeEditorEditMode);
+  const isOfficeEditorViewOnly = isOfficeEditorMode && (
+    officeEditorEditMode === OfficeEditorEditMode.VIEW_ONLY ||
+    officeEditorEditMode === OfficeEditorEditMode.PREVIEW
+  );
+
+  let date = getDateCreatedInTimezone(sortStrategy, notesShowLastUpdatedDate, annotation, timezone);
+  const noteDateAndTime = date ? dayjs(date).locale(language).format(noteDateFormat) : t('option.notesPanel.noteContent.noDate');
+
+  let color = getColorFromAnnotation(annotation, iconColor);
+  if (color === '') {
+    color = getColorFromTheme(activeTheme, color);
   }
-
-  // const numberOfReplies = annotation.getReplies().length;
-  let color = annotation[iconColor]?.toHexString?.();
-
-  if (activeTheme === Theme.DARK && color && isDarkColorHex(color)) {
-    color = COMMON_COLORS['white'];
-  } else if (activeTheme === Theme.LIGHT && color && isLightColorHex(color)) {
-    color = COMMON_COLORS['black'];
-  }
-
   const fillColor = getColor(annotation.FillColor);
+
   const annotationAssociatedNumber = annotation.getAssociatedNumber();
   const annotationDisplayedAssociatedNumber = `#${annotationAssociatedNumber} - `;
 
@@ -111,14 +204,17 @@ function NoteHeader(props) {
   const authorAndDateClass = classNames('author-and-date', { isReply });
   const noteHeaderClass = classNames('NoteHeader', { parent: !isReply && !isGroupMember });
 
-  const acceptTrackedChange = trackedChangeAnnot => {
+  const acceptTrackedChange = (trackedChangeAnnot) => {
     const trackedChangeId = trackedChangeAnnot.getCustomData(OFFICE_EDITOR_TRACKED_CHANGE_KEY);
     core.getOfficeEditor().acceptTrackedChange(trackedChangeId);
   };
-  const rejectTrackedChange = trackedChangeAnnot => {
+  const rejectTrackedChange = (trackedChangeAnnot) => {
     const trackedChangeId = trackedChangeAnnot.getCustomData(OFFICE_EDITOR_TRACKED_CHANGE_KEY);
     core.getOfficeEditor().rejectTrackedChange(trackedChangeId);
   };
+
+  const showNotePopup = !isEditing && isSelected && !isMultiSelectMode && !isGroupMember && !isTrackedChange && !isOfficeEditorViewOnly;
+  const flyoutId = flyoutIdSuffix ? `${annotation.Id}-${flyoutIdSuffix}` : annotation.Id;
 
   const pageNumber = annotation.getPageNumber();
 
@@ -131,7 +227,7 @@ function NoteHeader(props) {
 
   const copyTooltipText = `${t('option.notesPanel.noteHeader.copyReferenceButton')} ${annotationReference}`;
 
-  const handleCopyAnnotId = e => {
+  const handleCopyAnnotId = (e) => {
     e.stopPropagation();
     navigator.clipboard.writeText(annotationReference);
     setCopied(true);
@@ -159,7 +255,7 @@ function NoteHeader(props) {
             </div>
             <div className="date-and-num-replies">
               <div className="date-and-time">
-                {date ? dayjs(date).locale(language).format(noteDateFormat) : t('option.notesPanel.noteContent.noDate')}
+                {noteDateAndTime}
                 {isGroupMember && ` (Page ${annotation.PageNumber})`}
               </div>
             </div>
@@ -171,7 +267,7 @@ function NoteHeader(props) {
                 id={`note-multi-select-toggle_${annotation.Id}`}
                 aria-label={`${renderAuthorName(annotation)} ${t('option.notesPanel.toggleMultiSelect')}`}
                 checked={isMultiSelected}
-                onClick={e => {
+                onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   handleMultiSelect(!isMultiSelected);
@@ -186,25 +282,33 @@ function NoteHeader(props) {
               !isGroupMember &&
               !isTrackedChange &&
               showShareType && <NoteShareType annotation={annotation} />}
-
-            {!isEditing && isSelected && !isMultiSelectMode && !isGroupMember && !isTrackedChange && (
-              <NotePopup noteIndex={noteIndex} annotation={annotation} setIsEditing={setIsEditing} isReply={isReply} />
-            )}
-
-            {isSelected && isTrackedChange && !isMultiSelectMode && (
+            {showNotePopup &&
+              <NotePopup
+                editingKey={editingKey}
+                annotation={annotation}
+                setIsEditing={setIsEditing}
+                isReply={isReply}
+                flyoutId={flyoutId}
+              />
+            }
+            {isSelected && isTrackedChange && !isMultiSelectMode &&
               <>
-                <Tooltip content={t('officeEditor.accept')}>
-                  <div className="tracked-change-icon-wrapper accept" onClick={() => acceptTrackedChange(annotation)}>
-                    <Icon className="tracked-change-icon" glyph="icon-menu-checkmark" />
-                  </div>
-                </Tooltip>
-                <Tooltip content={t('officeEditor.reject')}>
-                  <div className="tracked-change-icon-wrapper reject" onClick={() => rejectTrackedChange(annotation)}>
-                    <Icon className="tracked-change-icon" glyph="icon-close" />
-                  </div>
-                </Tooltip>
+                <Button
+                  title={t('officeEditor.accept')}
+                  img={'icon-menu-checkmark'}
+                  className="tracked-change-icon-wrapper accept"
+                  onClick={() => acceptTrackedChange(annotation)}
+                  iconClassName="tracked-change-icon"
+                />
+                <Button
+                  title={t('officeEditor.reject')}
+                  img={'icon-close'}
+                  className="tracked-change-icon-wrapper reject"
+                  onClick={() => rejectTrackedChange(annotation)}
+                  iconClassName="tracked-change-icon"
+                />
               </>
-            )}
+            }
           </div>
         </div>
         <div className="annot-id">

@@ -5,12 +5,16 @@ import { setLoadingProgress } from 'actions/internalActions';
 import actions from 'actions';
 import selectors from 'selectors';
 import getHashParameters from 'helpers/getHashParameters';
-import fireEvent from 'helpers/fireEvent';
+import fireEvent, { getEventHandler } from 'helpers/fireEvent';
+import { getFileDataOptionsForActiveTab, deleteFileDataOptionsForTab } from 'helpers/getFileDataOptionsForTab';
 import downloadPdf from 'helpers/downloadPdf';
 import Events from 'constants/events';
 import isString from 'lodash/isString';
 import DataElements from 'constants/dataElement';
-import getRootNode, { getInstanceNode } from 'helpers/getRootNode';
+import getRootNode from 'helpers/getRootNode';
+import getFilename from 'helpers/getFilename';
+
+const databaseID = `WebViewer Files-${Math.random()}`;
 
 export const enableMultiTab = () => (dispatch, getState) => {
   const state = getState();
@@ -47,10 +51,12 @@ export const enableMultiTab = () => (dispatch, getState) => {
   // page. To prevent this, we are using a timeout.
   function docLoadedEvent() {
     const doc = core.getDocument();
+    const state = getState();
     const tabs = selectors.getTabs(state);
     const exist = tabs.some((item) => item.options?.filename === doc.filename);
     if (!exist) {
-      doc.getFileData().then((data) => {
+      const options = getFileDataOptionsForActiveTab(state);
+      doc.getFileData(options).then((data) => {
         try {
           tabManager.addTab(new File([data], doc.getFilename()));
         } catch (error) {
@@ -86,10 +92,48 @@ export function prepareMultiTab(initialDoc, store) {
   }, 300);
 }
 
+export function removeFileNameExtension(filename, shouldRemoveSpace = true) {
+  if (!filename) {
+    return;
+  }
+  const lastDotIndex = filename.lastIndexOf('.');
+  if (lastDotIndex !== -1) {
+    filename = filename.substring(0, lastDotIndex);
+  }
+  if (shouldRemoveSpace) {
+    return filename.replace(/\s+/g, '').toLowerCase();
+  }
+  return filename;
+}
+
+async function writeToDB(db, arrBuff, tabId) {
+  const tx = db.transaction('files', 'readwrite');
+  const store = tx.objectStore('files');
+  store.put(arrBuff, tabId);
+  await tx.commit();
+}
+
+export function getNextNumberForUntitledDocument(tabs) {
+  const untitledTabs = tabs.filter((tab) => tab.options.filename.includes('untitled-'));
+  if (untitledTabs.length === 0) {
+    return 1;
+  }
+
+  const untitledNumbers = untitledTabs.map((tab) => {
+    const filename = tab.options.filename;
+    const untitledNumber = filename.match(/\d+/);
+    return untitledNumber ? parseInt(untitledNumber[0]) : 0;
+  });
+  const nextUntitledNumber = Math.max(...untitledNumbers) + 1;
+  return nextUntitledNumber;
+}
+
 export default class TabManager {
   db;
   store;
   useDB;
+  tabLoadPromise;
+  skipLoadCapture = false;
 
   constructor(docArr, extensionArr, store) {
     this.store = store;
@@ -98,9 +142,10 @@ export default class TabManager {
     const { tabs, isMultiTab } = state.viewer;
 
     if (this.useDB) {
-      const req = indexedDB.open('WebViewer Files', 1);
+      const req = indexedDB.open(databaseID, 1);
       req.onerror = TabManager.indexedDBNotSupported;
       req.onsuccess = async () => {
+        window.addEventListener('unload', () => indexedDB.deleteDatabase(databaseID));
         this.db = req.result;
         this.db.onerror = TabManager.throwError;
       };
@@ -130,6 +175,36 @@ export default class TabManager {
 
     this.store.dispatch(actions.setTabs(tabs));
     this.prepareTabEventListeners();
+
+    core.addEventListener('documentLoaded', async () => {
+      if (this.skipLoadCapture) {
+        return;
+      }
+      const state = this.store.getState();
+      const { tabs, activeTab } = state.viewer;
+      const { dispatch } = store;
+      const currentTab = tabs.find((tab) => tab.id === activeTab);
+      const documentType = await core.getDocument().getType();
+
+      if (documentType === workerTypes.PDF || documentType === workerTypes.OFFICE) {
+        const options = getFileDataOptionsForActiveTab(state);
+        await writeToDB(this.db, await core.getDocument().getFileData(options), currentTab.id);
+        const nextUntitledDocumentNumber = getNextNumberForUntitledDocument(tabs);
+        currentTab.options['filename'] = core.getDocument().getFilename() || `untitled-${nextUntitledDocumentNumber}`;
+        const refreshedTab = new Tab(
+          activeTab,
+          core.getDocument(),
+          currentTab.tabManager,
+          currentTab.options,
+          currentTab.useDB,
+        );
+        refreshedTab.saveData.docInDB = true;
+        const indexOfTabToBeReplaced = tabs.findIndex((tab) => tab.id === currentTab.id);
+        tabs[indexOfTabToBeReplaced] = refreshedTab;
+        const newTabs = [...tabs];
+        dispatch(actions.setTabs(newTabs));
+      }
+    });
   }
 
   prepareTabEventListeners() {
@@ -139,6 +214,7 @@ export default class TabManager {
     documentViewer.addEventListener('finishedRendering', () => {
       this.listenForAnnotChanges();
       this.listenToDocumentDownloaded(documentViewer);
+      this.listenToPasswordError();
     }, { once: true });
   }
 
@@ -155,11 +231,8 @@ export default class TabManager {
     if (!newTab) {
       return console.error(`Tab id not found: ${id}`);
     }
-    if (currentTab) {
-      await core.getDocumentViewer().getAnnotationManager().exportAnnotations();
-      await core.getDocumentViewer().getAnnotationsLoadedPromise();
-    }
-    fireEvent(Events['BEFORE_TAB_CHANGED'], {
+    await this.waitForTabToLoad();
+    await fireEvent(Events['BEFORE_TAB_CHANGED'], {
       currentTab: currentTab ? {
         src: currentTab.src,
         options: currentTab.options,
@@ -173,18 +246,22 @@ export default class TabManager {
         id: newTab.id,
       },
     });
-    // Need this timeout because window.dispatchEvent is synchronous
-    // This will cause the document to be closed if the customer exports an XFDF or runs another async call here
-    // Allow a timeout of 400ms for async calls to finish before closing the document.
-    setTimeout(async () => {
-      if (currentTab) {
-        saveCurrentActiveTabState && await currentTab.saveCurrentActiveTabState(this.db);
-        core.closeDocument();
-      }
-      this.store.dispatch(actions.setActiveTab(id));
-      isEmptyPageOpen && this.store.dispatch(actions.closeElement(DataElements.MULTITABS_EMPTY_PAGE));
-      await newTab.load(this.store.dispatch, this.db, this.getViewerState(state));
-    }, 400);
+    const viewerState = this.getViewerState(state);
+    if (currentTab) {
+      saveCurrentActiveTabState && await currentTab.saveCurrentActiveTabState(this.db);
+      await core.closeDocument();
+    }
+    this.store.dispatch(actions.setActiveTab(id));
+    isEmptyPageOpen && this.store.dispatch(actions.closeElement(DataElements.MULTITABS_EMPTY_PAGE));
+    this.tabLoadPromise = newTab.load(this.store.dispatch, this.db, viewerState);
+    await this.tabLoadPromise;
+  }
+
+  async waitForTabToLoad() {
+    if (this.tabLoadPromise) {
+      await this.tabLoadPromise;
+      this.tabLoadPromise = null;
+    }
   }
 
   getViewerState = (state) => {
@@ -199,7 +276,7 @@ export default class TabManager {
     currentViewerState.activeToolName = viewerState.activeToolName;
 
     return currentViewerState;
-  }
+  };
 
   showDeleteWarning(tabToDelete) {
     const title = 'warning.closeFile.title';
@@ -228,7 +305,7 @@ export default class TabManager {
     this.store.dispatch(actions.showWarningMessage(confirmationWarning));
   }
 
-  deleteTab(id) {
+  async deleteTab(id) {
     const state = this.store.getState();
     const { tabs, activeTab } = state.viewer;
     const tabToDelete = tabs.find((tab) => tab.id === id);
@@ -237,21 +314,35 @@ export default class TabManager {
     if (shouldShowWarning) {
       this.showDeleteWarning(tabToDelete);
     } else {
-      const [deletedTab] = tabs.splice(tabs.findIndex((tab) => tab.id === id), 1);
-      deletedTab.delete(this.db);
-      fireEvent(Events['TAB_DELETED'], {
+      const [deletedTab] = tabs.filter((tab) => tab.id === id);
+      const updatedTabs = tabs.filter((tab) => tab.id !== id);
+      await fireEvent(Events['BEFORE_TAB_DELETED'], {
         src: deletedTab.src,
         options: deletedTab.options,
         id: deletedTab.id,
       });
-      if (id === activeTab && tabs.length) {
-        this.setActiveTab(tabs[0].id);
-      } else if (!tabs.length) {
-        core.closeDocument();
+      deletedTab.delete(this.db);
+      this.store.dispatch(actions.setTabs(updatedTabs));
+      deleteFileDataOptionsForTab(tabToDelete.id);
+      if (id === activeTab && updatedTabs.length > 0) {
+        await this.setActiveTab(updatedTabs[0].id);
+      } else if (updatedTabs.length === 0) {
+        await this.waitForTabToLoad();
+        await core.closeDocument();
         this.store.dispatch(actions.setActiveTab(null));
       }
-      this.store.dispatch(actions.setTabs(tabs));
+
+      await fireEvent(Events['TAB_DELETED'], {
+        src: deletedTab.src,
+        options: deletedTab.options,
+        id: deletedTab.id,
+      });
     }
+  }
+
+  getFilename(src) {
+    const { tabs } = this.store.getState().viewer;
+    return getFilename(src) || `untitled-${getNextNumberForUntitledDocument(tabs)}`;
   }
 
   async addTab(src, options = {}) {
@@ -263,33 +354,30 @@ export default class TabManager {
       return tab.id > highestId ? tab.id : highestId;
     }, 0);
     if (!('filename' in options)) {
-      options['filename'] = `Document ${currId + 2}`;
-      if (isString(src)) {
-        options['filename'] = src.substring(src.lastIndexOf('/') + 1);
-      } else if (src instanceof window.Core.Document && src.getFilename && src.getFilename()) {
-        options['filename'] = src.getFilename();
-      } else if (src instanceof File || Object.prototype.toString.call(src) === '[object File]') {
-        options['filename'] = src['name'];
-      }
+      options['filename'] = this.getFilename(src);
     }
     const tab = new Tab(currId + 1, src, this, options, useDB);
-    tabs.push(tab);
-    fireEvent(Events['TAB_ADDED'], {
+    const newTabs = [...tabs, tab];
+    this.store.dispatch(actions.setTabs(newTabs));
+    if (shouldLoadTab) {
+      await this.setActiveTab(tab.id, saveCurrentTabState);
+    }
+
+    await fireEvent(Events['TAB_ADDED'], {
       src: tab.src,
       options: tab.options,
       id: tab.id,
     });
-    if (shouldLoadTab) {
-      await this.setActiveTab(tab.id, saveCurrentTabState);
-    }
-    this.store.dispatch(actions.setTabs(tabs));
     return tab.id;
   }
 
   moveTab(from, to) {
     const { tabs } = this.store.getState().viewer;
-    const tab = tabs.splice(from, 1)[0];
-    tabs.splice(to, 0, tab);
+    const updatedTabs = [...tabs];
+    const tab = updatedTabs.splice(from, 1)[0];
+    updatedTabs.splice(to, 0, tab);
+    this.store.dispatch(actions.setTabs(updatedTabs));
+
     fireEvent(Events['TAB_MOVED'], {
       src: tab.src,
       options: tab.options,
@@ -297,7 +385,31 @@ export default class TabManager {
       prevIndex: from,
       newIndex: to,
     });
-    this.store.dispatch(actions.setTabs(tabs));
+  }
+
+  async updateTab(id, tabProperties) {
+    const { tabs, activeTab } = this.store.getState().viewer;
+
+    const tabIndex = tabs.findIndex((tab) => tab.id === id);
+    if (tabIndex === -1) {
+      return console.error(`Tab id not found: ${id}`);
+    }
+
+    const existingTab = tabs[tabIndex];
+    const newSrc = tabProperties.src || existingTab.src;
+    const newOptions = tabProperties.options || existingTab.options;
+    if (newSrc !== existingTab.src && (!tabProperties.options || !('filename' in tabProperties.options))) {
+      newOptions['filename'] = this.getFilename(newSrc);
+    }
+    const useDB = newOptions['useDB'] === false ? newOptions['useDB'] && this.useDB : this.useDB;
+    const newTabs = [...tabs];
+    newTabs.splice(tabIndex, 1, new Tab(id, newSrc, this, newOptions, useDB));
+    this.store.dispatch(actions.setTabs(newTabs));
+    if (activeTab === id) {
+      this.skipLoadCapture = true;
+      await this.setActiveTab(id, false);
+      this.skipLoadCapture = false;
+    }
   }
 
   listenForAnnotChanges() {
@@ -349,14 +461,25 @@ export default class TabManager {
       }
     };
 
-    getInstanceNode().addEventListener(Events.FILE_DOWNLOADED, onFileDownloaded);
+    getEventHandler().addEventListener(Events.FILE_DOWNLOADED, onFileDownloaded);
     documentViewer.addEventListener('pagesUpdated', onPagesUpdated);
 
     const removeListeners = () => {
-      getInstanceNode().removeEventListener(Events.FILE_DOWNLOADED, onFileDownloaded);
+      getEventHandler().removeEventListener(Events.FILE_DOWNLOADED, onFileDownloaded);
       documentViewer.removeEventListener('pagesUpdated', onPagesUpdated);
     };
 
+    core.addEventListener('documentUnloaded', removeListeners, { once: true });
+  };
+
+  listenToPasswordError = async () => {
+    const onPasswordError = () => {
+      this.tabLoadPromise = Promise.resolve();
+    };
+    getEventHandler().addEventListener(Events.LOAD_ERROR, onPasswordError, { once: true });
+    const removeListeners = () => {
+      getEventHandler().removeEventListener(Events.LOAD_ERROR, onPasswordError);
+    };
     core.addEventListener('documentUnloaded', removeListeners, { once: true });
   };
 
@@ -423,27 +546,33 @@ export class Tab {
       return console.error('Cant preload tab with useDB = false');
     }
     const file = await fetch(this.src);
-    await this.writeToDB(db, await file.arrayBuffer());
+    this.saveData.docInDB = true;
+    await writeToDB(db, await file.arrayBuffer(), this.id);
   }
 
   async load(dispatch, db, viewerState) {
     const annotsChanged = (this.saveData.annotInDB || this.saveData.annots);
     this.options.loadAnnotations = !annotsChanged;
-    core.addEventListener('documentUnloaded', async () => {
-      this.restorePageDataOnLoad(viewerState, dispatch);
-      annotsChanged && await this.restoreAnnotDataOnLoad(db);
-    }, { once: true });
+    this.restorePageDataOnLoad(viewerState, dispatch);
+    annotsChanged && await this.restoreAnnotDataOnLoad(db);
     if (this.useDB && this.saveData.docInDB) {
-      const tx = db.transaction('files', 'readonly');
-      const store = tx.objectStore('files');
-      const req = store.get(this.id);
-      req.onsuccess = async () => {
-        const doc = req.result;
-        loadDocument(dispatch, doc, this.options);
-      };
-      tx.commit();
+      await new Promise((resolve) => {
+        const tx = db.transaction('files', 'readonly');
+        const store = tx.objectStore('files');
+        const req = store.get(this.id);
+        if (this.id) {
+          this.options.docId = this.id.toString();
+        }
+
+        req.onsuccess = async () => {
+          const doc = req.result;
+          await loadDocument(dispatch, doc, this.options);
+          resolve();
+        };
+        tx.commit();
+      });
     } else {
-      loadDocument(dispatch, this.src, this.options);
+      await loadDocument(dispatch, this.src, this.options);
     }
   }
 
@@ -451,7 +580,9 @@ export class Tab {
     this.disabled = true;
     this.savePageData();
     const document = core.getDocument();
-    if (this.useDB && (document?.type === workerTypes.PDF && document.arePagesAltered() || this.src instanceof window.Core.Document)) {
+    const isAlteredPDF = document?.type === workerTypes.PDF && document.arePagesAltered();
+    const shouldStoreDocument = this.src instanceof window.Core.Document && this.src.type !== workerTypes.IMAGE;
+    if (document && this.useDB && (isAlteredPDF || shouldStoreDocument)) {
       await this.saveFileData(db, document);
     } else if (this.changes.annotations) {
       if (this.useDB) {
@@ -466,12 +597,15 @@ export class Tab {
   async saveFileData(db, document) {
     this.saveData.annotInDB = false;
     const xfdfString = await core.exportAnnotations();
+    const state = this.tabManager.store.getState();
+    const options = getFileDataOptionsForActiveTab(state);
     const data = await document.getFileData({
       xfdfString,
-      flags: window.Core.SaveOptions.LINEARIZED,
       finishedWithDocument: true,
+      ...options,
     });
-    await this.writeToDB(db, data);
+    this.saveData.docInDB = true;
+    await writeToDB(db, data, this.id);
   }
 
   async saveAnnotData() {
@@ -527,6 +661,16 @@ export class Tab {
       await core.getDocument().getDocumentCompletePromise();
       this.saveData.zoom && await core.zoomTo(this.saveData.zoom);
       this.saveData.page && await core.setCurrentPage(this.saveData.page);
+
+      await fireEvent(Events['AFTER_TAB_CHANGED'], {
+        currentTab: this.src ? {
+          src: this.src,
+          options: this.options,
+          id: this.id,
+          annotationsChanged: this.changes.annotations,
+          hasUnsavedChanges: this.changes.hasUnsavedChanges
+        } : null
+      });
     };
 
     core.addEventListener('documentLoaded', updateViewer, { once: true });
@@ -568,14 +712,6 @@ export class Tab {
     };
     core.addEventListener('documentLoaded', updateAnnotations, { once: true });
     core.addEventListener('documentUnloaded', removeListeners, { once: true });
-  }
-
-  async writeToDB(db, arrBuff) {
-    const tx = db.transaction('files', 'readwrite');
-    const store = tx.objectStore('files');
-    store.put(arrBuff, this.id);
-    this.saveData.docInDB = true;
-    await tx.commit();
   }
 
   async delete(db) {

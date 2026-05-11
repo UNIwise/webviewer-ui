@@ -1,4 +1,4 @@
-import Choice from '../Choice';
+import Choice from 'components/Choice';
 import PageNumberInput from 'components/PageReplacementModal/PageNumberInput';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -11,7 +11,7 @@ const PagesToCropOptions = ({
   selectedPages,
   handlePageNumbersChanged,
   handlePageNumberError,
-  pageNumberError,
+  pageInputKey,
 }) => {
   const { t } = useTranslation();
 
@@ -52,13 +52,13 @@ const PagesToCropOptions = ({
         <>
           <div className="document-crop-page-input-container">
             <PageNumberInput
+              key={pageInputKey}
               data-element="multiPageCropPageNumberInput"
               selectedPageNumbers={selectedPages}
               pageCount={loadedDocumentPageCount}
               onSelectedPageNumbersChange={handlePageNumbersChanged}
               onBlurHandler={handlePageNumbersChanged}
               onError={handlePageNumberError}
-              pageNumberError={pageNumberError}
             />
           </div>
           <div className="section extra-space-section" />
@@ -77,5 +77,5 @@ PagesToCropOptions.propTypes = {
   selectedPages: PropTypes.array,
   handlePageNumbersChanged: PropTypes.func.isRequired,
   handlePageNumberError: PropTypes.func.isRequired,
-  pageNumberError: PropTypes.string,
+  pageInputKey: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.object]),
 };

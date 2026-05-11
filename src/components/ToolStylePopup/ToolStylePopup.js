@@ -3,7 +3,8 @@ import PropTypes from 'prop-types';
 import onClickOutside from 'react-onclickoutside';
 import { connect } from 'react-redux';
 import classNames from 'classnames';
-
+// Class component
+// eslint-disable-next-line custom/use-core-hook-in-components
 import core from 'core';
 import StylePopup from 'components/StylePopup';
 import SignatureStylePopup from 'components/SignatureStylePopup';
@@ -94,6 +95,12 @@ class ToolStylePopup extends React.PureComponent {
     setToolStyles(activeToolName, property, value, true);
   };
 
+  handleSliderChange = (property, value, doneSliderChange) => {
+    if (doneSliderChange) {
+      this.handleStyleChange(property, value);
+    }
+  };
+
   handleRichTextStyleChange = (property, value) => {
     const { activeToolName, activeToolStyle } = this.props;
     const tool = core.getTool(activeToolName);
@@ -116,7 +123,7 @@ class ToolStylePopup extends React.PureComponent {
     };
 
     setToolStyles(activeToolName, 'RichTextStyle', richTextStyle);
-  }
+  };
 
   handleLineStyleChange = (section, value) => {
     const { activeToolName } = this.props;
@@ -132,7 +139,7 @@ class ToolStylePopup extends React.PureComponent {
   handleAutoSize = () => {
     const { activeToolName, activeToolStyle } = this.props;
     setToolStyles(activeToolName, 'isAutoSizeFont', !activeToolStyle.isAutoSizeFont);
-  }
+  };
 
   render() {
     const { activeToolGroup, isDisabled, activeToolName, activeToolStyle } = this.props;
@@ -203,7 +210,7 @@ class ToolStylePopup extends React.PureComponent {
         hideSnapModeCheckbox={isEllipseMeasurementTool || !core.isFullPDFEnabled()}
         onPropertyChange={this.handleStyleChange}
         onStyleChange={this.handleStyleChange}
-        onSliderChange={this.handleStyleChange}
+        onSliderChange={this.handleSliderChange}
         onRichTextStyleChange={this.handleRichTextStyleChange}
         onLineStyleChange={this.handleLineStyleChange}
         properties={properties}

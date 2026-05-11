@@ -1,70 +1,131 @@
-import React, { useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useImperativeHandle, useCallback } from 'react';
+import { useSelector } from 'react-redux';
 import classNames from 'classnames';
-import useDidUpdate from 'hooks/useDidUpdate';
-import core from 'core';
+import selectors from 'selectors';
 import ThumbnailControls from 'components/ThumbnailControls';
 import thumbnailSelectionModes from 'constants/thumbnailSelectionModes';
+import { useTranslation } from 'react-i18next';
+import PropTypes from 'prop-types';
 
 import './Thumbnail.scss';
-import { Choice } from '@pdftron/webviewer-react-toolkit';
+import Choice from 'components/Choice';
 import getRootNode from 'helpers/getRootNode';
+import findFocusableElements from 'helpers/findFocusableElements';
+import useIsRTL from 'src/hooks/useIsRTL';
+import useCore from 'hooks/useCore';
 
 // adds a delay in ms so thumbs that are only on the screen briefly are not loaded.
 const THUMBNAIL_LOAD_DELAY = 50;
 
-const Thumbnail = ({
-  index,
-  isSelected,
-  updateAnnotations,
-  shiftKeyThumbnailPivotIndex,
-  onFinishLoading,
-  onLoad,
-  onRemove = () => { },
-  onDragStart,
-  onDragOver,
-  isDraggable,
-  shouldShowControls,
-  thumbnailSize,
-  currentPage,
-  pageLabels = [],
-  selectedPageIndexes,
-  isThumbnailMultiselectEnabled,
-  isReaderModeOrReadOnly,
-  dispatch,
-  actions,
-  isMobile,
-  canLoad,
-  onCancel,
-  isThumbnailSelectingPages,
-  thumbnailSelectionMode,
-  activeDocumentViewerKey,
-  panelSelector
-}) => {
+const Thumbnail = React.forwardRef((props, ref) => {
+  const {
+    index,
+    isSelected,
+    updateAnnotations,
+    shiftKeyThumbnailPivotIndex,
+    onFinishLoading,
+    onLoad,
+    onRemove = () => { },
+    onDragStart,
+    onDragOver,
+    isDraggable,
+    shouldShowControls,
+    thumbnailSize,
+    currentPage,
+    pageLabels = [],
+    selectedPageIndexes,
+    isThumbnailMultiselectEnabled,
+    isReaderModeOrReadOnly,
+    dispatch,
+    actions,
+    isMobile,
+    canLoad,
+    isThumbnailSelectingPages,
+    thumbnailSelectionMode,
+    panelSelector,
+    parentKeyListener,
+  } = props;
+  const { core } = useCore();
   const thumbSize = thumbnailSize ? Number(thumbnailSize) : 150;
-
+  const [currentFocusIndex, setCurrentFocusIndex] = useState(-1);
+  const thumbContainerRef = useRef(null);
+  const buttonRefs = useRef([]);
+  const buttonMultiSelectRefs = useRef([]);
   const [dimensions, setDimensions] = useState({ width: thumbSize, height: thumbSize });
+  const { t } = useTranslation();
   // To ensure checkmark loads after thumbnail
   const [loaded, setLoaded] = useState(false);
+  const isRightToLeft = useIsRTL();
+  const rtlRef = useRef(isRightToLeft);
 
-  let loadTimeout = null;
+  const isContentEditingEnabled = useSelector(selectors.isContentEditingEnabled);
+
+  const loadTimeoutRef = useRef(null);
+  const loadRequestIdRef = useRef(null);
+  const loadGenerationRef = useRef(0);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (thumbContainerRef.current && !thumbContainerRef.current.contains(event.target)) {
+        preventDefaultTab();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (loaded) {
+      loadThumbnailAsync();
+    }
+    rtlRef.current = isRightToLeft;
+  }, [isRightToLeft]);
+
+  const cancelPendingLoad = () => {
+    clearTimeout(loadTimeoutRef.current);
+    loadTimeoutRef.current = null;
+    // Bump generation so any in-flight drawComplete callback is invalidated
+    loadGenerationRef.current++;
+    if (loadRequestIdRef.current !== null) {
+      const doc = core.getDocument();
+      if (doc) {
+        doc.cancelLoadCanvas(loadRequestIdRef.current);
+      }
+      loadRequestIdRef.current = null;
+    }
+  };
 
   const loadThumbnailAsync = () => {
-    loadTimeout = setTimeout(() => {
+    cancelPendingLoad();
+    loadTimeoutRef.current = setTimeout(() => {
+      loadTimeoutRef.current = null;
       const thumbnailContainer = getRootNode().querySelector(`.ThumbnailsPanel.${panelSelector} #pageThumb${index}`);
+      const isRTL = rtlRef.current;
 
       const pageNum = index + 1;
       const viewerRotation = core.getRotation(pageNum);
 
-      const doc = core.getDocument(activeDocumentViewerKey);
+      const doc = core.getDocument();
       // Possible race condition can happen where we try to render a thumbnail for a page that has
       // been deleted. Prevent that by checking if pageInfo exists
 
       if (doc && doc.getPageInfo(pageNum)) {
+        const generation = ++loadGenerationRef.current;
         const id = doc.loadCanvas({
           pageNumber: pageNum,
           width: thumbSize,
           height: thumbSize,
           drawComplete: async (thumb) => {
+            // If this load was superseded by a newer one, discard the result.
+            // Uses a generation token set before loadCanvas is called so the
+            // guard works even if drawComplete fires synchronously.
+            if (loadGenerationRef.current !== generation) {
+              return;
+            }
+            loadRequestIdRef.current = null;
+
             const thumbnailContainer = getRootNode().querySelector(`.ThumbnailsPanel.${panelSelector} #pageThumb${index}`);
             if (thumbnailContainer) {
               const childElement = thumbnailContainer.querySelector('.page-image');
@@ -72,12 +133,18 @@ const Thumbnail = ({
                 thumbnailContainer.removeChild(childElement);
               }
 
-              thumb.className = 'page-image';
+              thumb.className = `page-image ${isRTL ? 'right-to-left' : ''}`;
 
               const ratio = Math.min(thumbSize / thumb.width, thumbSize / thumb.height);
-              thumb.style.width = `${thumb.width * ratio}px`;
-              thumb.style.height = `${thumb.height * ratio}px`;
+              const scaledWidth = thumb.width * ratio;
+              const scaledHeight = thumb.height * ratio;
+              thumb.style.width = `${scaledWidth}px`;
+              thumb.style.height = `${scaledHeight}px`;
               setDimensions({ width: Number(thumb.width), height: Number(thumb.height) });
+
+              if (isRTL) {
+                thumb.style['transform'] = 'translate(50%, -50%)';
+              }
 
               if (Math.abs(viewerRotation)) {
                 const cssTransform = `rotate(${viewerRotation * 90}deg) translate(-50%,-50%)`;
@@ -106,6 +173,7 @@ const Thumbnail = ({
           },
           allowUseOfOptimizedThumbnail: true,
         });
+        loadRequestIdRef.current = id;
         onLoad(index, thumbnailContainer, id);
       }
     }, THUMBNAIL_LOAD_DELAY);
@@ -139,25 +207,27 @@ const Thumbnail = ({
 
     core.addEventListener('pagesUpdated', onPagesUpdated);
     core.addEventListener('rotationUpdated', onRotationUpdated);
+    setLoaded(false);
     if (canLoad) {
       loadThumbnailAsync();
     }
     return () => {
       core.removeEventListener('pagesUpdated', onPagesUpdated);
       core.removeEventListener('rotationUpdated', onRotationUpdated);
-      clearTimeout(loadTimeout);
+      cancelPendingLoad();
       onRemove(index);
     };
-  }, []);
+  }, [core]);
 
-  useDidUpdate(() => {
-    if (canLoad) {
+  // When canLoad transitions to true after the initial [core] effect already ran
+  // (e.g. heavy file finishes main rendering), trigger thumbnail loading.
+  // Only triggers when no load is already in progress to avoid cancelling in-flight requests.
+  useEffect(() => {
+    const hasLoadInProgress = loadTimeoutRef.current !== null || loadRequestIdRef.current !== null;
+    if (canLoad && !loaded && !hasLoadInProgress) {
       loadThumbnailAsync();
-      updateAnnotations(index);
-    } else {
-      onCancel(index);
     }
-  }, [canLoad, activeDocumentViewerKey]);
+  }, [canLoad]);
 
   const handleClick = (e) => {
     const checkboxToggled = e.target.type && e.target.type === 'checkbox';
@@ -231,36 +301,176 @@ const Thumbnail = ({
   } else if ((rotation === 1 || rotation === 3) && dimensions.width < dimensions.height) {
     checkboxRotateClass = 'rotated';
   }
+  useImperativeHandle(ref, () => ({
+    focusInput: () => {
+      if (isThumbnailSelectingPages && loaded) {
+        selectElement(buttonMultiSelectRefs.current[0]);
+        setCurrentFocusIndex(0);
+      } else if (buttonRefs.current) {
+        setTimeout(() => {
+          selectElement(buttonRefs.current[0]);
+          setCurrentFocusIndex(0);
+        }, 0);
+      }
+    }
+  }));
+
+  const selectElement = (element) => {
+    if (element) {
+      element.ariaCurrent = 'page';
+      element.focus();
+    }
+  };
+
+  const deselectElement = (element) => {
+    if (element) {
+      element.ariaCurrent = undefined;
+    }
+  };
+
+  const handleEnterGrid = (e) => {
+    e.preventDefault();
+    preventDefaultTab();
+  };
+
+  const preventDefaultTab = () => {
+    buttonRefs.current.forEach((elem) => {
+      deselectElement(elem);
+    });
+  };
+
+  const handleKeyDown = useCallback((e) => {
+    e.stopPropagation();
+    parentKeyListener(e);
+    const leaveFocusActions = {
+      Tab: () => handleEnterGrid(e),
+      Escape: () => handleEnterGrid(e)
+    };
+    if (leaveFocusActions[e.key]) {
+      leaveFocusActions[e.key]?.();
+    }
+    const keyboardActions = {
+      ArrowUp: () => handleArrowKey(e, -1),
+      ArrowDown: () => handleArrowKey(e, 1),
+      ArrowLeft: () => handleArrowKey(e, -1),
+      ArrowRight: () => handleArrowKey(e, 1),
+    };
+    if (keyboardActions[e.key] && !isMultiselectEnabled) {
+      keyboardActions[e.key]();
+    }
+  }, [buttonRefs.current, currentFocusIndex]);
+
+  const handleArrowKey = (e, direction) => {
+    e.preventDefault();
+    if (buttonRefs.current.length === 0) {
+      return;
+    }
+
+    setCurrentFocusIndex((prevIndex) => {
+      let newFocusIndex = prevIndex + direction;
+      if (newFocusIndex < 0) {
+        newFocusIndex = buttonRefs.current.length - 1;
+      } else if (newFocusIndex >= buttonRefs.current.length) {
+        newFocusIndex = 0;
+      }
+      updateTabIndexes(buttonRefs.current[newFocusIndex]);
+      return newFocusIndex;
+    });
+  };
+
+  const updateTabIndexes = (focusedElement) => {
+    buttonRefs.current.forEach((elem) => {
+      elem === focusedElement ? selectElement(elem) : deselectElement(elem);
+    });
+  };
+  useEffect(() => {
+    if (thumbContainerRef.current) {
+      buttonRefs.current = findFocusableElements(thumbContainerRef.current);
+    }
+  }, [shouldShowControls, isActive, loaded]);
+
+  useEffect(() => {
+    if (thumbContainerRef.current) {
+      buttonMultiSelectRefs.current = findFocusableElements(thumbContainerRef.current);
+    }
+  }, [isThumbnailSelectingPages, loaded]);
+
+  const isMultiselectEnabled = isThumbnailSelectingPages && loaded;
 
   return (
-    <div
+    <button
       className={classNames({
         Thumbnail: true,
         active: isActive,
         selected: isSelected && isThumbnailSelectingPages,
       })}
       onDragOver={(e) => onDragOver(e, index)}
-      id="Thumbnail-container"
+      id={`Thumbnail-container-${index}`}
+      ref={thumbContainerRef}
+      onKeyDown={(e) => handleKeyDown(e)}
+      onClick={handleClick}
+      style={{
+        width: thumbSize,
+        cursor: 'pointer',
+        background: 'none',
+        border: 'none'
+      }}
+      tabIndex={-1}
     >
       <div
         className="container"
         style={{
-          width: thumbSize,
           height: thumbSize,
+          width: thumbSize,
         }}
         onDragStart={(e) => onDragStart(e, index)}
         draggable={isDraggable}
-        onClick={handleClick}
+        tabIndex={-1}
       >
         <div id={`pageThumb${index}`} className="thumbnail" />
         {isThumbnailSelectingPages && loaded && (
-          <Choice className={`checkbox ${checkboxRotateClass}`} checked={selectedPageIndexes.includes(index)} />
+          <Choice
+            className={`checkbox ${checkboxRotateClass}`}
+            checked={selectedPageIndexes.includes(index)}
+            aria-label={`${t('action.page')} ${pageLabel} ${t('formField.types.checkbox')}`}
+            tabIndex={-1}
+          />
         )}
       </div>
       <div className="page-label">{pageLabel}</div>
-      {!isThumbnailSelectingPages && isActive && shouldShowControls && <ThumbnailControls index={index} />}
-    </div>
+      {!isThumbnailSelectingPages && isActive && shouldShowControls && !isContentEditingEnabled && <ThumbnailControls index={index} />}
+    </button>
   );
+});
+
+Thumbnail.displayName = 'Thumbnail';
+Thumbnail.propTypes = {
+  index: PropTypes.number,
+  isSelected: PropTypes.bool,
+  updateAnnotations: PropTypes.func,
+  shiftKeyThumbnailPivotIndex: PropTypes.number,
+  onFinishLoading: PropTypes.func,
+  onLoad: PropTypes.func,
+  onRemove: PropTypes.func,
+  onDragStart: PropTypes.func,
+  onDragOver: PropTypes.func,
+  isDraggable: PropTypes.bool,
+  shouldShowControls: PropTypes.bool,
+  thumbnailSize: PropTypes.number,
+  currentPage: PropTypes.number,
+  pageLabels: PropTypes.array,
+  selectedPageIndexes: PropTypes.array,
+  isThumbnailMultiselectEnabled: PropTypes.bool,
+  isReaderModeOrReadOnly: PropTypes.bool,
+  dispatch: PropTypes.func,
+  actions: PropTypes.object,
+  isMobile: PropTypes.func,
+  canLoad: PropTypes.bool,
+  isThumbnailSelectingPages: PropTypes.bool,
+  thumbnailSelectionMode: PropTypes.string,
+  activeDocumentViewerKey: PropTypes.number,
+  panelSelector: PropTypes.string,
+  parentKeyListener: PropTypes.func,
 };
 
 export default Thumbnail;

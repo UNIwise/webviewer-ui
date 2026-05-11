@@ -20,9 +20,9 @@ const propTypes = {
   dataElementDivProps: PropTypes.object,
 };
 
-const isReactElement = element => React.isValidElement(element);
+const isReactElement = (element) => React.isValidElement(element);
 
-const isDOMElement = element => {
+const isDOMElement = (element) => {
   try {
     return element instanceof window.Element || element instanceof window.parent.Element;
   } catch (e) {
@@ -47,7 +47,7 @@ const CustomElement = ({
   const wrapperRef = useRef();
   const toolTipWrapperRef = useRef();
 
-  const isDisabled = useSelector(state => selectors.isElementDisabled(state, dataElement));
+  const isDisabled = useSelector((state) => selectors.isElementDisabled(state, dataElement));
   const isDisabledRef = useRef(isDisabled ?? true);
   useEffect(() => {
     isDisabledRef.current = isDisabled ?? true;
@@ -85,7 +85,7 @@ const CustomElement = ({
   );
 
   const update = useCallback(
-    props => {
+    (props) => {
       onRender(isDisabledRef.current, props);
     },
     [onRender],

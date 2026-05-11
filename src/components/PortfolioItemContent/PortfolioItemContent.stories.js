@@ -3,8 +3,9 @@ import { legacy_createStore as createStore } from 'redux';
 import { Provider as ReduxProvider } from 'react-redux';
 import PortfolioItemContent from './PortfolioItemContent';
 import PortfolioContext from '../PortfolioPanel/PortfolioContext';
-import { menuItems } from '../MoreOptionsContextMenuFlyout/MoreOptionsContextMenuFlyout';
+import { menuItems } from 'helpers/outlineFlyoutHelper';
 import '../LeftPanel/LeftPanel.scss';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 const NOOP = () => { };
 
@@ -127,6 +128,7 @@ export const Adding = () => {
     </ReduxProvider>
   );
 };
+Adding.parameters = disableRtlModeParameters;
 
 export const Renaming = () => {
   return (
@@ -141,7 +143,6 @@ export const Renaming = () => {
                 portfolioItem={portfolioItem}
                 isPortfolioRenaming={true}
                 setPortfolioRenaming={NOOP}
-                setIsHovered={NOOP}
               />
             </PortfolioContext.Provider>
           </div>

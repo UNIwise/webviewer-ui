@@ -1,5 +1,6 @@
 import React from 'react';
 import NoteTextPreview from './NoteTextPreview';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/Note/NoteTextPreview',
@@ -16,3 +17,5 @@ export function Basic() {
     </NoteTextPreview>
   );
 }
+
+Basic.parameters = disableRtlModeParameters;

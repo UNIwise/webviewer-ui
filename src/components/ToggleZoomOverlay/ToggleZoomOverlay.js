@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import classNames from 'classnames';
 
 import ToggleElementButton from 'components/ToggleElementButton';
@@ -16,6 +16,7 @@ import './ToggleZoomOverlay.scss';
 import { useTranslation } from 'react-i18next';
 
 const ToggleZoomOverlay = ({ documentViewerKey = undefined }) => {
+  const { core } = useCore(documentViewerKey);
   const [t] = useTranslation();
 
   const elementName = documentViewerKey ? `zoomOverlay${documentViewerKey}` : DataElements.ZOOM_OVERLAY;
@@ -32,7 +33,12 @@ const ToggleZoomOverlay = ({ documentViewerKey = undefined }) => {
 
   useEffect(() => {
     const onDocumentLoaded = () => setValue(Math.ceil(core.getZoom(documentViewerKey) * 100).toString());
-    const onZoomUpdated = () => setValue(Math.ceil(core.getZoom(documentViewerKey) * 100).toString());
+    const onZoomUpdated = () => {
+      const zoom = core.getZoom(documentViewerKey);
+      if (Number.isFinite(zoom)) {
+        setValue(Math.ceil(zoom * 100).toString());
+      }
+    };
     const onDocumentUnloaded = () => setValue('100');
 
     core.addEventListener('documentLoaded', onDocumentLoaded, undefined, documentViewerKey);
@@ -84,7 +90,7 @@ const ToggleZoomOverlay = ({ documentViewerKey = undefined }) => {
     }
   };
 
-  const inputWidth = value ? (value.length + 1) * 8 : 0;
+  const digits = value.length;
 
   return (
     <div className="zoom-overlay">
@@ -102,7 +108,7 @@ const ToggleZoomOverlay = ({ documentViewerKey = undefined }) => {
             }}
             tabIndex={0}
           >
-            <div className="OverlayText" onClick={() => dispatch(actions.toggleElement(elementName))}>
+            <div className="OverlayText"  data-digits={digits} onClick={() => dispatch(actions.toggleElement(elementName))}>
               <input
                 type="text"
                 className="textarea"
@@ -111,7 +117,6 @@ const ToggleZoomOverlay = ({ documentViewerKey = undefined }) => {
                 onKeyPress={onKeyPress}
                 onBlur={onBlur}
                 tabIndex={-1}
-                style={{ width: inputWidth }}
                 aria-label={t('action.zoomSet')}
               />
               <span>%</span>

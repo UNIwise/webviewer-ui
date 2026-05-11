@@ -5,10 +5,14 @@ import RightPanel from 'components/RightPanel';
 import '../Wv3dPropertiesPanel.scss';
 import '../../Panel/Panel.scss';
 import PropertiesElement from './PropertiesElement';
+import { disableChromaticParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/Wv3dPropertiesPanel/PropertiesElement/PropertiesElement',
   component: PropertiesElement,
+  parameters: {
+    legacyUI: true,
+  }
 };
 
 const baseSchema = {
@@ -158,3 +162,5 @@ Default.args = {
   element: testElement,
   schema: baseSchema,
 };
+
+Default.parameters = disableChromaticParameters;

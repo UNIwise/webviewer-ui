@@ -3,6 +3,7 @@ import { createStore } from 'redux';
 import { Provider } from 'react-redux';
 import ActionButtonComponent from './ActionButton';
 import { initialColors } from 'helpers/initialColorStates';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 const initialState = {
   viewer: {
@@ -41,3 +42,4 @@ ActionButton.args = {
     alert('Action Triggered');
   },
 };
+ActionButton.parameters = disableRtlModeParameters;

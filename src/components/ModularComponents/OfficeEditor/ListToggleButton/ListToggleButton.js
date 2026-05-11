@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { useSelector, shallowEqual } from 'react-redux';
 import selectors from 'selectors';
 import classNames from 'classnames';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import ActionButton from 'components/ActionButton';
 import Dropdown from 'components/Dropdown';
 import {
@@ -17,17 +17,19 @@ const propTypes = {
   listType: PropTypes.oneOf(Object.values(LIST_OPTIONS)).isRequired,
 };
 
-const ListToggleButton = ({ listType }) => {
+const ListToggleButton = (props) => {
   const [
     activeListType,
     customizableUI,
   ] = useSelector(
     (state) => [
-      selectors.isListToggleActive(state),
+      selectors.getActiveListType(state),
       selectors.getFeatureFlags(state)?.customizableUI,
     ],
     shallowEqual,
   );
+  const { core } = useCore();
+  const { listType } = props;
 
   const bulletListObjects = OFFICE_BULLET_OPTIONS.map((options) => ({
     className: 'officeEditor-list-style-icon',
@@ -43,6 +45,14 @@ const ListToggleButton = ({ listType }) => {
 
   const listTypeName = listType === LIST_OPTIONS.Unordered ? 'bullet' : listType === LIST_OPTIONS.Ordered && 'number';
 
+  const dataElement = `${listType}ListDropButton`;
+  const icon = `icon-office-editor-${listTypeName}-list`;
+  const title = `officeEditor.${listTypeName}List`;
+
+  const handleClick = () => {
+    core.getOfficeEditor().toggleListSelection(listType);
+  };
+
   return (
     <div className={classNames({
       'office-editor-number-list-wrapper': true,
@@ -50,22 +60,23 @@ const ListToggleButton = ({ listType }) => {
     })}>
       <ActionButton
         isActive={activeListType === listType}
-        dataElement={`office-editor-${listTypeName}-list`}
-        title={`officeEditor.${listTypeName}List`}
-        img={`icon-office-editor-${listTypeName}-list`}
+        dataElement={dataElement}
+        title={title}
+        img={icon}
         className='list-style-button'
-        onClick={() => {
-          core.getOfficeEditor().toggleListSelection(LIST_OPTIONS.Unordered);
-        }}
+        onClick={handleClick}
+        ariaPressed={activeListType === listType}
       />
       <Dropdown
+        id={`${listTypeName}-list`}
         dataElement={`office-editor-${listTypeName}-list-dropdown`}
         images={listTypeName === 'bullet' ? bulletListObjects : numberListOptions}
         columns={3}
+        width={'auto'}
+        height={32}
         onClickItem={(val) => {
           core.getOfficeEditor().setListPreset(val);
         }}
-        className='list-style-dropdown'
         translationPrefix={`officeEditor.${listTypeName}Dropdown`}
         showLabelInList={true}
       />
@@ -74,5 +85,6 @@ const ListToggleButton = ({ listType }) => {
 };
 
 ListToggleButton.propTypes = propTypes;
+ListToggleButton.displayName = 'ListToggleButton';
 
 export default ListToggleButton;

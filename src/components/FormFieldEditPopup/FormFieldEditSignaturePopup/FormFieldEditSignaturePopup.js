@@ -2,14 +2,31 @@ import React, { useState } from 'react';
 import classNames from 'classnames';
 import Button from 'components/Button';
 import { useTranslation } from 'react-i18next';
-import { Choice, Input } from '@pdftron/webviewer-react-toolkit';
+import PropTypes from 'prop-types';
+import FieldFlags from '../FieldFlags';
 import FormFieldPopupDimensionsInput from '../FormFieldPopupDimensionsInput';
 import FormFieldEditPopupIndicator from '../FormFieldEditPopupIndicator';
 import SignatureOptionsDropdown from './SignatureOptionsDropdown';
 import HorizontalDivider from 'components/HorizontalDivider';
-import core from 'core';
+import TextInput from 'components/TextInput';
 
 import '../FormFieldEditPopup.scss';
+import { createDimensionChangeHandlers } from 'helpers/formFieldEditPopupHelpers';
+import useCore from 'hooks/useCore';
+
+const propTypes = {
+  fields: PropTypes.array,
+  flags: PropTypes.array,
+  closeFormFieldEditPopup: PropTypes.func,
+  isValid: PropTypes.bool,
+  validationMessage: PropTypes.string,
+  annotation: PropTypes.object,
+  getPageHeight: PropTypes.func,
+  getPageWidth: PropTypes.func,
+  onSignatureOptionChange: PropTypes.func,
+  getSignatureOptionHandler: PropTypes.func,
+  indicator: PropTypes.object,
+};
 
 const FormFieldEditSignaturePopup = ({
   fields,
@@ -20,13 +37,11 @@ const FormFieldEditSignaturePopup = ({
   annotation,
   getPageHeight,
   getPageWidth,
-  redrawAnnotation,
+  onSignatureOptionChange,
   getSignatureOptionHandler,
   indicator,
-  onCancelEmptyFieldName,
-  setIsValid,
-  setValidationMessage,
 }) => {
+  const { core } = useCore();
   const { t } = useTranslation();
   const className = classNames({
     Popup: true,
@@ -36,112 +51,28 @@ const FormFieldEditSignaturePopup = ({
   const [width, setWidth] = useState((annotation.Width).toFixed(0));
   const [height, setHeight] = useState((annotation.Height).toFixed(0));
 
-  const [initialWidth] = useState((annotation.Width).toFixed(0));
-  const [initialHeight] = useState((annotation.Height).toFixed(0));
+  const { onWidthChange, onHeightChange } = createDimensionChangeHandlers(
+    annotation,
+    getPageWidth,
+    getPageHeight,
+    setWidth,
+    setHeight,
+    core,
+  );
+
   const [indicatorPlaceholder, setIndicatorPlaceholder] = useState(t(`formField.formFieldPopup.indicatorPlaceHolders.SignatureFormField.${getSignatureOptionHandler(annotation)}`));
-  const formFieldCreationManager = core.getFormFieldCreationManager();
-  const [signatureOption, setSignatureOption] = useState();
-
-  function onWidthChange(width) {
-    const validatedWidth = validateWidth(width);
-    annotation.setWidth(validatedWidth);
-    setWidth(validatedWidth);
-    redrawAnnotation(annotation);
-  }
-
-  function onHeightChange(height) {
-    const validatedHeight = validateHeight(height);
-    annotation.setHeight(validatedHeight);
-    setHeight(validatedHeight);
-    redrawAnnotation(annotation);
-  }
-
-  function validateWidth(width) {
-    const documentWidth = getPageWidth();
-    const maxWidth = documentWidth - annotation.X;
-    if (width > maxWidth) {
-      return maxWidth;
-    }
-    return width;
-  }
-
-  function validateHeight(height) {
-    const documentHeight = getPageHeight();
-    const maxHeight = documentHeight - annotation.Y;
-    if (height > maxHeight) {
-      return maxHeight;
-    }
-    return height;
-  }
-
-  function onCancel() {
-    if (!isValid) {
-      const { value } = fields.find((field) => field.label.includes('fieldName'));
-      if (value.trim() === '') {
-        onCancelEmptyFieldName(annotation);
-        return;
-      }
-    }
-
-    if (width !== initialWidth || height !== initialHeight) {
-      annotation.setWidth(initialWidth);
-      annotation.setHeight(initialHeight);
-    }
-
-    redrawAnnotation(annotation);
-    closeFormFieldEditPopup();
-  }
-
-  const onSignatureOptionChange = (option) => {
-    const { value } = option;
-    setSignatureOption(value);
-  };
-
-  function onConfirm() {
-    for (let i = 0; i < fields.length; i++) {
-      if (fields[i].label.includes('fieldName') && fields[i].value.trim() === '') {
-        setIsValid(false);
-        setValidationMessage('formField.formFieldPopup.invalidField.empty');
-        return;
-      }
-      if (fields[i].label.includes('fieldName')) {
-        fields[i].confirmChange(fields[i].value);
-      }
-    }
-    for (let i = 0; i < flags.length; i++) {
-      flags[i].confirmChange(flags[i].isChecked);
-    }
-
-    formFieldCreationManager.setSignatureOption(annotation, signatureOption);
-    confirmIndicatorChange();
-    closeFormFieldEditPopup(true);
-  }
-
-  const confirmIndicatorChange = () => {
-    indicator.confirmToggleIndicator(indicator.isChecked);
-    if (indicator.isChecked) {
-      indicator.confirmTextChange(indicator.textValue || indicatorPlaceholder);
-    }
-  };
-
-  function handleTextChange(event, field) {
-    if (event.target.value.trim().length > 0) {
-      setIsValid(true);
-    }
-    field.setValue(event.target.value);
-  }
 
   function renderTextInput(field) {
+    const hasError = field.required && !isValid;
     return (
-      <Input
-        type="text"
+      <TextInput
+        label={`${field.label}-input`}
         value={field.value}
-        fillWidth="false"
-        aria-label={t(field.label)}
-        messageText={field.required && !isValid ? t(validationMessage) : ''}
-        message={field.required && !isValid ? 'warning' : 'default'}
-        autoFocus={field.focus}
-        onChange={(e) => handleTextChange(e, field)}
+        onChange={field.onChange}
+        validationMessage={validationMessage}
+        hasError={hasError}
+        ariaDescribedBy={hasError ? 'FormFieldInputError' : undefined}
+        ariaLabelledBy={field.label}
       />
     );
   }
@@ -158,24 +89,15 @@ const FormFieldEditSignaturePopup = ({
       <div className="fields-container">
         {fields.map((field) => (
           <div className="field-input" key={field.label}>
-            <label>
-              {t(field.label)}{field.required ? '*' : ''}:
-            </label>
+            <span id={field.label}>
+              {t(field.label)}
+              {field.required ? '*' : ''}:
+            </span>
             {renderTextInput(field)}
           </div>
         ))}
       </div>
-      <div className="field-flags-container">
-        <span className="field-flags-title">{t('formField.formFieldPopup.flags')}</span>
-        {flags.map((flag) => (
-          <Choice
-            key={flag.label}
-            checked={flag.isChecked}
-            label={t(flag.label)}
-            onChange={(event) => flag.setIsChecked(event.target.checked)}
-          />
-        ))}
-      </div>
+      <FieldFlags flags={flags} />
       <FormFieldPopupDimensionsInput
         width={width}
         height={height}
@@ -189,15 +111,9 @@ const FormFieldEditSignaturePopup = ({
       />
       <div className="form-buttons-container">
         <Button
-          className="cancel-form-field-button"
-          onClick={onCancel}
-          dataElement="formFieldCancel"
-          label={t('formField.formFieldPopup.cancel')}
-        />
-        <Button
           className="ok-form-field-button"
           dataElement="formFieldOK"
-          label={t('action.ok')}
+          label={t('action.close')}
           disabled={!isValid}
           onClick={onConfirm}
         />
@@ -205,5 +121,7 @@ const FormFieldEditSignaturePopup = ({
     </div>
   );
 };
+
+FormFieldEditSignaturePopup.propTypes = propTypes;
 
 export default FormFieldEditSignaturePopup;

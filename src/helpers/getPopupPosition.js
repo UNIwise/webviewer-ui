@@ -4,39 +4,112 @@ import getRootNode from './getRootNode';
 
 // gap between the annotation selection box and the popup element
 const defaultGap = 17;
+const fallbackPosition = { left: 0, top: 0 };
+
+const isValidPoint = (point) => (
+  point &&
+  Number.isFinite(point.x) &&
+  Number.isFinite(point.y)
+);
+
+const hasValidBounds = ({ topLeft, bottomRight } = {}) => (
+  isValidPoint(topLeft) &&
+  isValidPoint(bottomRight)
+);
+
+const getSafeScale = () => {
+  const scale = getWebComponentScale() || {};
+  const scaleX = Number.isFinite(scale.scaleX) && scale.scaleX !== 0 ? scale.scaleX : 1;
+  const scaleY = Number.isFinite(scale.scaleY) && scale.scaleY !== 0 ? scale.scaleY : 1;
+  return { scaleX, scaleY };
+};
+
+/**
+ * Returns true if any part of the annotation is within the visible area of the scroll container.
+ * Coordinates from `getAnnotationPosition` are in scroll-content space (via `pageToWindow`).
+ * `getBoundingClientRect` returns viewport-relative values, so scroll offsets are added to convert them to the same coordinate space before comparing.
+ * @ignore
+ * @param {object} annotation The annotation to check.
+ * @param {HTMLElement} scrollContainer The scroll container element.
+ * @param {number} [documentViewerKey=1] The document viewer key.
+ * @returns {boolean}
+ */
+export const isAnnotationInView = (annotation, scrollContainer, documentViewerKey = 1) => {
+  const { topLeft, bottomRight } = getAnnotationPosition(annotation, documentViewerKey);
+  if (!topLeft || !bottomRight || !scrollContainer) {
+    return false;
+  }
+
+  const { top, bottom, left, right } = scrollContainer.getBoundingClientRect();
+  const { scrollTop, scrollLeft } = scrollContainer;
+
+  const isVerticallyVisible = bottomRight.y > top + scrollTop && topLeft.y < bottom + scrollTop;
+  const isHorizontallyVisible = bottomRight.x > left + scrollLeft && topLeft.x < right + scrollLeft;
+
+  return isVerticallyVisible && isHorizontallyVisible;
+};
 
 export const getAnnotationPopupPositionBasedOn = (annotation, popup, documentViewerKey = 1, gap = defaultGap) => {
+  const annotationPosition = getAnnotationPosition(annotation, documentViewerKey);
+  if (!hasValidBounds(annotationPosition)) {
+    return fallbackPosition;
+  }
+
   const { left, top } = calcAnnotationPopupPosition(
-    getAnnotationPosition(annotation, documentViewerKey),
+    annotationPosition,
     getPopupDimensions(popup),
     documentViewerKey,
     gap,
   );
 
+  if (!Number.isFinite(left) || !Number.isFinite(top)) {
+    return fallbackPosition;
+  }
+
   return { left: Math.max(left, 4), top };
 };
 
 export const getTextPopupPositionBasedOn = (allQuads, popup, documentViewerKey = 1) => {
+  const selectedTextPosition = getSelectedTextPosition(allQuads, documentViewerKey);
+  if (!hasValidBounds(selectedTextPosition)) {
+    return fallbackPosition;
+  }
+
   const { left, top } = calcTextPopupPosition(
-    getSelectedTextPosition(allQuads, documentViewerKey),
+    selectedTextPosition,
     getPopupDimensions(popup),
     documentViewerKey,
   );
+
+  if (!Number.isFinite(left) || !Number.isFinite(top)) {
+    return fallbackPosition;
+  }
 
   return { left, top };
 };
 
 export const getAnnotationPosition = (annotation, documentViewerKey = 1) => {
-  const { left, top, right, bottom } = getAnnotationPageCoordinates(annotation, documentViewerKey);
+  if (!annotation || typeof annotation.getPageNumber !== 'function') {
+    return { topLeft: null, bottomRight: null };
+  }
+
   const pageNumber = annotation.getPageNumber();
-  const currentDocumentPageCount = core.getDocumentViewers()[documentViewerKey - 1].getPageCount();
+  const currentDocumentViewer = core.getDocumentViewers()?.[documentViewerKey - 1];
+  const currentDocumentPageCount = currentDocumentViewer?.getPageCount?.();
+  if (!Number.isFinite(currentDocumentPageCount)) {
+    return { topLeft: null, bottomRight: null };
+  }
 
   if (pageNumber > currentDocumentPageCount) {
     return { topLeft: null, bottomRight: null };
   }
 
+  const { left, top, right, bottom } = getAnnotationPageCoordinates(annotation, documentViewerKey);
   const topLeft = convertPageCoordinatesToWindowCoordinates(left, top, pageNumber, documentViewerKey);
   const bottomRight = convertPageCoordinatesToWindowCoordinates(right, bottom, pageNumber, documentViewerKey);
+  if (!hasValidBounds({ topLeft, bottomRight })) {
+    return { topLeft: null, bottomRight: null };
+  }
 
   if (annotation['NoZoom']) {
     const isNote = annotation instanceof window.Core.Annotations.StickyAnnotation;
@@ -72,8 +145,25 @@ export const getAnnotationPosition = (annotation, documentViewerKey = 1) => {
   return { topLeft, bottomRight };
 };
 
-const getAnnotationPageCoordinates = (annotation, documentViewerKey = 1) => {
+const getWidgetNormalizedRect = (annotation) => {
   const rect = annotation.getRect();
+  if (annotation instanceof window.Core.Annotations.WidgetAnnotation) {
+    const rotationInDegrees = annotation['rotation'];
+    let width = rect['x2'] - rect['x1'];
+    let height = rect['y2'] - rect['y1'];
+
+    const rotation = rotationInDegrees;
+    if (rotation === 90 || rotation === 270) {
+      [width, height] = [height, width];
+    }
+
+    return new window.Core.Math.Rect(rect['x1'], rect['y1'], rect['x1'] + width, rect['y1'] + height);
+  }
+  return rect;
+};
+
+const getAnnotationPageCoordinates = (annotation, documentViewerKey = 1) => {
+  const rect = getWidgetNormalizedRect(annotation);
   let { x1: left, y1: top, x2: right, y2: bottom } = rect;
 
   const isNote = annotation instanceof window.Core.Annotations.StickyAnnotation;
@@ -107,7 +197,15 @@ const getAnnotationPageCoordinates = (annotation, documentViewerKey = 1) => {
 };
 
 const getSelectedTextPosition = (allQuads, documentViewerKey) => {
+  if (!allQuads || Object.keys(allQuads).length === 0) {
+    return { topLeft: null, bottomRight: null };
+  }
+
   const { startPageNumber, endPageNumber } = getSelectedTextPageNumber(allQuads);
+  if (!Number.isFinite(startPageNumber) || !Number.isFinite(endPageNumber)) {
+    return { topLeft: null, bottomRight: null };
+  }
+
   const { left, right, top, bottom } = getSelectedTextPageCoordinates(
     allQuads,
     startPageNumber,
@@ -121,6 +219,10 @@ const getSelectedTextPosition = (allQuads, documentViewerKey) => {
     const tmp = topLeft;
     topLeft = bottomRight;
     bottomRight = tmp;
+  }
+
+  if (!hasValidBounds({ topLeft, bottomRight })) {
+    return { topLeft: null, bottomRight: null };
   }
 
   return { topLeft, bottomRight };
@@ -137,12 +239,31 @@ const getSelectedTextPageNumber = (allQuads) => {
 
 const getSelectedTextPageCoordinates = (allQuads, startPageNumber, endPageNumber) => {
   const getTopAndBottom = () => {
-    const firstQuad = allQuads[startPageNumber][0];
-    const top = firstQuad.y3;
+    const firstPageQuads = allQuads[startPageNumber];
+    const firstQuad = firstPageQuads?.[0];
+    if (!firstQuad) {
+      return { top: null, bottom: null };
+    }
+    let top;
+
+    if (firstQuad.y1 < firstQuad.y3) {
+      top = firstQuad.y1;
+    } else {
+      top = firstQuad.y3;
+    }
 
     const endPageQuads = allQuads[endPageNumber];
+    if (!Array.isArray(endPageQuads) || endPageQuads.length === 0) {
+      return { top: null, bottom: null };
+    }
     const lastQuad = endPageQuads[endPageQuads.length - 1];
-    const bottom = lastQuad.y1;
+    let bottom;
+
+    if (lastQuad.y1 < lastQuad.y3) {
+      bottom = lastQuad.y3;
+    } else {
+      bottom = lastQuad.y1;
+    }
 
     return { top, bottom };
   };
@@ -175,13 +296,19 @@ const getSelectedTextPageCoordinates = (allQuads, startPageNumber, endPageNumber
 
 const convertPageCoordinatesToWindowCoordinates = (x, y, pageNumber, documentViewerKey = 1) => {
   const displayMode = core.getDisplayModeObject(documentViewerKey);
+  if (!displayMode || typeof displayMode.pageToWindow !== 'function') {
+    return null;
+  }
 
   return displayMode.pageToWindow({ x, y }, pageNumber);
 };
 
 const getPopupDimensions = (popup) => {
-  const { width, height } = popup.current.getBoundingClientRect();
+  if (!popup?.current || typeof popup.current.getBoundingClientRect !== 'function') {
+    return { width: 0, height: 0 };
+  }
 
+  const { width, height } = popup.current.getBoundingClientRect();
   return { width, height };
 };
 
@@ -200,10 +327,15 @@ const calcTextPopupPosition = (selectedTextPosition, popupDimension, documentVie
 };
 
 export const calcPopupLeft = ({ topLeft, bottomRight }, { width }, documentViewerKey) => {
-  const { scrollLeft } = core.getScrollViewElement(documentViewerKey);
+  if (!hasValidBounds({ topLeft, bottomRight })) {
+    return fallbackPosition.left;
+  }
+
+  const scrollViewElement = core.getScrollViewElement(documentViewerKey);
+  const scrollLeft = Number.isFinite(scrollViewElement?.scrollLeft) ? scrollViewElement.scrollLeft : 0;
   const center = (topLeft.x + bottomRight.x) / 2 - scrollLeft;
 
-  width /= getWebComponentScale()?.scaleX;
+  width /= getSafeScale().scaleX;
   let left = center - width / 2;
 
   if (left < 0) {
@@ -222,8 +354,16 @@ export const calcPopupLeft = ({ topLeft, bottomRight }, { width }, documentViewe
  * this is specifically used for the annotation popup to keep the popup on the same side of the annotation.
  */
 export const calcPopupTop = ({ topLeft, bottomRight }, { height }, documentViewerKey, gap = defaultGap) => {
+  if (!hasValidBounds({ topLeft, bottomRight })) {
+    return fallbackPosition.top;
+  }
+
   const padding = 5;
   const scrollContainer = core.getScrollViewElement(documentViewerKey);
+  if (!scrollContainer || typeof scrollContainer.getBoundingClientRect !== 'function') {
+    return fallbackPosition.top;
+  }
+
   const boundingBox = scrollContainer.getBoundingClientRect();
   const visibleRegion = {
     left: boundingBox.left + scrollContainer.scrollLeft,
@@ -232,13 +372,16 @@ export const calcPopupTop = ({ topLeft, bottomRight }, { height }, documentViewe
     bottom: boundingBox.top + scrollContainer.scrollTop + boundingBox.height,
   };
 
-  const scaleY = getWebComponentScale()?.scaleY;
+  const scaleY = getSafeScale().scaleY;
   const isWebComponent = window.isApryseWebViewerWebComponent;
   if (isWebComponent) {
-    const hostContainer = getRootNode().host;
-    const containerBox = hostContainer.getBoundingClientRect();
-    visibleRegion.top = (visibleRegion.top - containerBox.top) / scaleY;
-    visibleRegion.bottom = (visibleRegion.bottom - containerBox.top) / scaleY;
+    const rootNode = getRootNode();
+    const hostContainer = rootNode && rootNode.host;
+    if (hostContainer && typeof hostContainer.getBoundingClientRect === 'function') {
+      const containerBox = hostContainer.getBoundingClientRect();
+      visibleRegion.top = (visibleRegion.top - containerBox.top) / scaleY;
+      visibleRegion.bottom = (visibleRegion.bottom - containerBox.top) / scaleY;
+    }
   }
 
   const annotTop = topLeft.y - gap;
@@ -289,4 +432,19 @@ export const getReaderModePopupPositionBasedOn = (annotPosition, popup, viewer) 
   left = Math.round(left + viewerRect.left);
 
   return { top, left };
+};
+
+export const getMouseEventPosition = (e) => {
+  let { x, y } = e;
+
+  if (window.isApryseWebViewerWebComponent) {
+    const instanceRect = getRootNode().host.getBoundingClientRect();
+    x -= instanceRect.left;
+    y -= instanceRect.top;
+  }
+
+  return {
+    top: y,
+    left: x,
+  };
 };

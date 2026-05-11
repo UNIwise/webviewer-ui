@@ -3,6 +3,7 @@ import React from 'react';
 import CollapsibleSection from './CollapsibleSection';
 import { createStore } from 'redux';
 import { Provider } from 'react-redux';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 const initialState = {
   viewer: {
@@ -27,9 +28,6 @@ const CollapsibleSectionWithRedux = (props) => {
 export default {
   title: 'Components/CollapsibleSection',
   component: CollapsibleSection,
-  parameters: {
-    customizableUI: true
-  }
 };
 
 const HeaderComponent = () => {
@@ -54,3 +52,4 @@ export function Basic() {
     </div>
   );
 }
+Basic.parameters = disableRtlModeParameters;

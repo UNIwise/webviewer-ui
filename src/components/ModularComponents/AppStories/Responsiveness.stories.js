@@ -1,22 +1,17 @@
-import React from 'react';
-import { Provider } from 'react-redux';
-import { configureStore } from '@reduxjs/toolkit';
 import App from 'components/App';
-import initialState from 'src/redux/initialState';
-import rootReducer from 'reducers/rootReducer';
 import { mockHeadersNormalized, mockModularComponents } from './mockAppState';
-import { setItemToFlyoutStore } from 'helpers/itemToFlyoutHelper';
 import core from 'core';
+import { createMockAppTemplate } from './helpers/appResponsivenessHelpers';
+import { within, expect } from 'storybook/test';
+import { getTranslatedText } from 'src/helpers/testTranslationHelper';
+import { createTemplate } from 'src/helpers/storybookHelper';
 
 export default {
   title: 'ModularComponents/App Responsiveness',
   component: App,
   parameters: {
-    customizableUI: true,
+    chromatic: { delay: 500 },
   }
-};
-
-const noop = () => {
 };
 
 core.getToolMode = () => {
@@ -25,82 +20,13 @@ core.getToolMode = () => {
   };
 };
 
-const MockApp = ({ initialState, width, height }) => {
-  const store = configureStore({
-    reducer: rootReducer,
-    preloadedState: initialState,
-    middleware: (getDefaultMiddleware) => getDefaultMiddleware({ serializableCheck: false })
-  });
-  setItemToFlyoutStore(store);
-  return (
-    <Provider store={store}>
-      <div style={{ maxWidth: width, maxHeight: height, width: '100%', height: '100%' }}>
-        <App removeEventHandlers={noop}/>
-      </div>
-    </Provider>
-  );
-};
-
-const Template = (args) => {
-  const stateWithHeaders = {
-    ...initialState,
-    viewer: {
-      ...initialState.viewer,
-      modularHeaders: args.headers,
-      modularComponents: args.components,
-      openElements: {},
-      genericPanels: [{
-        dataElement: 'stylePanel',
-        render: 'stylePanel',
-        location: 'left',
-      }],
-      activeGroupedItems: [
-        'annotateGroupedItems',
-        'defaultAnnotationUtilities',
-      ],
-      flyoutMap: {
-        annotateGroupedItemsFlyout: {
-          items:[]
-        }
-      },
-      lastPickedToolForGroupedItems: {
-        annotateGroupedItems: args.activeToolName || 'AnnotationCreateTextUnderline',
-      },
-      activeCustomRibbon: args.activeCustomRibbon,
-      lastPickedToolAndGroup: {
-        tool: 'AnnotationCreateTextUnderline',
-        group: ['annotateGroupedItems'],
-      },
-      activeToolName: args.activeToolName || 'AnnotationCreateTextUnderline',
-    },
-    featureFlags: {
-      customizableUI: true,
-    },
-  };
-  return <MockApp initialState={stateWithHeaders} width={args.width} height={args.height}/>;
-};
-
-function createTemplate({
-  width = '100%',
-  height = '100%',
-  headers = mockHeadersNormalized,
-  components = mockModularComponents,
-  activeCustomRibbon = 'annotations-ribbon-item',
-  activeToolName,
-} = {}) {
-  const template = Template.bind({});
-  template.args = { headers, components, width, height, activeCustomRibbon, activeToolName };
-  template.parameters = { layout: 'fullscreen' };
-  return template;
-}
-
-export const Full = createTemplate();
-export const ExtraLarge = createTemplate({ width: '1920px', height: '1080px' });
-export const Large = createTemplate({ width: '1024px', height: '768px' });
-export const Medium = createTemplate({ width: '768px', height: '1024px' });
-export const Small = createTemplate({ width: '576px', height: '800px' });
-export const ExtraSmall = createTemplate({ width: '360px', height: '667px', activeToolName: 'AnnotationEraserTool' });
-export const TooSmall = createTemplate({ width: '200px', height: '300px', activeToolName: 'AnnotationEraserTool' });
+export const Full = createMockAppTemplate();
+export const ExtraLarge = createMockAppTemplate({ width: '1920px', height: '1080px' });
+export const Large = createMockAppTemplate({ width: '1024px', height: '768px' });
+export const Medium = createMockAppTemplate({ width: '768px', height: '1024px' });
+export const Small = createMockAppTemplate({ width: '576px', height: '800px' });
+export const ExtraSmall = createMockAppTemplate({ width: '360px', height: '667px', activeToolName: 'AnnotationEraserTool' });
+export const TooSmall = createMockAppTemplate({ width: '200px', height: '300px', activeToolName: 'AnnotationEraserTool' });
 
 const ExtraItemsAddedHeaders = {
   ...mockHeadersNormalized,
@@ -112,13 +38,15 @@ const ExtraItemsAddedHeaders = {
       'searchPanelToggle',
       'notesPanelToggle',
       'stylePanelToggle',
-      'filePickerButton',
+      'redactionToolButton',
+      'filePickerButton', // this button shouldn't render because it start as disabled
       'downloadButton',
       'settingsButton',
       'annotateGroupedItems2',
     ]
   }
 };
+
 const ExtraItemsAddedComponents = {
   ...mockModularComponents,
   annotateGroupedItems2: {
@@ -157,10 +85,72 @@ const ExtraItemsAddedComponents = {
   },
 };
 
-export const ExtraItemsAdded = createTemplate({
+export const ExtraItemsAdded = createMockAppTemplate({
   headers: ExtraItemsAddedHeaders,
   components: ExtraItemsAddedComponents
 });
 
-export const RibbonItemsOverflow = createTemplate({ width: '690px' });
-export const RibbonItemsOverflowActive = createTemplate({ width: '750px', activeCustomRibbon: 'toolbarGroup-Insert' });
+export const RibbonItemsOverflow = createMockAppTemplate({ width: '690px' });
+export const RibbonItemsOverflowActive = createMockAppTemplate({ width: '750px', activeCustomRibbon: 'toolbarGroup-Insert' });
+export const RibbonItemsShouldNotLoop = createMockAppTemplate({
+  width: '1135px',
+  components: {
+    ...mockModularComponents,
+    'toolbarGroup-Forms': {
+      dataElement: 'toolbarGroup-Forms',
+      title: 'Forms',
+      type: 'ribbonItem',
+      label: 'Forms',
+      groupedItems: [
+        'formsGroupedItems'
+      ],
+      toolbarGroup: 'toolbarGroup-Forms'
+    },
+    'default-ribbon-group': {
+      ...mockModularComponents['default-ribbon-group'],
+      items: [
+        'toolbarGroup-View',
+        'toolbarGroup-Annotate',
+        'toolbarGroup-Shapes',
+        'toolbarGroup-Insert',
+        'toolbarGroup-Redact',
+        'toolbarGroup-Measure',
+        'toolbarGroup-Edit',
+        'toolbarGroup-FillAndSign',
+        'toolbarGroup-Forms',
+      ],
+    },
+  }
+});
+
+export const ViewOnly = createTemplate({ headers: mockHeadersNormalized, components: mockModularComponents });
+
+ViewOnly.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+  window.instance.UI.enableViewOnlyMode();
+
+  const searchButton = await canvas.findByRole('button', { name: getTranslatedText('component.searchPanel') });
+  const commentsButton = await canvas.findByRole('button', { name: getTranslatedText('component.notesPanel') });
+  let moreButton = canvas.queryByRole('button', { name: getTranslatedText('action.more') });
+  await expect(searchButton).toBeVisible();
+  await expect(commentsButton).toBeVisible();
+  await expect(moreButton).toBeNull();
+
+  const appElement = canvasElement.querySelector('.App');
+  appElement.style.width = '375px';
+  appElement.style.height = '667px';
+  window.dispatchEvent(new Event('resize'));
+
+  moreButton = await canvas.findByRole('button', { name: getTranslatedText('action.more') });
+  await expect(moreButton).toBeVisible();
+  await expect(searchButton).toBeVisible();
+  await expect(commentsButton).toBeVisible();
+};
+
+ViewOnly.parameters = {
+  chromatic: {
+    modes: {
+      'Dark theme': { disable: true },
+    },
+  },
+};

@@ -19,8 +19,8 @@
       width: 100%;
       padding-top: 24px;
       padding-bottom: 16px;
-      padding-left: 24px;
-      padding-right: 24px;
+      padding-inline-start: 24px;
+      padding-inline-end: 24px;
     }
 
     // overwrite color picker existing (inline) style
@@ -31,7 +31,7 @@
       padding: 0px !important;
       background: var(--component-background) !important;
 
-      >div {
+      > div {
         border-radius: 2px !important;
       }
 
@@ -55,7 +55,7 @@
         >div:nth-child(1) {
           border-radius: 2px;
 
-          >div {
+          > div {
             margin-top: 6px;
             cursor: ew-resize !important;
             overflow: visible !important;
@@ -80,7 +80,7 @@
           height: 24px !important;
           border-radius: 12px !important;
 
-          >div {
+          > div {
             border-radius: 12px !important;
           }
         }
@@ -104,7 +104,7 @@
 
     .buttons {
       width: 220px;
-      text-align: right;
+      text-align: end;
       font-size: 13px;
       margin-top: 20px;
       display: flex;
@@ -132,7 +132,7 @@
         border: 0;
         color: var(--secondary-button-text);
         padding: 6px 16px;
-        margin-right: 4px;
+        margin-inline-end: 4px;
         height: 32px;
         width: fit-content;
 

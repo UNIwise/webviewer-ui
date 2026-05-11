@@ -5,7 +5,8 @@ import Tooltip from 'components/Tooltip';
 import Choice from 'components/Choice';
 import { useTranslation } from 'react-i18next';
 import { updateLayerVisibililty } from './updateLayerVisibililty';
-import { Label } from '@pdftron/webviewer-react-toolkit';
+import Label from 'components/Label';
+import { getEndFacingChevronIcon } from 'helpers/rightToLeft';
 import DataElementWrapper from '../DataElementWrapper';
 import './Layer.scss';
 
@@ -15,7 +16,7 @@ const propTypes = {
 };
 function Layer(props) {
   const { layer, layerUpdated } = props;
-  const [isExpanded, setExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [t] = useTranslation();
 
   const onChange = (isVisible) => {
@@ -26,7 +27,7 @@ function Layer(props) {
   };
 
   const toggleExpanded = () => {
-    setExpanded(!isExpanded);
+    setIsExpanded(!isExpanded);
   };
 
   if (!layer) {
@@ -38,7 +39,7 @@ function Layer(props) {
   if (layer.locked) {
     tooltipContent = t('message.lockedLayer');
   } else if (layer.disabled) {
-    tooltipContent = t('message.layerVisibililtyNoChange');
+    tooltipContent = t('message.layerVisibilityNoChange');
   }
 
   return (
@@ -46,7 +47,7 @@ function Layer(props) {
       <div className="parent-layer">
         {hasSubLayers ? (
           <div className="arrow" onClick={toggleExpanded}>
-            { isExpanded ? <Icon glyph="ic_chevron_down_black_24px" /> : <Icon glyph="ic_chevron_right_black_24px" />}
+            { isExpanded ? <Icon glyph="icon-chevron-down" /> : <Icon glyph={getEndFacingChevronIcon()} />}
           </div>
         ) : (
           // create dummy icon to make aligning easier
@@ -60,7 +61,7 @@ function Layer(props) {
                 <Choice
                   id={`${layer.id}`}
                   label={layer.name}
-                  aria-label={layer.name}
+                  aria-label={`${layer.name} ${t('formField.types.checkbox')}`}
                   onChange={() => onChange(!layer.visible)}
                   checked={layer.visible}
                   disabled={layer.locked || layer.disabled}

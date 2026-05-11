@@ -12,11 +12,15 @@ import selectors from 'selectors';
 import actions from 'actions';
 import DataElements from 'constants/dataElement';
 import ModalWrapper from '../ModalWrapper';
+import useFocusOnClose from 'hooks/useFocusOnClose';
 
 import '../PageReplacementModal/PageReplacementModal.scss';
 import './OpenFileModal.scss';
+import PropTypes from 'prop-types';
+import useCore from 'src/hooks/useCore';
 
 const OpenFileModal = ({ isDisabled, isOpen, tabManager, closeElements }) => {
+  const { core } = useCore();
   const { t } = useTranslation();
   const [selectedTab] = useSelector((state) => [
     selectors.getSelectedTab(state, 'openFileModal'),
@@ -26,14 +30,15 @@ const OpenFileModal = ({ isDisabled, isOpen, tabManager, closeElements }) => {
   const [filename, setFilename] = useState();
   const [size, setSize] = useState();
   const [error, setError] = useState({ 'fileError': '', 'urlError': '', 'extensionError': '' });
+  const [urlInputError, setUrlInputError] = useState(null);
 
   const closeModal = () => {
-    closeElements([DataElements.OPEN_FILE_MODAL]);
     setSrc('');
     setError({ 'fileError': '', 'urlError': '' });
     setFilename(null);
     setExtension('pdf');
     setSize(null);
+    closeElements([DataElements.OPEN_FILE_MODAL]);
   };
 
   useEffect(() => {
@@ -55,21 +60,30 @@ const OpenFileModal = ({ isDisabled, isOpen, tabManager, closeElements }) => {
   }, [isOpen]);
 
   const handleAddTab = async (source, _extension, _filename, _size) => {
+    setUrlInputError(null);
+
     if (!source) {
       return setError({ 'urlError': 'URL or File must be provided' });
     }
+
     if (!_extension || acceptFormats.indexOf(_extension) === -1) {
       return setError({ 'extensionError': 'Extension must be provided' });
     }
-    const useDb = !_size || TabManager.MAX_FILE_SIZE > _size;
-    await tabManager.addTab(source, {
-      extension: _extension,
-      filename: _filename,
-      setActive: true,
-      saveCurrentActiveTabState: true,
-      useDB: useDb
-    });
-    closeModal();
+
+    await core.performDocumentCreationChecks(source)
+      .then(async () => {
+        const useDb = !_size || TabManager.MAX_FILE_SIZE > _size;
+        await tabManager.addTab(source, {
+          extension: _extension,
+          filename: _filename,
+          setActive: true,
+          saveCurrentActiveTabState: true,
+          useDB: useDb
+        });
+      }).catch((error) => {
+        setUrlInputError(t('message.urlInputFileLoadError'));
+        console.error('Error adding tab:', error);
+      });
   };
 
   const modalClass = classNames({
@@ -133,15 +147,15 @@ const OpenFileModal = ({ isDisabled, isOpen, tabManager, closeElements }) => {
           <div className="swipe-indicator" />
           <Tabs className="open-file-modal-tabs" id="openFileModal">
             <div className="tabs-header-container">
-              <div className="tab-list">
+              <div role="tablist" className="tab-list">
                 <Tab dataElement="urlInputPanelButton">
-                  <button className="tab-options-button">
+                  <button role="tab" className="tab-options-button">
                     {t('link.url')}
                   </button>
                 </Tab>
                 <div className="tab-options-divider" />
                 <Tab dataElement="filePickerPanelButton">
-                  <button className="tab-options-button">
+                  <button role="tab" className="tab-options-button">
                     {t('option.pageReplacementModal.localFile')}
                   </button>
                 </Tab>
@@ -153,6 +167,7 @@ const OpenFileModal = ({ isDisabled, isOpen, tabManager, closeElements }) => {
                   onFileSelect={(url) => {
                     handleURLChange(url);
                   }}
+                  error={urlInputError}
                   acceptFormats={acceptFormats}
                   extension={(!src.length || !extension?.length) ? '' : extension}
                   setExtension={setExtension}
@@ -178,7 +193,7 @@ const OpenFileModal = ({ isDisabled, isOpen, tabManager, closeElements }) => {
               dataElement="linkSubmitButton"
               label={t('OpenFile.addTab')}
               style={{ width: 90 }}
-              onClick={() => handleAddTab(src, extension, filename, size)}
+              onClick={useFocusOnClose(() => handleAddTab(src, extension, filename, size))}
               disabled={selectedTab !== 'urlInputPanelButton' || (!src.length || !extension?.length)}
             />
           </div>
@@ -186,6 +201,13 @@ const OpenFileModal = ({ isDisabled, isOpen, tabManager, closeElements }) => {
       </div>
     </div>
   );
+};
+
+OpenFileModal.propTypes = {
+  isDisabled: PropTypes.bool,
+  isOpen: PropTypes.bool,
+  tabManager: PropTypes.instanceOf(TabManager).isRequired,
+  closeElements: PropTypes.func.isRequired,
 };
 
 const mapStateToProps = (state) => ({

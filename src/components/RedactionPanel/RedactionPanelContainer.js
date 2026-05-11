@@ -4,7 +4,7 @@ import RedactionPanel from './RedactionPanel';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
 import selectors from 'selectors';
 import actions from 'actions';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import applyRedactions from 'helpers/applyRedactions';
 import { RedactionPanelContext, RedactionPanelProvider } from './RedactionPanelContext';
 import { isMobileSize } from 'helpers/getDeviceSize';
@@ -14,24 +14,13 @@ import RedactionSearchPanel from 'components/RedactionSearchPanel';
 import { defaultRedactionTypes } from 'constants/redactionTypes';
 
 export const RedactionPanelContainer = (props) => {
-  const [
-    isOpen,
-    isDisabled,
-    redactionPanelWidth,
-    isInDesktopOnlyMode,
-    customApplyRedactionsHandler,
-    redactionSearchPatterns,
-  ] = useSelector(
-    (state) => [
-      selectors.isElementOpen(state, 'redactionPanel'),
-      selectors.isElementDisabled(state, 'redactionPanel'),
-      selectors.getRedactionPanelWidth(state),
-      selectors.isInDesktopOnlyMode(state),
-      selectors.getCustomApplyRedactionsHandler(state),
-      selectors.getRedactionSearchPatterns(state),
-    ],
-    shallowEqual,
-  );
+  const { core } = useCore();
+  const isOpen = useSelector((state) => selectors.isElementOpen(state, 'redactionPanel'));
+  const isDisabled = useSelector((state) => selectors.isElementDisabled(state, 'redactionPanel'));
+  const redactionPanelWidth = useSelector((state) => selectors.getRedactionPanelWidth(state));
+  const isInDesktopOnlyMode = useSelector((state) => selectors.isInDesktopOnlyMode(state));
+  const customApplyRedactionsHandler = useSelector((state) => selectors.getCustomApplyRedactionsHandler(state));
+  const redactionSearchPatterns = useSelector((state) => selectors.getRedactionSearchPatterns(state), shallowEqual);
 
   const isMobile = isMobileSize();
 

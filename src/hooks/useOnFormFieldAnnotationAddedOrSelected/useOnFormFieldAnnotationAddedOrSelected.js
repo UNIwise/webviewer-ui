@@ -2,27 +2,59 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import selectors from 'selectors';
 import useOnRightClick from '../useOnRightClick';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import actions from 'actions';
 import DataElements from 'constants/dataElement';
-import { PRIORITY_THREE } from 'constants/actionPriority';
+import { PRIORITY_TWO } from 'constants/actionPriority';
+import { getInstanceNode } from 'helpers/getRootNode';
+
+const { Annotations } = window.Core;
 
 export default function useOnFormFieldAnnotationAddedOrSelected() {
+  const { core } = useCore();
   const dispatch = useDispatch();
   const isRightClickAnnotationPopupEnabled = useSelector(
     (state) => selectors.isRightClickAnnotationPopupEnabled(state)
   );
 
+  const { customizableUI = false } = useSelector(
+    (state) => selectors.getFeatureFlags(state) || {}
+  );
+
   const [currentFormAnnotation, setCurrentlyEditingFormAnnotation] = useState(null);
 
+  /**
+   * Opens form field edit pop up in legacy UI
+   * @ignore
+   * @remarks
+   * legacy UI: uses form field edit pop up.
+   * default UI: uses annotation popup and form field panel
+   * PRIORITY_TWO to not override user disabled elements
+   */
   const openFormFieldPopup = () => {
-    dispatch(actions.disableElement(DataElements.ANNOTATION_POPUP, PRIORITY_THREE));
+    if (customizableUI) {
+      dispatch(actions.closeElement(DataElements.FORM_FIELD_EDIT_POPUP));
+    } else {
+      dispatch(actions.disableElement(DataElements.ANNOTATION_POPUP, PRIORITY_TWO));
+    }
     dispatch(actions.openElement(DataElements.FORM_FIELD_EDIT_POPUP));
+    dispatch(actions.openElement(DataElements.FORM_FIELD_PANEL));
   };
 
+  /**
+   * Closes form field edit pop up and panel
+   * @ignore
+   * @remarks
+   * legacy UI: uses form field edit pop up.
+   * default UI: uses annotation popup and form field panel
+   * PRIORITY_TWO to not override user disabled elements
+   */
   const closeFormFieldPopup = () => {
-    dispatch(actions.enableElement(DataElements.ANNOTATION_POPUP, PRIORITY_THREE));
+    if (!customizableUI) {
+      dispatch(actions.enableElement(DataElements.ANNOTATION_POPUP, PRIORITY_TWO));
+    }
     dispatch(actions.closeElement(DataElements.FORM_FIELD_EDIT_POPUP));
+    dispatch(actions.closeElement(DataElements.FORM_FIELD_PANEL));
   };
 
   useEffect(() => {
@@ -35,15 +67,13 @@ export default function useOnFormFieldAnnotationAddedOrSelected() {
         return;
       }
       const annotation = annotations[0];
-      if (action === 'add' && annotation.isFormFieldPlaceholder() && annotation.getCustomData('trn-editing-widget-id') === '') {
-        // If for some reason we are drawing a new form field place holder before filling the name for the previous one, we will not switch
-        // to the new annotation until that name is filled
-        if (currentFormAnnotation?.getCustomData('trn-form-field-name') === '') {
-          return;
-        }
+      const isWidgetAnnotation = annotation instanceof window.Core.Annotations.WidgetAnnotation;
+      const isInFormBuilderMode = getInstanceNode().instance.Core.annotationManager.getFormFieldCreationManager().isInFormFieldCreationMode();
+
+      if (action === 'add' && isWidgetAnnotation && isInFormBuilderMode) {
         setCurrentlyEditingFormAnnotation(annotations[0]);
         openFormFieldPopup();
-      } else if (action === 'delete' && annotation.isFormFieldPlaceholder()) {
+      } else if (action === 'delete' && isWidgetAnnotation) {
         closeFormFieldPopup();
         setCurrentlyEditingFormAnnotation(null);
       }
@@ -53,39 +83,47 @@ export default function useOnFormFieldAnnotationAddedOrSelected() {
       if (isRightClickAnnotationPopupEnabled) {
         return;
       }
+      const isWidgetAnnotation = annotations.length && annotations[0] instanceof Annotations.WidgetAnnotation;
 
-      if (action === 'selected' && annotations.length && annotations[0].isFormFieldPlaceholder()) {
-        // If the currently set form field annotation has no name set, we don't want to switch it out
-        // as the form field edit popup will show the info for the wrong annotation, as we added logic to prevent
-        // the popup from closing when the field name is empty
-        if (currentFormAnnotation?.getCustomData('trn-form-field-name') === '') {
-          // de-select the form field annotation that was recently selected to avoid confusion
-          core.deselectAnnotation(annotations[0]);
-          return;
-        }
+      if (action === 'selected' && isWidgetAnnotation) {
         setCurrentlyEditingFormAnnotation(annotations[0]);
+      } else if (action === 'deselected' && isWidgetAnnotation) {
+        setCurrentlyEditingFormAnnotation(null);
       }
     };
 
+    const handleToolModeChange = (newTool) => {
+      const isInFormBuilderMode = getInstanceNode().instance.Core.annotationManager.getFormFieldCreationManager().isInFormFieldCreationMode();
+      const isFormFieldCreateTool = newTool instanceof window.Core.Tools.FormFieldCreateTool;
+      if (!isInFormBuilderMode) {
+        closeFormFieldPopup();
+        setCurrentlyEditingFormAnnotation(null);
+      } else if (customizableUI && isFormFieldCreateTool) {
+        openFormFieldPopup();
+        setCurrentlyEditingFormAnnotation(null);
+      }
+    };
     core.addEventListener('annotationChanged', onAnnotationChanged);
     core.addEventListener('annotationSelected', onAnnotationSelected);
+    core.addEventListener('toolModeUpdated', handleToolModeChange);
     return () => {
       core.removeEventListener('annotationChanged', onAnnotationChanged);
       core.removeEventListener('annotationSelected', onAnnotationSelected);
+      core.removeEventListener('toolModeUpdated', handleToolModeChange);
     };
-  }, [currentFormAnnotation]);
+  }, [currentFormAnnotation, customizableUI, core]);
 
   useOnRightClick(
     useCallback((e) => {
       if (!isRightClickAnnotationPopupEnabled) {
         return;
       }
-
+      const isWidgetAnnotation = annotUnderMouse instanceof Annotations.WidgetAnnotation;
       const annotUnderMouse = core.getAnnotationByMouseEvent(e);
-      if (annotUnderMouse && annotUnderMouse !== currentFormAnnotation && annotUnderMouse.isFormFieldPlaceholder()) {
+      if (annotUnderMouse && annotUnderMouse !== currentFormAnnotation && isWidgetAnnotation) {
         setCurrentlyEditingFormAnnotation(annotUnderMouse);
       }
-    }, [currentFormAnnotation, isRightClickAnnotationPopupEnabled])
+    }, [currentFormAnnotation, isRightClickAnnotationPopupEnabled, core])
   );
 
   return { annotation: currentFormAnnotation };

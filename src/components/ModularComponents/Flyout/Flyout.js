@@ -1,25 +1,31 @@
-import React, { useCallback, useState, useLayoutEffect, useRef, useEffect } from 'react';
+import React, { useCallback, useState, useLayoutEffect, useRef, useEffect, isValidElement } from 'react';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import selectors from 'selectors';
 import classNames from 'classnames';
-import './Flyout.scss';
-import useOnClickOutside from 'hooks/useOnClickOutside';
 import actions from 'actions';
-import { useTranslation } from 'react-i18next';
-import { FLYOUT_ITEM_HEIGHT } from 'constants/flyoutConstants';
-import { DEFAULT_GAP } from 'constants/customizationVariables';
-import getRootNode from 'helpers/getRootNode';
+import useOnClickOutside from 'hooks/useOnClickOutside';
+import useFocusOnClose from 'hooks/useFocusOnClose';
+import { DEFAULT_GAP, ITEM_TYPE, PRESET_BUTTON_TYPES, PRESET_BUTTONS_MODAL_TOGGLES } from 'constants/customizationVariables';
+import DataElements from 'constants/dataElement';
 import ZoomText from './flyoutHelpers/ZoomText';
+import getRootNode from 'helpers/getRootNode';
 import { getFlyoutPositionOnElement } from 'helpers/flyoutHelper';
+import { getFlyoutItemType } from 'helpers/itemToFlyoutHelper';
+import { isMobileSize } from 'helpers/getDeviceSize';
+import { getElementToFocusOnIndex } from 'helpers/keyboardNavigationHelper';
+import getAppRect from 'helpers/getAppRect';
 import FlyoutItem from 'components/ModularComponents/Flyout/flyoutHelpers/FlyoutItem';
-import DataElements from 'src/constants/dataElement';
-import useFocusOnClose from 'src/hooks/useFocusOnClose';
-import { getFlyoutItemType } from 'src/helpers/itemToFlyoutHelper';
-import Icon from 'src/components/Icon';
+import Icon from 'components/Icon';
+import './Flyout.scss';
+import { Swipeable } from 'react-swipeable';
+import useCore from 'hooks/useCore';
 
 const Flyout = () => {
+  const { core } = useCore();
   const { t } = useTranslation();
   const dispatch = useDispatch();
+  const isMobile = isMobileSize();
 
   const flyoutMap = useSelector(selectors.getFlyoutMap, shallowEqual);
   const activeFlyout = useSelector(selectors.getActiveFlyout);
@@ -29,6 +35,8 @@ const Flyout = () => {
   const topHeadersHeight = useSelector(selectors.getTopHeadersHeight);
   const bottomHeadersHeight = useSelector(selectors.getBottomHeadersHeight);
   const customizableUI = useSelector(selectors.getFeatureFlags)?.customizableUI;
+  const currentPage = useSelector(selectors.getCurrentPage);
+  const isSignatureModalOpen = useSelector((state) => selectors.isElementOpen(state, DataElements.SIGNATURE_MODAL));
 
   const flyoutProperties = flyoutMap[activeFlyout];
   const horizontalHeadersUsedHeight = topHeadersHeight + bottomHeadersHeight + DEFAULT_GAP;
@@ -36,6 +44,8 @@ const Flyout = () => {
   const [activePath, setActivePath] = useState([]);
   const [currentFocusIndex, setCurrentFocusIndex] = useState(-1);
   const [focusableElements, setFocusableElements] = useState([]);
+  const [inputValue, setInputValue] = useState('');
+  const [shouldOverflow, setShouldOverflow] = useState(false);
 
   let activeItem = null;
   for (const index of activePath) {
@@ -54,47 +64,99 @@ const Flyout = () => {
     return getRootNode().querySelector(`[data-element="${dataElement}"]`);
   };
 
+  const getFocusableElements = () => {
+    return flyoutRef.current.querySelectorAll('button:not([disabled]), input:not([disabled]), div[role="combobox"]:not([disabled])');
+  };
+
   useLayoutEffect(() => {
     const tempRefElement = getElementDOMRef(toggleElement);
-    const correctedPosition = { x: position.x, y: position.y };
-    const appRect = getRootNode().getElementById('app').getBoundingClientRect();
-    const maxHeightValue = appRect.height - horizontalHeadersUsedHeight;
-    setMaxHeightValue(maxHeightValue);
 
-    // Check if the elment is in the dom or invisible
+    // Check if the element is in the DOM or invisible
     if (tempRefElement && tempRefElement.offsetParent === null) {
       return;
     }
 
-    // Check if toggleElement is not null
-    if (toggleElement && tempRefElement) {
-      const { x, y } = getFlyoutPositionOnElement(toggleElement, flyoutRef);
-      correctedPosition.x = x;
-      correctedPosition.y = y;
-    } else {
-      const correctedPosition = { x: position.x, y: position.y };
-      const widthOverflow = position.x + flyoutRef.current?.offsetWidth - appRect.width;
-      const maxElementHeight = activeItem && activeItem.children.length > items.length ? activeItem.children.length : items.length;
-      const heightOverflow = position.y + maxElementHeight * (FLYOUT_ITEM_HEIGHT + 8) - appRect.height;
-      if (widthOverflow > 0) {
-        correctedPosition.x = position.x - widthOverflow;
+    const calculateAndMaybeSetPosition = () => {
+      const refEl = getElementDOMRef(toggleElement);
+      const app = getAppRect();
+      // Keep max height in sync with the exact app rect used for positioning
+      setMaxHeightValue(app.height - horizontalHeadersUsedHeight);
+      const next = { x: position.x, y: position.y };
+
+      if (toggleElement && refEl) {
+        const { x, y } = getFlyoutPositionOnElement(toggleElement, flyoutRef);
+        next.x = x;
+        next.y = y;
       }
-      if (heightOverflow > 0) {
-        correctedPosition.y = position.y - heightOverflow;
+
+      const flyoutRect = flyoutRef.current?.getBoundingClientRect();
+      if (flyoutRect && app) {
+        const PADDING = 5;
+        const widthOverflow = next.x + flyoutRect.width + PADDING - app.right;
+        const heightOverflow = next.y + flyoutRect.height + PADDING - app.bottom;
+        if (widthOverflow > 0) {
+          next.x -= widthOverflow;
+        }
+        if (heightOverflow > 0) {
+          next.y -= heightOverflow;
+        }
+        if (next.x < PADDING) {
+          next.x = PADDING;
+        }
+        if (next.y < PADDING) {
+          next.y = PADDING;
+        }
       }
-      if (correctedPosition.x < 0) {
-        correctedPosition.x = 0;
+
+      setCorrectedPosition((prev) => {
+        if (!prev || prev.x !== next.x || prev.y !== next.y) {
+          return next;
+        }
+        return prev;
+      });
+    };
+
+    // Run once now and once on the next frame to catch late layout
+    if (flyoutRef.current) {
+      calculateAndMaybeSetPosition();
+      requestAnimationFrame(calculateAndMaybeSetPosition);
+    }
+
+    let resizeObserver;
+
+    if (typeof ResizeObserver !== 'undefined' && flyoutRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        calculateAndMaybeSetPosition();
+      });
+      resizeObserver.observe(flyoutRef.current);
+    }
+
+    return () => {
+      if (resizeObserver) {
+        resizeObserver.disconnect();
       }
-      if (correctedPosition.y < 0) {
-        correctedPosition.y = 0;
+    };
+  }, [activePath, position, items, inputValue, isFlyoutOpen]);
+
+  useLayoutEffect(() => {
+    const appRect = getAppRect();
+    const flyoutRect = flyoutRef.current?.getBoundingClientRect();
+    let isChildOverflowing = false;
+    const flyoutChildren = flyoutRef?.current?.firstChild?.children;
+    if (flyoutChildren) {
+      for (let child of flyoutChildren) {
+        if (child.getBoundingClientRect().bottom > flyoutRect.bottom) {
+          isChildOverflowing = true;
+          break;
+        }
       }
     }
-    setCorrectedPosition(correctedPosition);
-  }, [activeItem, position, items]);
+    setShouldOverflow(appRect && flyoutRect && appRect.height > 0 && (flyoutRect.height > appRect.height || isChildOverflowing));
+  }, [activePath, position, items]);
 
   useEffect(() => {
     if (flyoutRef.current) {
-      const focusableElements = flyoutRef.current.querySelectorAll('button:not([disabled]), input:not([disabled])');
+      const focusableElements = getFocusableElements();
       if (focusableElements.length) {
         focusableElements[0].focus();
         setCurrentFocusIndex(0);
@@ -103,19 +165,47 @@ const Flyout = () => {
     }
   }, [activePath, flyoutRef.current]);
 
+  useEffect(() => {
+    if (flyoutRef.current) {
+      // This is to handle cases where the flyout items can be disabled while interacting with them,
+      // for example the Page Controls flyout items can be disabled when the user is on the first or last page.
+      const newFocusableElements = getFocusableElements();
+      setFocusableElements(newFocusableElements);
+
+      // If the current focused element is disabled, we need to find the next focusable element to focus on
+      if (focusableElements[currentFocusIndex] !== newFocusableElements[currentFocusIndex]) {
+        const newCurrentFocusIndex = getElementToFocusOnIndex(newFocusableElements, focusableElements, currentFocusIndex);
+        newFocusableElements[newCurrentFocusIndex].focus();
+        setCurrentFocusIndex(newCurrentFocusIndex);
+      }
+    }
+  }, [currentPage]);
+
   const closeFlyout = useFocusOnClose(useCallback(() => {
     dispatch(actions.closeElements([activeFlyout]));
+    setActivePath([]);
   }, [dispatch, activeFlyout]));
+
+  const isPlacingSignatureOnDocument = (e) => {
+    const toolMode = core.getToolMode();
+    const isSignatureTool =  ['AnnotationCreateSignature', 'AnnotationCreateInitials'].includes(toolMode?.name);
+    const isPlacingOnWidget = e.target.closest('[id^="SignatureFormField"]');
+    const isPlacingOnDocument = e.target.id.startsWith('pageContainer') || e.target.id.startsWith('pageWidgetContainer');
+    return isSignatureTool && (isPlacingOnWidget || isPlacingOnDocument);
+  };
 
   const onClickOutside = useCallback(
     (e) => {
       const menuButton = getElementDOMRef(toggleElement);
       const clickedMenuButton = menuButton?.contains(e.target);
-      if (!clickedMenuButton) {
+      const isClickingColorPicker = e.target.closest('.ColorPickerOverlay');
+      const isClickingColorModal = e.target.closest('[data-element="ColorPickerModal"]');
+      const isDrawingOrCreatingSignature = isSignatureModalOpen && (e.target.closest('.SignatureModal') || e.target.classList.contains('signature-create'));
+      if (!clickedMenuButton && !isClickingColorPicker && !isClickingColorModal && !isPlacingSignatureOnDocument(e) && !isDrawingOrCreatingSignature) {
         closeFlyout();
       }
     },
-    [closeFlyout, toggleElement],
+    [closeFlyout, toggleElement, isSignatureModalOpen],
   );
 
   useOnClickOutside(flyoutRef, onClickOutside);
@@ -130,13 +220,22 @@ const Flyout = () => {
     }
     if (flyoutItem.onClick) {
       try {
-        flyoutItem.onClick();
+        flyoutItem.onClick(e, dataElement);
       } catch (error) {
         console.error(error);
       }
+      const isKeyboardEvent = e.nativeEvent.isKeyboardAction;
+      const isModalToggle = PRESET_BUTTONS_MODAL_TOGGLES.includes(flyoutItem.dataElement);
+      const shouldCloseFlyoutCases = dataElement !== DataElements.VIEW_CONTROLS_FLYOUT &&
+        flyoutItem.type !== ITEM_TYPE.PAGE_NAVIGATION_BUTTON &&
+        flyoutItem.dataElement !== DataElements.OFFICE_EDITOR_FLYOUT_COLOR_PICKER &&
+        flyoutItem.buttonType !== PRESET_BUTTON_TYPES.OE_COLOR_PICKER;
 
-      if (!flyoutItem.children && dataElement !== DataElements.VIEWER_CONTROLS_FLYOUT) {
-        closeFlyout();
+      if (!flyoutItem.children && shouldCloseFlyoutCases) {
+        // keep open if keyboard event and modal toggle so we can transfer focus back and forth
+        if (!(isKeyboardEvent && isModalToggle)) {
+          closeFlyout();
+        }
       }
     }
   };
@@ -149,16 +248,21 @@ const Flyout = () => {
   };
 
   const onKeyDownHandler = (e) => {
+    const targetElement = e.target;
+    const elementType = targetElement.tagName.toLowerCase();
+
     if (e.shiftKey && e.key === 'Tab') {
       e.preventDefault();
       closeFlyout();
     } else {
       switch (e.code) {
         case 'ArrowDown':
+        case 'ArrowRight':
           e.preventDefault();
           moveFocus(1);
           break;
         case 'ArrowUp':
+        case 'ArrowLeft':
           e.preventDefault();
           moveFocus(-1);
           break;
@@ -178,17 +282,21 @@ const Flyout = () => {
         case 'Enter':
         case 'Space': {
           e.preventDefault();
-          const focusedElement = focusableElements[currentFocusIndex];
-          const elementType = focusedElement.tagName.toLowerCase();
 
           if (elementType === 'button') {
-            focusedElement.click();
+            // Trigger the button's onClick handler directly, passing an additional flag to identify it as a keyboard action
+            const syntheticEvent = new Event('click', { bubbles: true, cancelable: true });
+            syntheticEvent.isKeyboardAction = true;
+            targetElement.dispatchEvent(syntheticEvent);
           } else if (elementType === 'input') {
-            focusedElement.parentNode.dispatchEvent(new Event('submit', { bubbles: true }));
+            targetElement.parentNode.dispatchEvent(new Event('submit', { bubbles: true }));
           }
           break;
         }
         default:
+          if (elementType === 'input') {
+            setInputValue(targetElement.value);
+          }
           break;
       }
     }
@@ -216,7 +324,11 @@ const Flyout = () => {
 
   const renderItems = (itemList, isChild = false) => {
     return itemList.map((item, index) => {
-      const itemType = getFlyoutItemType(item);
+      if (isValidElement(item)) {
+        return item;
+      }
+
+      const itemType = item.type ?? getFlyoutItemType(item);
       return (
         <FlyoutItem
           ref={currentFocusIndex === index ? flyoutItemRef : null}
@@ -230,15 +342,23 @@ const Flyout = () => {
           items={itemsToRender}
           activeFlyout={activeFlyout}
           type={itemType}
+          id={item?.id}
+          labelledById={item?.labelledById}
         />
       );
     });
   };
 
+  const onSwipeDown = () => {
+    if (isMobile) {
+      closeFlyout();
+    }
+  };
+
   const flyoutStyles = {
     left: correctedPosition.x,
     top: correctedPosition.y,
-    maxHeight: maxHeightValue
+    maxHeight: maxHeightValue - 10, // Subtracting 10px for some padding
   };
 
   if (!activeItem && !itemsToRender.length) {
@@ -247,32 +367,37 @@ const Flyout = () => {
 
   return (
     isFlyoutOpen &&
-    <div
-      className={classNames({
-        'Flyout': true,
-        'legacy-ui': !customizableUI,
-      })}
-      data-element={dataElement}
-      ref={flyoutRef}
-      style={flyoutStyles}
-    >
-      <menu
-        id='FlyoutContainer'
+    <Swipeable onSwipedDown={onSwipeDown} trackMouse preventDefaultTouchmoveEvent>
+      <div
         className={classNames({
-          FlyoutContainer: true,
-          [className]: true,
+          'Flyout': true,
+          'legacy-ui': !customizableUI,
+          'mobile': isMobile,
         })}
+        data-element={dataElement}
+        ref={flyoutRef}
+        style={!isMobile ? flyoutStyles : undefined}
       >
-        {activeItem ? (
-          <>
-            {renderBackButton()}
-            {renderItems(activeChildren, true)}
-          </>
-        ) : (
-          renderItems(itemsToRender)
-        )}
-      </menu>
-    </div>
+        {isMobile && <div className="swipe-indicator" />}
+        <menu
+          id='FlyoutContainer'
+          className={classNames({
+            FlyoutContainer: true,
+            [className]: true,
+          })}
+          style={shouldOverflow ? { overflowY: 'auto' } : undefined}
+        >
+          {activeItem ? (
+            <>
+              {renderBackButton()}
+              {renderItems(activeChildren, true)}
+            </>
+          ) : (
+            renderItems(itemsToRender)
+          )}
+        </menu>
+      </div>
+    </Swipeable>
   );
 };
 

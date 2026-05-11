@@ -1,4 +1,4 @@
-import core from 'core';
+import useCore from 'hooks/useCore';
 import getNumberOfDecimalPlaces from 'helpers/getNumberOfDecimalPlaces';
 import { isMobileDevice } from 'src/helpers/device';
 import { precisionFractions } from 'constants/measurementScale';
@@ -54,16 +54,18 @@ const propTypes = {
     return null;
   },
   isOpen: PropTypes.bool.isRequired,
+  canModify: PropTypes.bool,
 };
 
-function EllipseMeasurementOverlay({ annotation, isOpen, selectedTool }) {
+function EllipseMeasurementOverlay({ annotation, isOpen, selectedTool, canModify }) {
+  const { core } = useCore();
   const { t } = useTranslation();
 
   const isReadOnly = useSelector((state) => selectors.isDocumentReadOnly(state));
   const area = annotation?.getMeasurementTextWithScaleAndUnits?.() || 0;
   const data = {
     precision: !annotation ? selectedTool?.defaults?.Precision : annotation.Precision,
-    unit: getFormattedUnit((annotation?.Scale || selectedTool?.defaults?.Scale)[1][1]),
+    unit: getFormattedUnit((annotation?.Scale || selectedTool?.defaults?.Scale)?.[1][1]),
     area,
   };
 
@@ -235,7 +237,7 @@ function EllipseMeasurementOverlay({ annotation, isOpen, selectedTool }) {
           className="scale-input"
           type="number"
           min="0"
-          disabled={isReadOnly || !annotation}
+          disabled={isReadOnly || !annotation || !canModify}
           value={radius}
           onChange={(event) => {
             onChangeRadiusLength(event);

@@ -1,27 +1,30 @@
 :root {
   /* stylelint-disable color-no-hex */
   --blue-1: #192530;
-  --blue-2: #1B2B3A;
+  --blue-2: #1b2b3a;
   --blue-3: #334250;
   --blue-4: #334758;
-  --blue-5: #1A4971;
-  --blue-6: #3183C8;
+  --blue-5: #1a4971;
+  --blue-6: #3183c8;
 
   --gray-0: #000000;
-  --gray-1: #16181C;
-  --gray-2: #21242A;
-  --gray-3: #343A40;
+  --gray-1: #16181c;
+  --gray-2: #21242a;
+  --gray-3: #343a40;
   --gray-4: #485056;
-  --gray-5: #868E96;
-  --gray-6: #ADB5BD;
-  --gray-7: #CFD4DA;
-  --gray-8: #DEE2E6;
-  --gray-9: #E7EBEE;
-  --gray-10: #F1F3F5;
-  --gray-11: #F8F9FA;
-  --gray-12: #FFFFFF;
+  --gray-5: #868e96;
+  --gray-6: #adb5bd;
+  --gray-7: #cfd4da;
+  --gray-8: #dee2e6;
+  --gray-9: #e7ebee;
+  --gray-10: #f1f3f5;
+  --gray-11: #f8f9fa;
+  --gray-12: #ffffff;
 
   --yellow-1: #e1b90080;
+  --yellow-2: #191100;
+  --yellow-3: #FFD889;
+
   --red: red;
   /* stylelint-enable color-no-hex */
 
@@ -36,6 +39,11 @@
 
   --error-text-color: var(--red);
   --error-border-color: var(--red);
+
+  --warning-background: var(--yellow-2);
+  --warning-border: var(--yellow-3);
+  --warning-text: var(--yellow-3);
+
 
   --ribbons-background: var(--gray-2);
   --box-shadow: var(--gray-5);
@@ -103,7 +111,6 @@
   --view-header-background: var(--gray-3);
   --tools-overlay-background: var(--gray-2);
 
-
   --tools-button-hover: var(--blue-1);
   --tools-button-active: var(--blue-2);
 
@@ -127,13 +134,34 @@
   --tab-border-color: var(--border);
   --tab-border-color-hover: var(--border);
   --tab-background-color-hover: var(--popup-button-hover);
-  --tab-border-color-selected: var(--border);
+  --tab-color-selected: var(--border);
   --tab-text-color-selected: var(--text-color);
+  --tab-inline-comment-divider-color: var(--gray-7);
 
   --disabled-button-color: rgba(173, 181, 189, 0.5);
   --tab-footer-button-color: var(--primary-button-text);
+  --x-button-hover-color: var(--view-header-button-hover);
+
+  --slider-height: 2px;
+  --slider-thumb-size: 9px;
+  --slider-thumb-margin: -2px;
+
+  --slider-filler: none;
+  --style-icon-color: var(--selected-icon-color);
+  --cell-border-size: 28px;
+  --cell-outer-border-size: 26px;
+  --button-icon-color-active: var(--blue-6);
+  --slider-svg-hieght: 18px;
+  --slider-input-focus: var(--focus-border);
+  --colorpicker-tool-shadow: none;
+  --colorpicker-tool-bg: none;
 
   --input-switch-default-color: var(--gray-3);
 
   --focus-visible-outline: 2px solid var(--gray-10);
+
+  --change-list-old-bg: #390000;
+  --change-list-new-bg: #002114;
+  --change-list-title-old: #FF8686;
+  --change-list-title-new: #66FFC1;
 }

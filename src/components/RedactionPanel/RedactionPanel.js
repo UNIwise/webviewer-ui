@@ -9,6 +9,8 @@ import Button from 'components/Button';
 
 import './RedactionPanel.scss';
 import RedactionPageGroup from '../RedactionPageGroup';
+import DataElements from 'src/constants/dataElement';
+import useFocusHandler from 'hooks/useFocusHandler';
 
 const RedactionPanel = (props) => {
   const { redactionAnnotations, applyAllRedactions, deleteAllRedactionAnnotations, redactionTypesDictionary } = props;
@@ -77,11 +79,15 @@ const RedactionPanel = (props) => {
   const redactAllButtonClassName = classNames('redact-all-marked', { disabled: redactionAnnotations.length === 0 });
   const clearAllButtonClassName = classNames('clear-all-marked', { disabled: redactionAnnotations.length === 0 });
 
+  const applyAllRedactionsWithFocusHandler = useFocusHandler(applyAllRedactions);
   return (
     <>
-      <div className="marked-redaction-counter">
-        <span>{t('redactionPanel.redactionCounter')}</span> {`(${redactionAnnotations.length})`}
-      </div>
+      <h2 className="marked-redaction-counter">
+        {t('redactionPanel.redactionCounter')}
+        <span>
+          {` (${redactionAnnotations.length})`}
+        </span>
+      </h2>
       {redactionPageNumbers.length > 0 ? renderRedactionPageGroups() : noRedactionAnnotations}
       <div className="redaction-panel-controls">
         <Button
@@ -89,17 +95,14 @@ const RedactionPanel = (props) => {
           className={clearAllButtonClassName}
           onClick={deleteAllRedactionAnnotations}
           label={t('redactionPanel.clearMarked')}
-        >
-          {t('redactionPanel.clearMarked')}
-        </Button>
+        />
         <Button
           disabled={redactionAnnotations.length === 0}
           className={redactAllButtonClassName}
-          onClick={applyAllRedactions}
+          onClick={applyAllRedactionsWithFocusHandler}
+          dataElement={DataElements.REDACT_ALL_MARKED_BUTTON}
           label={t('redactionPanel.redactAllMarked')}
-        >
-          {t('redactionPanel.redactAllMarked')}
-        </Button>
+        />
       </div>
     </>
   );

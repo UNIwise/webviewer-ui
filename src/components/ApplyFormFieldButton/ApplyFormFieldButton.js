@@ -1,18 +1,20 @@
 import React, { useCallback } from 'react';
 import Button from 'components/Button';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import actions from 'actions';
 import { useDispatch } from 'react-redux';
 import './ApplyFormFieldButton.scss';
 
 const ApplyFormFieldButton = () => {
+  const { core } = useCore();
   const dispatch = useDispatch();
-  const formFieldCreationManager = core.getFormFieldCreationManager();
 
   const applyFormFields = useCallback(() => {
-    formFieldCreationManager.endFormFieldCreationMode();
+    core.getDocumentViewers().forEach((viewer) => {
+      viewer.getAnnotationManager().getFormFieldCreationManager().endFormFieldCreationMode();
+    });
     dispatch(actions.setToolbarGroup('toolbarGroup-View'));
-  }, [formFieldCreationManager, dispatch]);
+  }, [core, dispatch]);
 
   return (
     <Button

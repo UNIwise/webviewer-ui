@@ -5,6 +5,7 @@ import viewerReducer from 'src/redux/reducers/viewerReducer';
 import initialState from 'src/redux/initialState';
 import ToolsOverlayComponent from '.';
 import featureFlagsReducer from 'src/redux/reducers/featureFlagsReducer';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 
 export default {
@@ -36,3 +37,5 @@ const BasicComponent = (props) => {
 };
 
 export const ToolsOverlay = BasicComponent.bind({});
+
+ToolsOverlay.parameters = disableRtlModeParameters;

@@ -1,7 +1,8 @@
 import core from 'core';
 import localStorageManager from 'helpers/localStorageManager';
 import touchEventManager from 'helpers/TouchEventManager';
-import hotkeysManager, { Shortcuts } from 'helpers/hotkeysManager';
+import hotkeysManager from 'helpers/hotkeysManager';
+import { Shortcuts } from 'helpers/hotkeysUtils';
 import { enableMultiTab } from 'helpers/TabManager';
 import Feature from 'constants/feature';
 import { PRIORITY_TWO } from 'constants/actionPriority';
@@ -11,7 +12,10 @@ import disableTools from 'src/apis/disableTools';
 import setToolMode from 'src/apis/setToolMode';
 import selectors from 'selectors';
 import DataElements from 'constants/dataElement';
+import { workerTypes } from 'constants/types';
+import getType from 'core/getType';
 import { isOfficeEditorMode } from './officeEditor';
+import { addHeaderItems, resetHeaderItems } from 'helpers/multiViewerHelper';
 
 // a higher order function that creates the enableFeatures and disableFeatures APIs
 export default (enable, store) => (features, priority = PRIORITY_TWO) => {
@@ -29,16 +33,14 @@ export default (enable, store) => (features, priority = PRIORITY_TWO) => {
         'linkButton',
         'noteState',
         DataElements.NOTE_MULTI_SELECT_MODE_BUTTON,
+        'tools-header',
+        'markReplaceTextToolButton',
       ],
       fn: () => {
-        const state = store.getState();
-        const isCustomizableUI = state.featureFlags.customizableUI;
-        if (!isCustomizableUI) {
-          if (enable) {
-            store.dispatch(actions.enableRibbons());
-          } else {
-            store.dispatch(actions.setReadOnlyRibbons());
-          }
+        if (enable) {
+          store.dispatch(actions.enableRibbons());
+        } else {
+          store.dispatch(actions.setReadOnlyRibbons());
         }
       },
     },
@@ -184,11 +186,20 @@ export default (enable, store) => (features, priority = PRIORITY_TWO) => {
     [Feature.TextSelection]: {
       dataElements: ['textPopup', 'textSelectButton'],
       fn: () => {
+        const toolMap = core.getToolModeMap() || {};
         if (!enable) {
           core.clearSelection();
           core.setToolMode('AnnotationEdit');
         }
-        window.Core.Tools.Tool.ENABLE_TEXT_SELECTION = enable;
+        Object.values(toolMap).forEach((tool) => {
+          if (tool && tool.isTextSelectionEnabled) {
+            if (enable) {
+              tool.enableTextSelection();
+            } else {
+              tool.disableTextSelection();
+            }
+          }
+        });
       },
     },
     [Feature.TouchScrollLock]: {
@@ -277,15 +288,22 @@ export default (enable, store) => (features, priority = PRIORITY_TWO) => {
     },
     [Feature.OutlineEditing]: {
       dataElements: [
-        'outlineControls',
-        'addNewOutlineButtonContainer',
-        'addNewOutlineButton',
-        'outlineEditPopup',
-        'outlineRenameButton',
-        'outlineSetDestinationButton',
-        'outlineDeleteButton',
+        DataElements.OUTLINE_MULTI_SELECT,
+        DataElements.OUTLINE_ADD_NEW_BUTTON_CONTAINER,
+        DataElements.OUTLINE_ADD_NEW_BUTTON,
+        DataElements.OUTLINE_RENAME_BUTTON,
+        DataElements.OUTLINE_SET_DESTINATION_BUTTON,
+        DataElements.OUTLINE_DELETE_BUTTON,
+        DataElements.OUTLINE_MOVE_UP_BUTTON,
+        DataElements.OUTLINE_MOVE_DOWN_BUTTON,
+        DataElements.OUTLINE_MOVE_LEFT_BUTTON,
+        DataElements.OUTLINE_MOVE_RIGHT_BUTTON,
       ],
       fn: () => {
+        if (getType() === workerTypes.OFFICE) {
+          console.warn('Outline Editing is not supported in Office Viewing mode');
+        }
+
         store.dispatch(actions.setIsOutlineEditing(enable));
       }
     },
@@ -338,19 +356,20 @@ export default (enable, store) => (features, priority = PRIORITY_TWO) => {
           store.dispatch(actions.setTabs([]));
           store.dispatch(actions.setActiveTab(0));
         }
-        console.warn('Feature.MultiViewerMode is deprecated and will be removed in the next major release. Please use UI.enterMultiViewerMode and UI.exitMultiViewerMode instead.');
-        store.dispatch(actions.setIsMultiViewerMode(enable));
-      }
-    },
-    [Feature.SideBySideView]: {
-      fn: () => {
         store.dispatch(actions.setIsMultiViewerModeAvailable(enable));
       }
     },
     [Feature.ComparePages]: {
+      dataElements: ['comparePanelToggle'],
       fn: () => {
         store.dispatch(actions.setComparePagesButtonEnabled(enable));
-      }
+        const isMultiViewerMode = selectors.isMultiViewerMode(store.getState());
+        if (enable && isMultiViewerMode) {
+          addHeaderItems(store);
+        } else {
+          resetHeaderItems(store);
+        }
+      },
     },
     [Feature.Initials]: {
       dataElements: [
@@ -386,26 +405,29 @@ export default (enable, store) => (features, priority = PRIORITY_TWO) => {
         }
       }
     },
-    [Feature.WatermarkPanel]: {
-      dataElements: [
-        DataElements.WATERMARK_PANEL,
-        DataElements.WATERMARK_PANEL_TOGGLE,
-      ],
-    },
-    [Feature.WatermarkPanelImageTab]: {
-      dataElements: [
-        DataElements.WATERMARK_PANEL_IMAGE_TAB,
-      ],
-    },
     [Feature.LegacyRichTextPopup]: {
       dataElements: [DataElements.LEGACY_RICH_TEXT_POPUP],
     },
     [Feature.Portfolio]: {
-      dataElements: [
-        DataElements.CREATE_PORTFOLIO_BUTTON,
-        DataElements.PORTFOLIO_PANEL_BUTTON,
-        DataElements.PORTFOLIO_PANEL,
-      ],
+      fn: () => {
+        if (enable) {
+          if (!core.isFullPDFEnabled()) {
+            console.warn('Full api is not enabled, portfolio is disabled');
+            return;
+          }
+          store.dispatch(actions.enableElements([
+            DataElements.CREATE_PORTFOLIO_BUTTON,
+            DataElements.PORTFOLIO_PANEL_BUTTON,
+            DataElements.PORTFOLIO_PANEL,
+          ], PRIORITY_TWO));
+        } else {
+          store.dispatch(actions.disableElements([
+            DataElements.CREATE_PORTFOLIO_BUTTON,
+            DataElements.PORTFOLIO_PANEL_BUTTON,
+            DataElements.PORTFOLIO_PANEL,
+          ], PRIORITY_TWO));
+        }
+      },
     },
   };
 

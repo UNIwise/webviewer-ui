@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useDispatch, useSelector, shallowEqual, useStore } from 'react-redux';
+import { useDispatch, useSelector, useStore, shallowEqual } from 'react-redux';
 import DataElementWrapper from '../DataElementWrapper';
 import defaultTool from 'constants/defaultTool';
 import DataElements from 'constants/dataElement';
@@ -15,36 +15,25 @@ import './SignatureListPanel.scss';
 import Divider from '../ModularComponents/Divider';
 import SavedSignatures from './SavedSignatures';
 import SignatureAddButton from './SignatureAddButton';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import PropTypes from 'prop-types';
 import Events from 'constants/events';
+import { getEventHandler } from 'helpers/fireEvent';
 
-const SignatureListPanel = ({ panelSize }) => {
+const SignatureListPanel = ({ panelSize, dataElement = DataElements.SIGNATURE_LIST_PANEL, isFlyout = false }) => {
+  const { core } = useCore();
   const [t] = useTranslation();
   const isMobile = isMobileSize();
 
-  const [
-    savedSignatures,
-    maxSignaturesCount,
-    displayedSignaturesFilterFunction,
-    isSignatureDeleteButtonDisabled,
-    savedInitials,
-    selectedSignatureIndex,
-    signatureMode,
-    mobilePanelSize
-  ] = useSelector(
-    (state) => [
-      selectors.getSavedSignatures(state),
-      selectors.getMaxSignaturesCount(state),
-      selectors.getDisplayedSignaturesFilterFunction(state),
-      selectors.isElementDisabled(state, 'defaultSignatureDeleteButton'),
-      selectors.getSavedInitials(state),
-      selectors.getSelectedDisplayedSignatureIndex(state),
-      selectors.getSignatureMode(state),
-      selectors.getMobilePanelSize(state),
-    ],
-    shallowEqual,
-  );
+  const savedSignatures = useSelector(selectors.getSavedSignatures, shallowEqual);
+  const maxSignaturesCount = useSelector(selectors.getMaxSignaturesCount);
+  const displayedSignaturesFilterFunction = useSelector(selectors.getDisplayedSignaturesFilterFunction);
+  const isSignatureDeleteButtonDisabled = useSelector((state) => selectors.isElementDisabled(state, 'defaultSignatureDeleteButton'));
+  const savedInitials = useSelector(selectors.getSavedInitials, shallowEqual);
+  const selectedSignatureIndex = useSelector(selectors.getSelectedDisplayedSignatureIndex);
+  const signatureMode = useSelector(selectors.getSignatureMode);
+  const mobilePanelSize = useSelector(selectors.getMobilePanelSize);
+
   const store = useStore();
   const TOOL_NAME = 'AnnotationCreateSignature';
   const signatureToolArray = core.getToolsFromAllDocumentViewers(TOOL_NAME);
@@ -73,10 +62,10 @@ const SignatureListPanel = ({ panelSize }) => {
   }, [savedSignatures, savedInitials, displayedSignaturesFilterFunction]);
 
   useEffect(() => {
-    if (mobilePanelSize !== PANEL_SIZES.SMALL_SIZE && isMobile) {
+    if (mobilePanelSize !== PANEL_SIZES.SMALL_SIZE && isMobile && savedSignaturesAndInitials.length > 0) {
       dispatch(actions.setMobilePanelSize(PANEL_SIZES.SMALL_SIZE));
     }
-  }, [selectedSignatureIndex]);
+  }, [selectedSignatureIndex, savedSignaturesAndInitials]);
 
   useEffect(() => {
     const onVisibilityChanged = (e) => {
@@ -90,9 +79,9 @@ const SignatureListPanel = ({ panelSize }) => {
       }
     };
 
-    window.addEventListener(Events.VISIBILITY_CHANGED, onVisibilityChanged);
+    getEventHandler().addEventListener(Events.VISIBILITY_CHANGED, onVisibilityChanged);
     return () => {
-      window.removeEventListener(Events.VISIBILITY_CHANGED, onVisibilityChanged);
+      getEventHandler().removeEventListener(Events.VISIBILITY_CHANGED, onVisibilityChanged);
     };
   }, []);
 
@@ -161,19 +150,20 @@ const SignatureListPanel = ({ panelSize }) => {
 
 
   return (
-    <DataElementWrapper dataElement={DataElements.SIGNATURE_LIST_PANEL} className={
+    <DataElementWrapper dataElement={dataElement} className={
       classNames({
         'Panel': true,
         'SignatureListPanel': true,
         'hideAddButton': savedSignatures.length && panelSize === PANEL_SIZES.SMALL_SIZE,
         [panelSize]: true,
+        'isFlyout': isFlyout,
       })
     }>
-      <div className='signature-list-panel-header'>
+      <h2 className='signature-list-panel-header'>
         {t('signatureListPanel.header')}
-      </div>
+      </h2>
       <SignatureAddButton isDisabled={savedSignaturesAndInitials.length >= maxSignaturesCount} />
-      <Divider />
+      { savedSignaturesAndInitials.length > 0 && <Divider /> }
       <SavedSignatures
         savedSignatures={savedSignaturesAndInitials}
         onFullSignatureSetHandler={setSignature}
@@ -189,6 +179,8 @@ const SignatureListPanel = ({ panelSize }) => {
 
 SignatureListPanel.propTypes = {
   panelSize: PropTypes.oneOf(Object.values(PANEL_SIZES)),
+  dataElement: PropTypes.string,
+  isFlyout: PropTypes.bool,
 };
 
 export default SignatureListPanel;

@@ -54,9 +54,9 @@ describe('NotesPanelHeader', () => {
         </Provider>
       );
 
-      screen.getByPlaceholderText('Search annotations'); // WISEflow term change
+      screen.getByPlaceholderText('Search comments'); // WISEflow term change
       screen.getByText('Sort:');
-      screen.getByText('Annotations'); // WISEflow term change
+      screen.getByText('Comments (0)');
     });
 
     it('Should not render NotesPanelHeader if disabled', () => {
@@ -68,9 +68,9 @@ describe('NotesPanelHeader', () => {
         </Provider>
       );
 
-      expect(screen.queryByPlaceholderText('Search annotations')).not.toBeInTheDocument; // WISEflow term change
+      expect(screen.queryByPlaceholderText('Search comments')).not.toBeInTheDocument; // WISEflow term change
       expect(screen.queryByText('Sort:')).not.toBeInTheDocument;
-      expect(screen.queryByText('Annotations')).not.toBeInTheDocument; // WISEflow term change
+      expect(screen.queryByText('Comments (0)')).not.toBeInTheDocument;
     });
 
     it('Should not render search input if disabled', () => {
@@ -85,9 +85,9 @@ describe('NotesPanelHeader', () => {
         </Provider>
       );
 
-      expect(screen.queryByPlaceholderText('Search annotations')).not.toBeInTheDocument(); // WISEflow term change
+      expect(screen.queryByPlaceholderText('Search comments')).not.toBeInTheDocument(); // WISEflow term change
       screen.getByText('Sort:');
-      screen.getByText('Annotations'); // WISEflow term change
+      screen.getByText('Comments (0)');
     });
 
     it('Should not render comments counter if disabled', () => {
@@ -102,9 +102,9 @@ describe('NotesPanelHeader', () => {
         </Provider>
       );
 
-      screen.getByPlaceholderText('Search annotations'); // WISEflow term change
+      screen.getByPlaceholderText('Search comments'); // WISEflow term change
       screen.getByText('Sort:');
-      expect(screen.queryByText('Annotations')).not.toBeInTheDocument; // WISEflow term change
+      expect(screen.queryByText('Comments (0)')).not.toBeInTheDocument;
     });
 
     it('Should not render sorting row if disabled', () => {
@@ -120,9 +120,9 @@ describe('NotesPanelHeader', () => {
         </Provider>
       );
 
-      screen.getByPlaceholderText('Search annotations'); // WISEflow term change
+      screen.getByPlaceholderText('Search comments'); // WISEflow term change
       expect(screen.queryByText('Sort:')).not.toBeInTheDocument();
-      screen.getByText('Annotations'); // WISEflow term change
+      screen.getByText('Comments (0)');
     });
 
     it('Should have Aria Label on the dropdown', () => {
@@ -135,6 +135,30 @@ describe('NotesPanelHeader', () => {
 
       const element = screen.getByText('Sort:');
       expect(element).toBeInTheDocument();
+    });
+
+    it('Should have h2 on header', () => {
+      const store = configureStore({ reducer: () => initialState });
+      render(
+        <Provider store={store}>
+          <NotesPanelHeader notes={[]} isMultiSelectEnabled={true} disableFilterAnnotation={false} setSearchInputHandler={noop}/>
+        </Provider>
+      );
+
+      const element = screen.getByText('Comments (0)');
+      expect(element.tagName.toLocaleLowerCase()).toEqual('h2');
+    });
+
+    it('Should have aria-pressed labels', () => {
+      const store = configureStore({ reducer: () => initialState });
+      render(
+        <Provider store={store}>
+          <BasicStory />
+        </Provider>
+      );
+
+      const element = screen.queryByRole('button', { name: 'Filter' });
+      expect(element.getAttribute('aria-pressed')).toBe('false');
     });
   });
 });

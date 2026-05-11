@@ -1,15 +1,20 @@
 import actions from 'actions';
 import ScaleOverlay from './ScaleOverlay';
 import classNames from 'classnames';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import Draggable from 'react-draggable';
 import selectors from 'selectors';
 import { useSelector, useDispatch } from 'react-redux';
-import React, { useState, useRef, useCallback, useReducer, useEffect } from 'react';
+import React, { useCallback, useReducer, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import DataElements from 'constants/dataElement';
+import useDraggablePosition from '../../hooks/useDraggablePosition';
+import PropTypes from 'prop-types';
 
 import './ScaleOverlay.scss';
+
+import MobilePopupWrapper from '../MobilePopupWrapper';
+import { isMobileSize } from 'helpers/getDeviceSize';
 
 const Scale = window.Core.Scale;
 
@@ -25,134 +30,80 @@ const measurementDataElements = [
   'arcToolGroupButton'
 ];
 
-const DEFAULT_CONTAINER_TOP_OFFSET = 85;
-const DEFAULT_CONTAINER_RIGHT_OFFSET = 35;
-const DEFAULT_WIDTH_RATIO = 0.666;
-const DEFAULT_DISTANCE = 10;
+const propTypes = {
+  annotations: PropTypes.array,
+  selectedTool: PropTypes.object,
+};
 
 const ScaleOverlayContainer = ({ annotations, selectedTool }) => {
+  const { core } = useCore();
   const dispatch = useDispatch();
   const [t] = useTranslation();
-  const [
-    isDisabled,
-    isOpen,
-    initialPosition,
-  ] = useSelector(
-    (state) => [
-      selectors.isElementDisabled(state, DataElements.SCALE_OVERLAY_CONTAINER),
-      selectors.isElementOpen(state, DataElements.SCALE_OVERLAY_CONTAINER),
-      selectors.getScaleOverlayPosition(state),
-    ],
-  );
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const isDisabled = useSelector((state) => selectors.isElementDisabled(state, DataElements.SCALE_OVERLAY_CONTAINER));
+  const isDisabledViewOnly = useSelector((state) => selectors.isDisabledViewOnly(state, DataElements.SCALE_OVERLAY));
+  const areToolsDisabledViewOnly = useSelector((state) => {
+    const annotationToolNames = [...new Set(annotations.map((annotation) => annotation.ToolName))];
+    const toolNames = annotationToolNames.length > 0 ? annotationToolNames : [selectedTool?.name];
+    return toolNames.some((name) => selectors.isToolDisabledViewOnly(state, name));
+  });
+  const isOpen = useSelector((state) => selectors.isElementOpen(state, DataElements.SCALE_OVERLAY_CONTAINER));
+  const initialPosition = useSelector((state) => selectors.getScaleOverlayPosition(state));
+  const { position, handleDrag, handleStop, containerRef, setOverlayRef, initialOffset, dragBounds, resetPosition } = useDraggablePosition(initialPosition);
   const [, forceUpdate] = useReducer((x) => x + 1, 0, () => 0);
-
-  const [
-    documentContainerWidth,
-    documentContainerHeight
-  ] = useSelector((state) => [
-    selectors.getDocumentContainerWidth(state),
-    selectors.getDocumentContainerHeight(state)
-  ]);
-
-  const containerRef = useRef(null);
-
-  const documentElement = core.getViewerElement();
-  const documentContainerElement = core.getScrollViewElement();
-
-  const calculateStyle = () => {
-    const initialPositionParts = initialPosition.split('-');
-    const offset = { left: 0, top: 0, };
-    if (initialPositionParts[0] === 'top') {
-      offset.top = documentElement?.offsetTop + DEFAULT_DISTANCE || DEFAULT_CONTAINER_TOP_OFFSET;
-    } else {
-      let containerHeight = 400;
-      if (containerRef?.current) {
-        containerHeight = containerRef.current.getBoundingClientRect().height;
-      }
-      offset.top = documentContainerHeight + documentContainerElement?.offsetTop - DEFAULT_DISTANCE - containerHeight || DEFAULT_CONTAINER_TOP_OFFSET;
+  const [scales, setScales] = useState({});
+  const scalesInfo = useMemo(() => {
+    const scaleInfoList = [];
+    if (!scales || Object.keys(scales).length === 0) {
+      return scaleInfoList;
     }
 
-    if (initialPositionParts[1] === 'right') {
-      offset.left = documentContainerWidth * DEFAULT_WIDTH_RATIO;
-      if (documentElement && containerRef?.current) {
-        offset.left = Math.min(
-          documentElement?.offsetLeft + documentElement?.offsetWidth + DEFAULT_DISTANCE || offset.left,
-          documentContainerWidth - containerRef.current.getBoundingClientRect().width - DEFAULT_DISTANCE,
-        );
+    Object.keys(scales).forEach((scaleKey) => {
+      const scaleData = scales[scaleKey];
+
+      if (!scaleData || scaleData.length === 0) {
+        console.warn(`No measurements found for scale ${scaleKey}`);
+        return;
       }
-    } else {
-      if (documentElement && containerRef?.current) {
-        const containerWidth = containerRef.current.getBoundingClientRect().width;
-        offset.left = documentElement?.offsetLeft - DEFAULT_DISTANCE - containerWidth || DEFAULT_DISTANCE;
-        if (documentContainerElement && offset.left < documentContainerElement.offsetLeft) {
-          offset.left = documentContainerElement.offsetLeft + DEFAULT_DISTANCE;
+
+      const measurements = [];
+      const relatedPages = new Set();
+      let canDelete = true;
+
+      scaleData.forEach((measurementItem) => {
+        const isAnnotation = measurementItem instanceof window.Core.Annotations.Annotation;
+        if (!isAnnotation) {
+          return;
         }
-      }
-      if (!offset.left || isNaN(offset.left) || offset.left < 0) {
-        offset.left = DEFAULT_DISTANCE;
-      }
-    }
-    return offset;
-  };
-  const style = calculateStyle();
+
+        relatedPages.add(measurementItem['PageNumber']);
+        measurements.push(measurementItem);
+
+        if (!core.canModify(measurementItem)) {
+          canDelete = false;
+        }
+      });
+
+      scaleInfoList.push({
+        scale: new Scale(scaleKey),
+        title: scaleKey,
+        measurementsNum: measurements.length,
+        pages: [...relatedPages],
+        canDelete
+      });
+    });
+
+    return scaleInfoList;
+  }, [core, scales]);
 
   useEffect(() => {
-    setPosition({ x: 0, y: 0 });
-  }, [initialPosition]);
-
-  const containerBounds = () => {
-    const initialPositionParts = initialPosition.split('-');
-    const bounds = { top: 0, bottom: 0, left: 0, right: 0 };
-    if (initialPositionParts[0] === 'top') {
-      bounds.top = 0;
-      bounds.bottom = documentContainerHeight - (DEFAULT_DISTANCE * 2);
-      if (containerRef.current) {
-        bounds.bottom -= containerRef.current.getBoundingClientRect().height;
-      } else {
-        bounds.bottom -= DEFAULT_CONTAINER_TOP_OFFSET;
-      }
-    } else {
-      bounds.top = -documentContainerHeight + (DEFAULT_DISTANCE * 2);
-      if (containerRef.current) {
-        bounds.top += containerRef.current.getBoundingClientRect().height;
-      } else {
-        bounds.top += DEFAULT_CONTAINER_TOP_OFFSET;
-      }
-      bounds.bottom = 0;
-    }
-
-    if (initialPositionParts[1] === 'right') {
-      bounds.left = -documentContainerWidth;
-      bounds.right = documentContainerWidth / 3;
-      if (style) {
-        bounds.right = documentContainerWidth - style['left'];
-      }
-    } else {
-      bounds.left = documentContainerElement?.offsetLeft;
-      if (style) {
-        bounds.left = documentContainerElement?.offsetLeft - style['left'] + DEFAULT_DISTANCE;
-      }
-      bounds.right = documentContainerWidth - DEFAULT_DISTANCE - DEFAULT_CONTAINER_RIGHT_OFFSET;
-      if (style) {
-        bounds.right -= style['left'];
-      }
-    }
-    return bounds;
-  };
-
-  const syncDraggablePosition = (e, { x, y }) => {
-    setPosition({
-      x,
-      y,
-    });
-  };
+    resetPosition();
+  }, [initialPosition, resetPosition]);
 
   const updateIsCalibration = useCallback((isCalibration) => {
     dispatch(actions.updateCalibrationInfo({ isCalibration }));
   }, []);
 
-  const enableOrDisableToolElements = useCallback((disabled) => {
+  const disableToolElements = useCallback((disabled) => {
     measurementDataElements.forEach((dataElement) => {
       dispatch(
         actions.setCustomElementOverrides(dataElement, {
@@ -167,7 +118,7 @@ const ScaleOverlayContainer = ({ annotations, selectedTool }) => {
   const openScaleModal = useCallback((scale) => {
     scale && setSelectedScale(new Scale(scale));
     dispatch(actions.openElements([DataElements.SCALE_MODAL]));
-    dispatch(actions.setIsAddingNewScale());
+    dispatch(actions.setIsElementHidden(DataElements.SCALE_MODAL, false));
   }, []);
 
   const onScaleSelected = useCallback((selectedScales, scale) => {
@@ -221,9 +172,9 @@ const ScaleOverlayContainer = ({ annotations, selectedTool }) => {
   };
 
   const onCancelCalibrationMode = useCallback((previousToolName) => {
-    core.setToolMode(previousToolName);
     updateIsCalibration(false);
     dispatch(actions.setIsElementHidden(DataElements.SCALE_MODAL, false));
+    core.setToolMode(previousToolName);
   }, []);
 
   const onApplyCalibration = useCallback((previousToolName, tempScale, isFractionalUnit) => {
@@ -234,34 +185,51 @@ const ScaleOverlayContainer = ({ annotations, selectedTool }) => {
   }, [annotations]);
 
   const onAddingNewScale = useCallback(() => {
-    openScaleModal();
     dispatch(actions.setIsAddingNewScale(true));
+    openScaleModal();
   }, []);
 
-  return !isDisabled && (
-    <Draggable
-      position={position}
-      bounds={containerBounds()}
-      onDrag={syncDraggablePosition}
-      onStop={syncDraggablePosition}
-      cancel={'.scale-overlay-selector, .add-new-scale'}
-    >
-      <div
-        className={classNames({
-          Overlay: true,
-          ScaleOverlay: true,
-          open: isOpen,
-          closed: !isOpen,
-        })}
-        data-element={DataElements.SCALE_OVERLAY_CONTAINER}
-        style={style}
-        ref={containerRef}
-      >
+  useEffect(() => {
+    const onScaleUpdated = (newScales) => {
+      setScales(newScales);
+    };
+    const updateScales = () => {
+      setScales(core.getScales());
+    };
+    const onCreateAnnotationWithNoScale = () => {
+      onAddingNewScale();
+    };
+
+    core.addEventListener('scaleUpdated', onScaleUpdated);
+    core.addEventListener('createAnnotationWithNoScale', onCreateAnnotationWithNoScale);
+    core.addEventListener('annotationsLoaded', updateScales);
+    core.addEventListener('annotationChanged', updateScales);
+    updateScales();
+
+    return () => {
+      core.removeEventListener('scaleUpdated', onScaleUpdated);
+      core.removeEventListener('createAnnotationWithNoScale', onCreateAnnotationWithNoScale);
+      core.removeEventListener('annotationsLoaded', updateScales);
+      core.removeEventListener('annotationChanged', updateScales);
+    };
+  }, [core, onAddingNewScale]);
+
+  const isMobile = isMobileSize();
+
+  if (isDisabled || isDisabledViewOnly || areToolsDisabledViewOnly) {
+    return null;
+  }
+
+  if (isMobile) {
+    return (
+      <MobilePopupWrapper>
         <ScaleOverlay
           annotations={annotations}
           selectedTool={selectedTool}
+          scales={scales}
+          scalesInfo={scalesInfo}
           updateIsCalibration={updateIsCalibration}
-          enableOrDisableToolElements={enableOrDisableToolElements}
+          disableToolElements={disableToolElements}
           onScaleSelected={onScaleSelected}
           onCancelCalibrationMode={onCancelCalibrationMode}
           onApplyCalibration={onApplyCalibration}
@@ -269,9 +237,51 @@ const ScaleOverlayContainer = ({ annotations, selectedTool }) => {
           forceUpdate={forceUpdate}
           tabIndex={0}
         />
-      </div>
-    </Draggable>
-  );
+      </MobilePopupWrapper>
+    );
+  } else {
+    return (
+      <Draggable
+        position={position}
+        bounds={dragBounds}
+        onDrag={handleDrag}
+        onStop={handleStop}
+        cancel={'.scale-overlay-selector, .add-new-scale'}
+      >
+        <div
+          className={classNames({
+            Overlay: true,
+            ScaleOverlay: true,
+            open: isOpen,
+            closed: !isOpen,
+          })}
+          data-element={DataElements.SCALE_OVERLAY_CONTAINER}
+          style={initialOffset}
+          ref={(node) => {
+            containerRef.current = node;
+            setOverlayRef(node);
+          }}
+        >
+          <ScaleOverlay
+            annotations={annotations}
+            selectedTool={selectedTool}
+            scales={scales}
+            scalesInfo={scalesInfo}
+            updateIsCalibration={updateIsCalibration}
+            disableToolElements={disableToolElements}
+            onScaleSelected={onScaleSelected}
+            onCancelCalibrationMode={onCancelCalibrationMode}
+            onApplyCalibration={onApplyCalibration}
+            onAddingNewScale={onAddingNewScale}
+            forceUpdate={forceUpdate}
+            tabIndex={0}
+          />
+        </div>
+      </Draggable>
+    );
+  }
 };
+
+ScaleOverlayContainer.propTypes = propTypes;
 
 export default ScaleOverlayContainer;

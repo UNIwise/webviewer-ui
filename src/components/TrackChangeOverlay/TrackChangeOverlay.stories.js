@@ -1,26 +1,37 @@
 import React from 'react';
 import TrackChangeOverlay from './TrackChangeOverlay';
-import { createStore } from 'redux';
 import { Provider } from 'react-redux';
-import { OFFICE_EDITOR_EDIT_MODE } from 'constants/officeEditor';
+import { OfficeEditorEditMode } from 'constants/officeEditor';
+import { configureStore } from '@reduxjs/toolkit';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/TrackChangeOverlay',
-  component: TrackChangeOverlay
+  component: TrackChangeOverlay,
+  parameters: {
+    legacyUI: true,
+  }
 };
 
 const getStore = () => {
   const initialState = {
+    viewer: {
+      isMultiViewerMode: false,
+    },
+    activeFlyout: null,
+    featureFlags: {
+      customizableUI: false,
+    },
     officeEditor: {
-      editMode: OFFICE_EDITOR_EDIT_MODE.EDITING
+      editMode: OfficeEditorEditMode.EDITING,
     }
   };
 
-  function rootReducer(state = initialState, action) {
+  function rootReducer(state = initialState) {
     return state;
   }
 
-  return createStore(rootReducer);
+  return configureStore({ reducer: rootReducer });
 };
 
 export function Basic() {
@@ -32,3 +43,5 @@ export function Basic() {
     </Provider>
   );
 }
+
+Basic.parameters = disableRtlModeParameters;

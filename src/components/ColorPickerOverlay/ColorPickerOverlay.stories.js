@@ -3,6 +3,7 @@ import ColorPickerOverlay from './ColorPickerOverlay';
 import { Provider } from 'react-redux';
 import initialState from 'src/redux/initialState';
 import { configureStore } from '@reduxjs/toolkit';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/ColorPickerOverlay',
@@ -24,10 +25,12 @@ const BasicComponent = ({ children }) => {
 };
 
 export function Basic() {
-  store.getState().viewer.openElements.colorPickerOverlay = true;
+  store.getState().viewer.openElements.officeEditorColorPickerOverlay = true;
   return (
     <BasicComponent>
       <ColorPickerOverlay onStyleChange={() => { }} portalElementId={'storybook-root'} />
     </BasicComponent>
   );
 }
+
+Basic.parameters = disableRtlModeParameters;

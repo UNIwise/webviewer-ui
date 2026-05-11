@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import classNames from 'classnames';
 import { useTranslation } from 'react-i18next';
+import PropTypes from 'prop-types';
 import DimensionsInput from './DimensionsInput';
-import core from 'core';
 import actions from 'actions';
 import { useDispatch } from 'react-redux';
 import DataElements from 'constants/dataElement';
@@ -10,8 +10,10 @@ import Button from 'components/Button';
 import DocumentCropPopupMobile from './DocumentCropPopupMobile';
 import PagesToCropOptions from './PagesToCropOptions';
 import CollapsibleSection from '../CollapsibleSection';
+import useFocusHandler from 'hooks/useFocusHandler';
 
 import './DocumentCropPopup.scss';
+import useCore from 'hooks/useCore';
 
 const DocumentCropPopup = ({
   cropAnnotation,
@@ -33,6 +35,7 @@ const DocumentCropPopup = ({
   shouldShowApplyCropWarning,
   presetCropDimensions,
 }) => {
+  const { core, documentViewer } = useCore();
   const { t } = useTranslation();
 
   const className = classNames({
@@ -42,24 +45,17 @@ const DocumentCropPopup = ({
   });
 
   const loadedDocumentPageCount = getPageCount();
+  const pageInputKey = documentViewer ? documentViewer.id || documentViewer : 'no-viewer';
 
   const handlePageNumbersChanged = (pageNumbers) => {
     if (pageNumbers.length > 0) {
-      setPageNumberError(null);
+      setHasPageNumberError(false);
     }
     onSelectedPagesChange(pageNumbers);
   };
 
-  const handlePageNumberError = (pageNumber) => {
-    if (pageNumber) {
-      setPageNumberError(`${t('message.errorPageNumber')} ${loadedDocumentPageCount}`);
-    }
-  };
-
-  const cropNames = {
-    'ALL_PAGES': t('cropPopUp.allPages'),
-    'SINGLE_PAGE': t('cropPopUp.singlePage'),
-    'MULTI_PAGE': t('cropPopUp.multiPage'),
+  const handlePageNumberError = () => {
+    setHasPageNumberError(true);
   };
 
   const supportedUnits = {
@@ -273,16 +269,12 @@ const DocumentCropPopup = ({
     }
   };
 
-  const handleButtonPressed = (button) => {
-    switch (button) {
-      case 'apply':
-        shouldShowApplyCropWarning ? openCropConfirmationWarning() : applyCrop();
-        break;
-      case 'cancel':
-        isCropping ? openCropCancellationWarning() : closeDocumentCropPopup();
-        break;
-    }
-  };
+  const applyPressed = useFocusHandler((e) => {
+    shouldShowApplyCropWarning ? openCropConfirmationWarning() : applyCrop(e);
+  });
+  const cancelPressed = useFocusHandler((e) => {
+    isCropping ? openCropCancellationWarning() : closeDocumentCropPopup(e);
+  });
 
   const dispatch = useDispatch();
 
@@ -292,8 +284,8 @@ const DocumentCropPopup = ({
     const confirmationWarning = {
       message,
       title,
-      onConfirm: () => {
-        applyCrop();
+      onConfirm: (e) => {
+        applyCrop(e);
       },
     };
     dispatch(actions.showWarningMessage(confirmationWarning));
@@ -305,34 +297,29 @@ const DocumentCropPopup = ({
     const cancellationWarning = {
       message,
       title,
-      onConfirm: () => {
-        closeDocumentCropPopup();
+      onConfirm: (e) => {
+        closeDocumentCropPopup(e);
       },
     };
     dispatch(actions.showWarningMessage(cancellationWarning));
   };
 
-  const [pageNumberError, setPageNumberError] = useState('');
+  const [hasPageNumberError, setHasPageNumberError] = useState(false);
 
   if (isMobile && !isInDesktopOnlyMode) {
     return (
       <DocumentCropPopupMobile
         className={className}
-        cropNames={cropNames}
         cropMode={cropMode}
         onCropModeChange={onCropModeChange}
         loadedDocumentPageCount={loadedDocumentPageCount}
         selectedPages={selectedPages}
         handlePageNumbersChanged={handlePageNumbersChanged}
         handlePageNumberError={handlePageNumberError}
-        pageNumberError={pageNumberError}
-        handleButtonPressed={handleButtonPressed}
+        hasPageNumberError={hasPageNumberError}
+        handleApply={applyPressed}
+        handleCancel={cancelPressed}
         isCropping={isCropping}
-        selectedPageNumbers={selectedPages}
-        pageCount={loadedDocumentPageCount}
-        onSelectedPageNumbersChange={handlePageNumbersChanged}
-        onBlurHandler={handlePageNumbersChanged}
-        onError={handlePageNumberError}
         yOffset={yOffset}
         height={height}
         xOffset={xOffset}
@@ -357,16 +344,18 @@ const DocumentCropPopup = ({
   return (
     <div className={className} data-element={DataElements.DOCUMENT_CROP_POPUP}>
       <div className="document-crop-section">
-        <h1 className="menu-title">{t('cropPopUp.title')}</h1>
-        <PagesToCropOptions
-          cropMode={cropMode}
-          onCropModeChange={onCropModeChange}
-          loadedDocumentPageCount={loadedDocumentPageCount}
-          selectedPages={selectedPages}
-          handlePageNumbersChanged={handlePageNumbersChanged}
-          handlePageNumberError={handlePageNumberError}
-          pageNumberError={pageNumberError}
-        />
+        <h1 id="document-crop-label" className="menu-title">{t('cropPopUp.title')}</h1>
+        <div role="group" aria-labelledby="document-crop-label">
+          <PagesToCropOptions
+            cropMode={cropMode}
+            onCropModeChange={onCropModeChange}
+            loadedDocumentPageCount={loadedDocumentPageCount}
+            selectedPages={selectedPages}
+            handlePageNumbersChanged={handlePageNumbersChanged}
+            handlePageNumberError={handlePageNumberError}
+            pageInputKey={pageInputKey}
+          />
+        </div>
       </div>
       <div className={isCropping && cropAnnotation ? 'crop-active' : 'crop-inactive'}>
         <div className="divider" />
@@ -404,19 +393,40 @@ const DocumentCropPopup = ({
         <Button
           className="cancel-button"
           dataElement="cropCancelButton"
-          onClick={() => handleButtonPressed('cancel')}
+          onClick={cancelPressed}
           label={t('action.cancel')}
         />
         <Button
           className="save-button"
           dataElement="cropApplyButton"
-          onClick={() => handleButtonPressed('apply')}
-          disabled={!isCropping || pageNumberError}
+          onClick={applyPressed}
+          disabled={!isCropping || hasPageNumberError}
           label={t('action.apply')}
         />
       </div>
     </div>
   );
+};
+
+DocumentCropPopup.propTypes = {
+  cropAnnotation: PropTypes.object,
+  cropMode: PropTypes.string.isRequired,
+  onCropModeChange: PropTypes.func.isRequired,
+  closeDocumentCropPopup: PropTypes.func.isRequired,
+  applyCrop: PropTypes.func.isRequired,
+  isCropping: PropTypes.bool.isRequired,
+  getPageHeight: PropTypes.func.isRequired,
+  getPageWidth: PropTypes.func.isRequired,
+  isPageRotated: PropTypes.func.isRequired,
+  redrawCropAnnotations: PropTypes.func.isRequired,
+  isInDesktopOnlyMode: PropTypes.bool.isRequired,
+  isMobile: PropTypes.bool.isRequired,
+  getPageCount: PropTypes.func.isRequired,
+  getCurrentPage: PropTypes.func.isRequired,
+  selectedPages: PropTypes.array.isRequired,
+  onSelectedPagesChange: PropTypes.func.isRequired,
+  shouldShowApplyCropWarning: PropTypes.bool.isRequired,
+  presetCropDimensions: PropTypes.object.isRequired,
 };
 
 export default DocumentCropPopup;

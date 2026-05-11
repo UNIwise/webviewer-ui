@@ -27,14 +27,14 @@ const RedactionPageGroup = (props) => {
       expansionDescription={`${t('option.shared.page')} ${pageNumber} ${t('redactionPanel.redactionItems')}`}
       headingLevel={2}
     >
-      <div role="list" className="redaction-items">
+      <ul className="redaction-items">
         {redactionItems.map((redactionItem) => (
           <RedactionItem
             annotation={redactionItem}
             key={`${redactionItem.Id}-${pageNumber}`}
           />
         ))}
-      </div>
+      </ul>
     </CollapsibleSection>
   );
 };

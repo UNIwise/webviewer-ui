@@ -1,12 +1,50 @@
 import localStorageManager from 'helpers/localStorageManager';
 import { getInstanceID } from 'helpers/getRootNode';
-import { ITEM_TYPE } from 'constants/customizationVariables';
+import { ITEM_TYPE, VIEWER_CONFIGURATIONS } from 'constants/customizationVariables';
 import { defaultPanels } from '../modularComponents';
+import {
+  defaultOfficeEditorModularHeaders,
+  defaultOfficeEditorModularComponents,
+  defaultOfficeEditorPanels,
+} from '../officeEditorModularComponents';
+
+import {
+  defaultSpreadsheetEditorHeaders,
+  defaultSpreadsheetEditorComponents,
+  defaultSpreadsheetEditorPanels,
+  defaultSpreadsheetFlyoutMap,
+} from '../spreadsheetEditorComponents';
 
 export default (initialState) => (state = initialState, action) => {
   const { type, payload } = action;
 
   switch (type) {
+    case 'UPDATE_VIEW_ONLY_BLACKLIST': {
+      let { dataElements } = payload;
+      dataElements = Array.isArray(dataElements) ? dataElements : [dataElements];
+      return {
+        ...state,
+        viewOnlyWhitelist: {
+          ...state.viewOnlyWhitelist,
+          dataElementBlacklist: [
+            ...dataElements,
+          ]
+        }
+      };
+    }
+    case 'UPDATE_VIEW_ONLY_WHITELIST': {
+      let { dataElements } = payload;
+      dataElements = Array.isArray(dataElements) ? dataElements : [dataElements];
+      return {
+        ...state,
+        viewOnlyWhitelist: {
+          ...state.viewOnlyWhitelist,
+          dataElement: [
+            ...dataElements,
+          ]
+        }
+      };
+    }
     case 'SET_SCALE_OVERLAY_POSITION':
       return {
         ...state,
@@ -55,13 +93,16 @@ export default (initialState) => (state = initialState, action) => {
         ...state,
         activeFlyout: payload.dataElement,
       };
-    case 'REMOVE_FLYOUT':
-      const flyoutMap = state.flyoutMap;
+    case 'REMOVE_FLYOUT': {
+      const flyoutMap = { ...state.flyoutMap };
       delete flyoutMap[payload.dataElement];
       return {
         ...state,
-        flyoutMap,
+        flyoutMap: {
+          ...flyoutMap
+        },
       };
+    }
     case 'ADD_FLYOUT':
     case 'UPDATE_FLYOUT':
       return {
@@ -128,14 +169,6 @@ export default (initialState) => (state = initialState, action) => {
           comparePanel: payload.width,
         }
       };
-    case 'SET_WATERMARK_PANEL_WIDTH':
-      return {
-        ...state,
-        panelWidths: {
-          ...state.panelWidths,
-          watermarkPanel: payload.width,
-        }
-      };
     case 'SET_COMPARISON_OVERLAY_ENABLED':
       return {
         ...state,
@@ -165,6 +198,21 @@ export default (initialState) => (state = initialState, action) => {
       return {
         ...state,
         isOfficeEditorMode: payload.isOfficeEditorMode,
+      };
+    case 'SET_IS_OFFICE_EDITOR_HEADER_ENABLED':
+      return {
+        ...state,
+        isOfficeEditorHeaderEnabled: payload.isOfficeEditorHeaderEnabled,
+      };
+    case 'ENABLE_SPREADSHEET_EDITOR_MODE':
+      return {
+        ...state,
+        isSpreadsheetEditorModeEnabled: true,
+      };
+    case 'DISABLE_SPREADSHEET_EDITOR_MODE':
+      return {
+        ...state,
+        isSpreadsheetEditorModeEnabled: false,
       };
     case 'SET_COMPARE_PAGES_BUTTON_ENABLED':
       return {
@@ -210,6 +258,11 @@ export default (initialState) => (state = initialState, action) => {
       return {
         ...state,
         activeTab: payload.activeTab,
+      };
+    case 'SET_TAB_NAME_HANDLER':
+      return {
+        ...state,
+        tabNameHandler: payload.tabNameHandler,
       };
     case 'SET_TABS':
       return {
@@ -461,7 +514,7 @@ export default (initialState) => (state = initialState, action) => {
     case 'SET_CUSTOM_COLORS':
       if (localStorageManager.isLocalStorageEnabled()) {
         const instanceId = getInstanceID();
-        window.localStorage.setItem(`${instanceId}-customColors`, JSON.stringify(payload.customColors));
+        localStorageManager.setItemSynchronous(`${instanceId}-customColors`, JSON.stringify(payload.customColors));
       } else {
         console.error('localStorage is disabled, customColors cannot be restored');
       }
@@ -483,25 +536,34 @@ export default (initialState) => (state = initialState, action) => {
           [payload.toolbarGroup]: payload.toolGroup,
         },
       };
-    case 'SET_LAST_PICKED_TOOL_FOR_GROUPED_ITEMS':
+    case 'SET_LAST_ACTIVE_TOOL_FOR_RIBBON':
       return {
         ...state,
-        lastPickedToolForGroupedItems: {
-          ...state.lastPickedToolForGroupedItems,
-          [payload.groupedItem]: payload.toolName,
+        lastActiveToolForRibbon: {
+          ...state.lastActiveToolForRibbon,
+          [payload.ribbon]: payload.toolName,
         }
-      };
-    case 'SET_LAST_PICKED_TOOL_AND_GROUP':
-      return {
-        ...state,
-        lastPickedToolAndGroup: payload,
       };
     case 'SET_ACTIVE_CUSTOM_RIBBON':
       return { ...state, activeCustomRibbon: payload.customRibbon };
-    case 'SET_OUTLINE_CONTROL_VISIBILITY':
-      return { ...state, outlineControlVisibility: payload.outlineControlVisibility };
     case 'SET_AUTO_EXPAND_OUTLINES':
       return { ...state, autoExpandOutlines: payload.autoExpandOutlines };
+    case 'SET_OUTLINES_PANEL_STATE': {
+      const { outlinePath, outlineState, documentViewerKey } = payload;
+      return {
+        ...state,
+        outlinesStateMap: {
+          ...state.outlinesStateMap,
+          [documentViewerKey]: {
+            ...state.outlinesStateMap?.[documentViewerKey],
+            [outlinePath]: {
+              ...state.outlinesStateMap?.[documentViewerKey]?.[outlinePath],
+              ...outlineState,
+            },
+          },
+        },
+      };
+    }
     case 'SET_ANNOTATION_NUMBERING':
       return { ...state, isAnnotationNumberingEnabled: payload.isAnnotationNumberingEnabled };
     case 'SET_BOOKMARK_ICON_SHORTCUT_VISIBILITY':
@@ -529,7 +591,13 @@ export default (initialState) => (state = initialState, action) => {
     case 'SET_DISPLAY_MODE':
       return { ...state, displayMode: payload.displayMode };
     case 'SET_CURRENT_PAGE':
-      return { ...state, currentPage: payload.currentPage };
+      return {
+        ...state,
+        currentPage: {
+          ...state.currentPage,
+          [payload.documentViewerKey]: payload.currentPage
+        }
+      };
     case 'SET_NOTES_PANEL_SORT_STRATEGY':
       return { ...state, sortStrategy: payload.sortStrategy };
     case 'SET_NOTE_DATE_FORMAT':
@@ -551,7 +619,10 @@ export default (initialState) => (state = initialState, action) => {
     case 'SET_POPUP_ITEMS':
       return {
         ...state,
-        [payload.dataElement]: payload.items,
+        modularPopups: {
+          ...state.modularPopups,
+          [payload.dataElement]: payload.items,
+        }
       };
     case 'SET_MENUOVERLAY_ITEMS':
       return {
@@ -611,6 +682,8 @@ export default (initialState) => (state = initialState, action) => {
       return { ...state, allowPageNavigation: payload.allowPageNavigation };
     case 'SET_READ_ONLY':
       return { ...state, isReadOnly: payload.isReadOnly };
+    case 'SET_VIEW_ONLY':
+      return { ...state, isViewOnly: payload.isViewOnly };
     case 'SET_CUSTOM_PANEL':
       return {
         ...state,
@@ -635,8 +708,29 @@ export default (initialState) => (state = initialState, action) => {
       return { ...state, useEmbeddedPrint: payload.useEmbeddedPrint };
     case 'USE_CLIENT_SIDE_PRINT':
       return { ...state, useClientSidePrint: payload.useClientSidePrint };
-    case 'SET_PAGE_LABELS':
-      return { ...state, pageLabels: [...payload.pageLabels] };
+    case 'SET_PAGE_LABELS': {
+      return {
+        ...state,
+        pageLabels: {
+          ...state.pageLabels,
+          [payload.documentViewerKey]: [...payload.pageLabels],
+        }
+      };
+    }
+    case 'ENABLE_CUSTOM_PAGE_LABELS':
+      return { ...state,
+        isCustomPageLabelsEnabled: {
+          ...state.isCustomPageLabelsEnabled,
+          [payload.documentViewerKey]: true
+        }
+      };
+    case 'DISABLE_CUSTOM_PAGE_LABELS':
+      return { ...state,
+        isCustomPageLabelsEnabled: {
+          ...state.isCustomPageLabelsEnabled,
+          [payload.documentViewerKey]: false
+        }
+      };
     case 'SET_SELECTED_THUMBNAIL_PAGE_INDEXES':
       return { ...state, selectedThumbnailPageIndexes: payload.selectedThumbnailPageIndexes };
     case 'SET_SHIFT_KEY_THUMBNAIL_PIVOT_INDEX':
@@ -674,15 +768,17 @@ export default (initialState) => (state = initialState, action) => {
     case 'SET_COLOR_MAP':
       return { ...state, colorMap: payload.colorMap };
     case 'SET_WARNING_MESSAGE':
-      return { ...state, warning: payload };
+      return { ...state, warning: { ...payload } };
     case 'ENABLE_DELETE_TAB_WARNING':
-      return { ...state, warning: payload };
+      return { ...state, warning: { ...state.warning, ...payload } };
     case 'DISABLE_DELETE_TAB_WARNING':
-      return { ...state, warning: payload };
+      return { ...state, warning: { ...state.warning, ...payload } };
     case 'SET_ERROR_MESSAGE':
       return { ...state, errorMessage: payload.message, errorTitle: payload.title };
     case 'SET_CUSTOM_NOTE_FILTER':
       return { ...state, customNoteFilter: payload.customNoteFilter };
+    case 'SET_INTERNAL_NOTE_FILTER':
+      return { ...state, internalNoteFilter: payload.internalNoteFilter };
     case 'SET_INLINE_COMMENT_FILTER':
       return { ...state, inlineCommentFilter: payload.inlineCommentFilter };
     case 'SET_ZOOM_LIST':
@@ -721,12 +817,22 @@ export default (initialState) => (state = initialState, action) => {
     case 'SET_CUSTOM_MULTI_VIEWER_ACCEPTED_FILE_FORMATS':
       return { ...state, customMultiViewerAcceptedFileFormats: payload.customMultiViewerAcceptedFileFormats };
     case 'ADD_CUSTOM_MODAL': {
+      const { dataElement } = payload;
+
       const existingDataElementFiltered = state.customModals.filter(function(modal) {
         return modal.dataElement !== payload.dataElement;
       });
+
+      const currentWhiteList = state.viewOnlyWhitelist ? state.viewOnlyWhitelist.dataElement : [];
+
+      const nextWhiteList = [...currentWhiteList, dataElement];
       return {
         ...state,
         customModals: [...existingDataElementFiltered, payload],
+        viewOnlyWhitelist: {
+          ...state.viewOnlyWhitelist,
+          dataElement: nextWhiteList,
+        },
       };
     }
     case 'UPDATE_MODULAR_HEADER': {
@@ -873,37 +979,29 @@ export default (initialState) => (state = initialState, action) => {
         modularComponents: initialState.modularComponents,
         modularComponentFunctions: initialState.modularComponentFunctions,
         activeCustomRibbon: initialState.activeCustomRibbon,
+        activeGroupedItems: initialState.activeGroupedItems,
+        lastActiveToolForRibbon: initialState.lastActiveToolForRibbon,
         activeFlyout: initialState.activeFlyout,
         flyoutToggleElement: initialState.flyoutToggleElement,
         openElements: initialState.openElements,
-        lastPickedToolAndGroup: initialState.lastPickedToolAndGroup,
-        lastPickedToolForGroupedItems: initialState.lastPickedToolForGroupedItems,
         flyoutPosition: initialState.flyoutPosition,
         genericPanels: defaultPanels,
       };
     }
-    case 'SET_ACTIVE_CUSTOM_PANEL':
+    case 'SET_ACTIVE_TAB_IN_PANEL':
       return {
         ...state,
-        activeCustomPanel: {
-          ...state.activeCustomPanel,
+        activeTabInPanel: {
+          ...state.activeTabInPanel,
           [payload.wrapperPanel]: payload.tabPanel
         },
       };
-    case 'SET_RIGHT_HEADER_WIDTH':
+    case 'SET_HEADER_WIDTH':
       return {
         ...state,
         modularHeadersWidth: {
           ...state.modularHeadersWidth,
-          rightHeader: payload,
-        }
-      };
-    case 'SET_LEFT_HEADER_WIDTH':
-      return {
-        ...state,
-        modularHeadersWidth: {
-          ...state.modularHeadersWidth,
-          leftHeader: payload,
+          [payload.header]: payload.width,
         }
       };
     case 'SET_TOP_FLOATING_CONTAINER_HEIGHT':
@@ -924,8 +1022,11 @@ export default (initialState) => (state = initialState, action) => {
       };
     case 'SET_MOUSE_WHEEL_ZOOM':
       return { ...state, enableMouseWheelZoom: payload.enableMouseWheelZoom };
-    case 'SET_ENABLE_SNAP_MODE':
-      return { ...state, isSnapModeEnabled: payload.enable };
+    case 'SET_ENABLE_SNAP_MODE': {
+      const { snapMode } = state;
+      const updatedSnapMode = { ...snapMode, [payload.toolName]: payload.isEnabled };
+      return { ...state, snapMode: { ...updatedSnapMode } };
+    }
     case 'SET_READER_MODE':
       return { ...state, isReaderMode: payload.isReaderMode };
     case 'SET_SUBMIT_COMMENT_MODE':
@@ -969,13 +1070,15 @@ export default (initialState) => (state = initialState, action) => {
     case 'SET_HIDE_CONTENT_EDIT_WARNING':
       if (localStorageManager.isLocalStorageEnabled()) {
         const instanceId = getInstanceID();
-        window.localStorage.setItem(`${instanceId}-hideContentEditWarning`, JSON.stringify(payload.hideWarning));
+        localStorageManager.setItemSynchronous(`webviewer-${instanceId}-hideContentEditWarning`, JSON.stringify(payload.hideWarning));
       } else {
         console.error('localStorage is disabled, hideContentEditWarning cannot be restored');
       }
       return { ...state, hideContentEditWarning: payload.hideWarning };
     case 'SET_CONTENT_EDIT_WORKERS_LOADED':
       return { ...state, contentEditWorkersLoaded: payload.contentEditWorkersLoaded };
+    case 'SET_CONTENT_EDITING_ENABLED':
+      return { ...state, isContentEditingEnabled: payload.isContentEditingEnabled };
     case 'SET_CURRENT_CONTENT_BEING_EDITED':
       return {
         ...state,
@@ -1034,16 +1137,6 @@ export default (initialState) => (state = initialState, action) => {
       return {
         ...state,
         multiPageManipulationControls: payload.items,
-      };
-    case 'SET_MULTI_PAGE_MANIPULATION_CONTROLS_ITEMS_SMALL':
-      return {
-        ...state,
-        multiPageManipulationControlsSmall: payload.items,
-      };
-    case 'SET_MULTI_PAGE_MANIPULATION_CONTROLS_ITEMS_LARGE':
-      return {
-        ...state,
-        multiPageManipulationControlsLarge: payload.items,
       };
     case 'SET_PAGE_MANIPULATION_OVERLAY_ALTERNATIVE_POSITION':
       return {
@@ -1153,6 +1246,108 @@ export default (initialState) => (state = initialState, action) => {
     case 'SET_KEYBOARD_OPEN': {
       return { ...state, isKeyboardOpen: payload };
     }
+    case 'SET_COMPARE_ANNOTATIONS_MAP': {
+      return { ...state, compareAnnotationsMap: payload };
+    }
+    case 'STASH_ENABLED_RIBBONS': {
+      return { ...state, enabledRibbonsStash: [...state.enabledRibbonsStash, ...payload.ribbonItems] };
+    }
+    case 'STASH_ENABLED_TOOLS': {
+      return { ...state, enabledToolsStash: payload.toolNames };
+    }
+    case 'STASH_COMPONENTS': {
+      const { UIMode } = payload;
+      const modularHeaders = { ...state.modularHeaders };
+      const modularComponents = { ...state.modularComponents };
+      const panels = [...state.genericPanels];
+      const flyoutMap = { ...state.flyoutMap };
+      const updatedModularComponentStash = {
+        ...state.modularComponentStash,
+        [UIMode]: {
+          modularHeaders,
+          modularComponents,
+          panels,
+          flyoutMap,
+        }
+      };
+      return { ...state, modularComponentStash: updatedModularComponentStash };
+    }
+    case 'RESTORE_COMPONENTS': {
+      const { UIMode } = payload;
+      const modularComponentStash = { ...state.modularComponentStash };
+
+      if (!modularComponentStash[UIMode]) {
+        switch (UIMode) {
+          case VIEWER_CONFIGURATIONS.DEFAULT:
+            return {
+              ...state,
+              modularHeaders: { ...initialState.modularHeaders },
+              modularComponents: { ...initialState.modularComponents },
+              genericPanels: [...initialState.genericPanels],
+              flyoutMap: { ...state.flyoutMap, ...initialState.flyoutMap },
+            };
+
+          case VIEWER_CONFIGURATIONS.DOCX_EDITOR:
+            return {
+              ...state,
+              modularHeaders: { ...defaultOfficeEditorModularHeaders },
+              modularComponents: { ...defaultOfficeEditorModularComponents },
+              genericPanels: [...defaultOfficeEditorPanels],
+              flyoutMap: { ...state.flyoutMap, ...initialState.flyoutMap },
+            };
+
+          case VIEWER_CONFIGURATIONS.SPREADSHEET_EDITOR:
+            return {
+              ...state,
+              modularHeaders: { ...defaultSpreadsheetEditorHeaders },
+              modularComponents: { ...defaultSpreadsheetEditorComponents },
+              genericPanels: [...defaultSpreadsheetEditorPanels],
+              flyoutMap: { ...state.flyoutMap, ...defaultSpreadsheetFlyoutMap },
+            };
+
+          default:
+            return state; // Fallback: return the current state if UIMode is unrecognized
+        }
+      }
+
+      const { modularHeaders, modularComponents, panels, flyoutMap } = modularComponentStash[UIMode];
+      // Delete the stash after restoring
+      const updatedModularComponentStash = Object.keys(modularComponentStash).reduce((result, key) => {
+        if (key !== UIMode) {
+          result[key] = modularComponentStash[key];
+        }
+        return result;
+      }, {});
+
+      return {
+        ...state,
+        modularComponentStash: updatedModularComponentStash,
+        modularHeaders: { ...modularHeaders },
+        modularComponents: { ...modularComponents },
+        genericPanels: [...panels],
+        flyoutMap: { ...flyoutMap },
+      };
+    }
+
+    case 'SET_ACCESSIBLE_MODE': {
+      return { ...state, isAccessibleMode: payload.isAccessibleMode };
+    }
+
+    case 'SET_SHOULD_ADD_A11Y_CONTENT':
+      return { ...state, shouldAddA11yContentToDOM: payload.shouldAddA11yContentToDOM };
+    case 'SET_UI_CONFIGURATION':
+      return { ...state, uiConfiguration: payload };
+
+    case 'ENABLE_WIDGET_HIGHLIGHTING':
+      return {
+        ...state,
+        isWidgetHighlightingEnabled: true,
+      };
+    case 'DISABLE_WIDGET_HIGHLIGHTING':
+      return {
+        ...state,
+        isWidgetHighlightingEnabled: false,
+      };
     default:
       return state;
   }

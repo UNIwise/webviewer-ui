@@ -1,5 +1,6 @@
 import i18next from 'i18next';
 import dayjs from 'dayjs';
+// eslint-disable-next-line custom/use-core-hook-in-components
 import core from 'core';
 import React from 'react';
 import { rotateRad } from 'helpers/rotate';
@@ -42,38 +43,89 @@ function getNoteColor(note) {
   return color;
 }
 
+function getRotatedBounds(note) {
+  const rotation = getRotationRad(note.PageNumber);
+  const center = getDocumentCenter(note.PageNumber);
+
+  const rotated = [
+    rotateRad(center.x, center.y, note.X, note.Y, rotation),
+    rotateRad(center.x, center.y, note.X + note.Width, note.Y, rotation),
+    rotateRad(center.x, center.y, note.X, note.Y + note.Height, rotation),
+    rotateRad(center.x, center.y, note.X + note.Width, note.Y + note.Height, rotation),
+  ];
+
+  const bounds = rotated.reduce(
+    (acc, point) => ({
+      minX: Math.min(acc.minX, point.x),
+      maxX: Math.max(acc.maxX, point.x),
+      minY: Math.min(acc.minY, point.y),
+      maxY: Math.max(acc.maxY, point.y),
+    }),
+    {
+      minX: Number.MAX_SAFE_INTEGER,
+      maxX: Number.MIN_SAFE_INTEGER,
+      minY: Number.MAX_SAFE_INTEGER,
+      maxY: Number.MIN_SAFE_INTEGER,
+    },
+  );
+
+  return bounds;
+}
+
+function getFirstQuadPosition(note) {
+  const quads = typeof note.getQuads === 'function' ? note.getQuads() : null;
+  if (!Array.isArray(quads) || quads.length === 0) {
+    return null;
+  }
+
+  return quads[0];
+}
+
+const linePositionSortStrategy = {
+  getSortedNotes: (notes) => notes.sort((a, b) => {
+    if (a.PageNumber !== b.PageNumber) {
+      return a.PageNumber - b.PageNumber;
+    }
+    const boundsA = getRotatedBounds(a);
+    const boundsB = getRotatedBounds(b);
+
+    const overlapsY = boundsA.maxY >= boundsB.minY && boundsB.maxY >= boundsA.minY;
+
+    if (!overlapsY) {
+      return boundsA.minY - boundsB.minY;
+    }
+
+    const quadA = getFirstQuadPosition(a);
+    const quadB = getFirstQuadPosition(b);
+
+    if (!quadA || !quadB) {
+      return boundsA.minX - boundsB.minX;
+    }
+
+    const rotation = getRotationRad(a.PageNumber);
+    const center = getDocumentCenter(a.PageNumber);
+    const rotatedA = rotateRad(center.x, center.y, quadA.x1, quadA.y1, rotation);
+    const rotatedB = rotateRad(center.x, center.y, quadB.x1, quadB.y1, rotation);
+
+    return rotatedA.x - rotatedB.x;
+  }),
+  shouldRenderSeparator: (prevNote, currNote) => currNote.PageNumber !== prevNote.PageNumber,
+  getSeparatorContent: (_prevNote, currNote, { pageLabels }) => `${i18next.t('option.shared.page')} ${pageLabels[currNote.PageNumber - 1]}`,
+};
+
 const sortStrategies = {
   position: {
     getSortedNotes: (notes) => notes.sort((a, b) => {
       if (a.PageNumber === b.PageNumber) {
-        const rotation = getRotationRad(a.PageNumber);
-        const center = getDocumentCenter(a.PageNumber);
+        const boundsA = getRotatedBounds(a);
+        const boundsB = getRotatedBounds(b);
 
-        // Simulated with respect to the document origin
-        const rotatedA = [
-          rotateRad(center.x, center.y, a.X, a.Y, rotation),
-          rotateRad(center.x, center.y, a.X + a.Width, a.Y + a.Height, rotation),
-        ];
-        const rotatedB = [
-          rotateRad(center.x, center.y, b.X, b.Y, rotation),
-          rotateRad(center.x, center.y, b.X + b.Width, b.Y + b.Height, rotation),
-        ];
-
-        const smallestA = rotatedA.reduce(
-          (smallest, current) => (current.y < smallest ? current.y : smallest),
-          Number.MAX_SAFE_INTEGER,
-        );
-        const smallestB = rotatedB.reduce(
-          (smallest, current) => (current.y < smallest ? current.y : smallest),
-          Number.MAX_SAFE_INTEGER,
-        );
-
-        return smallestA - smallestB;
+        return boundsA.minY - boundsB.minY;
       }
       return a.PageNumber - b.PageNumber;
     }),
     shouldRenderSeparator: (prevNote, currNote) => currNote.PageNumber !== prevNote.PageNumber,
-    getSeparatorContent: (prevNote, currNote, { pageLabels }) => `${i18next.t('option.shared.page')} ${pageLabels[currNote.PageNumber - 1]}`,
+    getSeparatorContent: (_prevNote, currNote, { pageLabels }) => `${i18next.t('option.shared.page')} ${pageLabels[currNote.PageNumber - 1]}`,
   },
   createdDate: {
     getSortedNotes: (notes) => notes.sort((a, b) => (a.DateCreated || 0) - (b.DateCreated || 0)),
@@ -148,14 +200,16 @@ const sortStrategies = {
     },
   },
   shareType: {
-    getSortedNotes: notes =>
+    getSortedNotes: (notes) =>
       notes.sort((a, b) => {
         const shareTypeA = getAnnotationShareType(a);
         const shareTypeB = getAnnotationShareType(b);
         return ShareTypeOrder[shareTypeA] - ShareTypeOrder[shareTypeB];
       }),
     shouldRenderSeparator: (prevNote, currNote) => {
-      if (prevNote === null) return true;
+      if (prevNote === null) {
+        return true;
+      }
       const prevShareType = getAnnotationShareType(prevNote);
       const currShareType = getAnnotationShareType(currNote);
       return prevShareType !== currShareType;
@@ -217,6 +271,10 @@ const sortStrategies = {
 };
 
 export const getSortStrategies = () => sortStrategies;
+export const getExtendedSortStrategies = () => ({ // Sort strategies extended for office editor
+  ...sortStrategies,
+  linePosition: linePositionSortStrategy,
+});
 
 export const addSortStrategy = (newStrategy) => {
   const { name, getSortedNotes, shouldRenderSeparator, getSeparatorContent } = newStrategy;
@@ -256,3 +314,10 @@ export const NotesPanelSortStrategy = {
   // CUSTOM WISEFLOW: own sort strategy
   SHARE_TYPE: 'shareType',
 };
+
+export const OfficeEditorNotesPanelSortStrategy = {
+  LINE_POSITION: 'linePosition',
+};
+
+export const BASE_SORT_STRATEGIES = Object.values(NotesPanelSortStrategy);
+export const OFFICE_EDITOR_SORT_STRATEGIES = [OfficeEditorNotesPanelSortStrategy.LINE_POSITION, NotesPanelSortStrategy.CREATED_DATE, NotesPanelSortStrategy.AUTHOR];

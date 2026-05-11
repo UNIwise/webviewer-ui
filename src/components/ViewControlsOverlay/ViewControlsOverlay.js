@@ -2,7 +2,7 @@ import classNames from 'classnames';
 import ActionButton from 'components/ActionButton';
 import Button from 'components/Button';
 import displayModeObjects from 'constants/displayModeObjects';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSelector, useStore } from 'react-redux';
@@ -10,12 +10,13 @@ import selectors from 'selectors';
 import FlyoutMenu from '../FlyoutMenu/FlyoutMenu';
 import DataElementWrapper from 'components/DataElementWrapper';
 import { enterReaderMode, exitReaderMode } from 'helpers/readerMode';
-import actions from 'actions';
 import toggleFullscreen from 'helpers/toggleFullscreen';
 import DataElements from 'src/constants/dataElement';
 import { isIE11, isIOS, isIOSFullScreenSupported } from 'helpers/device';
+import { cleanUpMultiViewer, setupMultiViewer } from 'helpers/multiViewerHelper';
 
 function ViewControlsOverlay() {
+  const { core } = useCore();
   const [t] = useTranslation();
   const store = useStore();
 
@@ -50,9 +51,7 @@ function ViewControlsOverlay() {
     isPageTransitionEnabled = true;
   }
   const showCompareButton = !isIE11 && !isMultiTab && isMultiViewerModeAvailable;
-  const toggleCompareMode = () => {
-    store.dispatch(actions.setIsMultiViewerMode(!isMultiViewerMode));
-  };
+  const toggleCompareMode = () => isMultiViewerMode ? cleanUpMultiViewer(store) : setupMultiViewer(store);
 
   const handleClick = (pageTransition, layout) => {
     const setDisplayMode = () => {
@@ -123,13 +122,14 @@ function ViewControlsOverlay() {
     <FlyoutMenu
       menu={DataElements.VIEW_CONTROLS_OVERLAY}
       trigger={DataElements.VIEW_CONTROLS_OVERLAY_BUTTON}
-      ariaLabel={t('component.viewControlsOverlay')}
+      ariaLabel={t('component.viewControls')}
     >
       {isPageTransitionEnabled && (
         <>
           <DataElementWrapper
             dataElement="pageTransitionHeader"
             className="type"
+            ariaLabel={t('option.displayMode.pageTransition')}
           >
             {t('option.displayMode.pageTransition')}
           </DataElementWrapper>
@@ -187,6 +187,7 @@ function ViewControlsOverlay() {
           <DataElementWrapper
             dataElement="rotateHeader"
             className="type"
+            ariaLabel={t('action.rotate')}
           >
             {t('action.rotate')}
           </DataElementWrapper>
@@ -213,6 +214,7 @@ function ViewControlsOverlay() {
           <DataElementWrapper
             dataElement="layoutHeader"
             className="type"
+            ariaLabel={t('option.displayMode.layout')}
           >
             {t('option.displayMode.layout')}
           </DataElementWrapper>

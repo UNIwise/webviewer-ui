@@ -2,12 +2,13 @@ import React from 'react';
 import NoteState from './NoteState';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
-import { userEvent, within, expect } from '@storybook/test';
-import { screen } from '@testing-library/react';
+import { userEvent, within, expect, screen } from 'storybook/test';
 import rootReducer from 'src/redux/reducers/rootReducer';
 import ToggleElementButton from '../ModularComponents/ToggleElementButton';
 import Flyout from '../ModularComponents/Flyout';
 import { noteStateFlyoutItems } from '../ModularComponents/NoteStateFlyout/NoteStateFlyout';
+import { getTranslatedText } from 'src/helpers/testTranslationHelper';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/NotesPanel/NoteState',
@@ -51,7 +52,7 @@ const initialState = {
     modularHeadersHeight: {},
     flyoutPosition: { x: 0, y: 0 },
     modularComponents: {},
-    activeCustomPanel: ''
+    activeTabInPanel: {},
   },
   featureFlags: {
     customizableUI: true
@@ -88,13 +89,15 @@ export function Basic() {
     </div>
   );
 }
+Basic.parameters = disableRtlModeParameters;
+
 
 export function OpenFlyout() {
   return (
     <Provider store={store}>
       <ToggleElementButton
         dataElement={'noteState-123'}
-        title={'Status'}
+        title={getTranslatedText('option.notesOrder.status')}
         img={'icon-annotation-status-accepted'}
         toggleElement={'noteStateFlyout-123'}
         disabled={false}
@@ -104,13 +107,15 @@ export function OpenFlyout() {
   );
 }
 
+OpenFlyout.parameters = disableRtlModeParameters;
+
 OpenFlyout.play = async ({ canvasElement }) => {
   const canvas = within(canvasElement);
   // The Note State Flyout should be closed by default
-  const acceptedOption = screen.queryByText(/Accepted/i);
+  const acceptedOption = screen.queryByText(getTranslatedText('option.state.accepted'));
   expect(acceptedOption).not.toBeInTheDocument();
-  const noteStateButton = await canvas.findByRole('button', { 'name': /Status/i });
+  const noteStateButton = await canvas.findByRole('button', { 'name': new RegExp(getTranslatedText('option.notesOrder.status')) });
   await userEvent.click(noteStateButton);
   // The Note State Flyout should be open
-  expect(await canvas.findByRole('button', { name: /Accepted/i })).toBeInTheDocument();
+  expect(await canvas.findByRole('button', { name: getTranslatedText('option.state.accepted') })).toBeInTheDocument();
 };

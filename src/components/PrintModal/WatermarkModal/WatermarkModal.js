@@ -1,6 +1,7 @@
 import ColorPalette from 'components/ColorPalette';
 import Slider from 'components/Slider';
-import { circleRadius } from 'constants/slider';
+// Class component
+// eslint-disable-next-line custom/use-core-hook-in-components
 import core from 'core';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -74,6 +75,7 @@ const WATERMARK_API_LOCATIONS = {
 class WatermarkModal extends React.PureComponent {
   static propTypes = {
     isVisible: PropTypes.bool,
+    activeDocumentViewerKey: PropTypes.number.isRequired,
     pageIndexToView: PropTypes.number,
     watermarkLocations: PropTypes.object,
     modalClosed: PropTypes.func,
@@ -124,20 +126,20 @@ class WatermarkModal extends React.PureComponent {
         },
         async () => {
           // Store the pre-existing watermark (if any) before we overwrite it
-          this.preExistingWatermark = await core.getWatermark();
+          this.preExistingWatermark = await core.getWatermark(this.props.activeDocumentViewerKey);
           this.addWatermarks();
         },
       );
     } else {
       this.removeWatermarkCreatedByModal();
-      core.setWatermark(this.preExistingWatermark);
+      core.setWatermark(this.preExistingWatermark, this.props.activeDocumentViewerKey);
     }
   };
 
   addWatermarks = () => {
     const watermarkOptions = this.createWatermarks();
     const { t } = this.props;
-    core.setWatermark(watermarkOptions);
+    core.setWatermark(watermarkOptions, this.props.activeDocumentViewerKey, { skipRefresh: true });
 
     const pageHeight = core.getPageHeight(this.props.pageIndexToView + 1);
     const pageWidth = core.getPageWidth(this.props.pageIndexToView + 1);
@@ -148,7 +150,7 @@ class WatermarkModal extends React.PureComponent {
     const desiredZoom = Math.min(desiredZoomForHeight, desiredZoomForWidth);
     const pageNumber = this.props.pageIndexToView + 1;
 
-    core.getDocument().loadCanvas({
+    core.getDocumentViewer(this.props.activeDocumentViewerKey).getDocument().loadCanvas({
       pageNumber: pageNumber,
       zoom: desiredZoom,
       drawComplete: (canvas) => {
@@ -194,7 +196,6 @@ class WatermarkModal extends React.PureComponent {
 
   createWatermarks = () => {
     const watermarks = {};
-
     Object.keys(WATERMARK_LOCATIONS).forEach((key) => {
       const temp = this.constructWatermarkOption(
         this.state.locationSettings[key],
@@ -207,7 +208,7 @@ class WatermarkModal extends React.PureComponent {
 
   // eslint-disable-next-line class-methods-use-this
   removeWatermarkCreatedByModal = () => {
-    core.setWatermark({});
+    core.setWatermark({}, this.props.activeDocumentViewerKey, { skipRefresh: true });
   };
 
   closeModal = () => {
@@ -257,11 +258,6 @@ class WatermarkModal extends React.PureComponent {
         this.props.formSubmitted(watermarkOptions);
       },
     );
-  };
-
-  getCirclePosn = (lineLength, opacity) => {
-    const lineStart = circleRadius;
-    return opacity * lineLength + lineStart;
   };
 
   setColorPaletteVisibility = (visible) => {
@@ -408,8 +404,8 @@ class WatermarkModal extends React.PureComponent {
     const currLocation = this.getCurrentSelectedLocation();
     const formInfo = this.state.locationSettings[currLocation];
     const hexColor = formInfo[FORM_FIELD_KEYS.color].toHexString();
-    const dropdownHalfWidth = isMobile()? DROPDOWN_MOBILE_WIDTH : DROPDOWN_WIDTH;
-    const dropdownFullWidth = isMobile()? DROPDOWN_WIDTH_LONG : DROPDOWN_WIDTH;
+    const dropdownHalfWidth = isMobile() ? DROPDOWN_MOBILE_WIDTH : DROPDOWN_WIDTH;
+    const dropdownFullWidth = isMobile() ? DROPDOWN_WIDTH_LONG : DROPDOWN_WIDTH;
     return (
       <DataElementWrapper
         className={'Modal Watermark'}
@@ -434,9 +430,10 @@ class WatermarkModal extends React.PureComponent {
             <div className="watermark-settings">
               <form id="form" onSubmit={(e) => e.preventDefault()}>
                 <div className="form-field">
-                  <label className="section-label print-quality-section-label" htmlFor="location">{t('option.watermark.location')}</label>
+                  <label className="section-label print-quality-section-label" htmlFor="location" id="watermark-location-dropdown-label">{t('option.watermark.location')}</label>
                   <Dropdown
                     id="location"
+                    labelledById='watermark-location-dropdown-label'
                     dataElement="watermarkLocation"
                     items={Object.keys(WATERMARK_LOCATIONS)}
                     getTranslationLabel={(key) => t(`option.watermark.locations.${WATERMARK_LOCATIONS[key]}`)}
@@ -463,9 +460,10 @@ class WatermarkModal extends React.PureComponent {
                 </div>
                 <div className="font-form-fields">
                   <div className="form-font-type">
-                    <label htmlFor="fonts">{t('option.watermark.font')}</label>
+                    <label htmlFor="fonts" id="watermark-font-dropdown-label">{t('option.watermark.font')}</label>
                     <Dropdown
                       id="fonts"
+                      labelledById='watermark-font-dropdown-label'
                       dataElement="watermarkFont"
                       items={FONTS}
                       currentSelectionKey={formInfo[FORM_FIELD_KEYS.font]}
@@ -486,6 +484,7 @@ class WatermarkModal extends React.PureComponent {
                       maxFontSize={1600}
                       initialFontValue={1}
                       initialMaxFontValue={512}
+                      width={dropdownHalfWidth}
                     />
                   </div>
                 </div>
@@ -497,16 +496,11 @@ class WatermarkModal extends React.PureComponent {
                     min={0}
                     max={100}
                     step={1}
-                    customCircleRadius={8}
-                    customLineStrokeWidth={4}
-                    value={formInfo[FORM_FIELD_KEYS.opacity] / 100}
-                    getDisplayValue={(opacity) => `${Math.round(opacity * 100)}%`}
-                    getCirclePosition={this.getCirclePosn}
-                    convertRelativeCirclePositionToValue={(circlePosn) => circlePosn}
+                    value={formInfo[FORM_FIELD_KEYS.opacity]}
+                    getDisplayValue={(opacity) => `${Math.round(opacity)}%`}
                     withInputField={isCustomizableUI}
                     inputFieldType={'number'}
-                    onSliderChange={() => { }}
-                    onStyleChange={(property, value) => this.handleInputChange(
+                    onSliderChange={(_, value) => this.handleInputChange(
                       FORM_FIELD_KEYS.opacity,
                       Math.round(value * 100),
                     )}
@@ -537,8 +531,8 @@ class WatermarkModal extends React.PureComponent {
                         onClick={() => this.handleInputChange(
                           FORM_FIELD_KEYS.isBolded,
                           !formInfo[FORM_FIELD_KEYS.isBolded],
-                        )
-                        }
+                        )}
+                        ariaLabel={t('option.richText.bold')}
                       />
                       <Button
                         dataElement="italicizeText"
@@ -547,8 +541,8 @@ class WatermarkModal extends React.PureComponent {
                         onClick={() => this.handleInputChange(
                           FORM_FIELD_KEYS.isItalic,
                           !formInfo[FORM_FIELD_KEYS.isItalic],
-                        )
-                        }
+                        )}
+                        ariaLabel={t('option.richText.italic')}
                       />
                       <Button
                         dataElement="underlineText"
@@ -557,8 +551,8 @@ class WatermarkModal extends React.PureComponent {
                         onClick={() => this.handleInputChange(
                           FORM_FIELD_KEYS.isUnderlined,
                           !formInfo[FORM_FIELD_KEYS.isUnderlined],
-                        )
-                        }
+                        )}
+                        ariaLabel={t('option.richText.underline')}
                       />
                     </div>
                   </div>
@@ -594,13 +588,13 @@ class WatermarkModal extends React.PureComponent {
             >
               {t('option.watermark.resetAllSettings')}
             </button>
-            <button
-              className="ok button"
+            <Button
+              className="add-watermark button"
               id="submit"
               onClick={this.onOkPressed}
             >
               {t('action.add')}
-            </button>
+            </Button>
           </div>
         </ModalWrapper>
       </DataElementWrapper>

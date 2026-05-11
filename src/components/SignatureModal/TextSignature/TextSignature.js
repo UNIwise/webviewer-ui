@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import ColorPalette from 'components/ColorPalette';
 import Dropdown from 'components/Dropdown';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import { isIOS, isMobile } from 'helpers/device';
 import cropImageFromCanvas from 'helpers/cropImageFromCanvas';
 import selectors from 'selectors';
@@ -110,6 +110,7 @@ const TextSignature = ({
   enableCreateButton,
   isInitialsModeEnabled = false,
 }) => {
+  const { core } = useCore();
   const fonts = useSelector((state) => selectors.getSignatureFonts(state));
   const textSignatureCanvasMultiplier = useSelector((state) => selectors.getTextSignatureQuality(state));
   const [fullSignature, setFullSiganture] = useState('');
@@ -191,6 +192,9 @@ const TextSignature = ({
       setFullSiganture(currentUser);
       setInitials(parseInitialsFromFullSignature(currentUser));
       setSignature();
+      if (fullSignature?.length > 0 && (!isInitialsModeEnabled || initials)) {
+        enableCreateButton();
+      }
     }
   }, [isModalOpen, isTabPanelSelected]);
 
@@ -312,6 +316,7 @@ const TextSignature = ({
     if (fullSignature === '' && (isInitialsModeEnabledAndEmpty || !isInitialsModeEnabled)) {
       return (
         <Dropdown
+          id='text-signature-font-dropdown'
           disabled={true}
           placeholder={t('option.signatureModal.fontStyle')}
         />
@@ -319,9 +324,12 @@ const TextSignature = ({
     }
     return (
       <Dropdown
+        id="text-signature-font-dropdown"
         items={fonts.map((font) => ({ font, value: `${fullSignature} ${isInitialsModeEnabled ? initials : ''}` }))}
         getCustomItemStyle={(item) => ({ fontFamily: item.font })}
         getKey={(item) => item.font}
+        translationPrefix='option.signatureModal.textSignature'
+        showLabelInList
         getDisplayValue={(item) => {
           return item.value || item.font;
         }}

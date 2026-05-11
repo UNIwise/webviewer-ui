@@ -8,17 +8,19 @@ import TextSignature from 'components/SignatureModal/TextSignature';
 import ImageSignature from 'components/SignatureModal/ImageSignature';
 import SavedSignatures from 'components/SignatureModal/SavedSignatures';
 
-import core from 'core';
+import useCore from 'hooks/useCore';
 import actions from 'actions';
 import selectors from 'selectors';
 import SignatureModes from 'constants/signatureModes';
 import DataElements from 'constants/dataElement';
 import useDidUpdate from 'hooks/useDidUpdate';
 import ModalWrapper from 'components/ModalWrapper';
+import useFocusOnClose from 'hooks/useFocusOnClose';
 
 import './SignatureModal.scss';
 
 const SignatureModal = () => {
+  const { core } = useCore();
   const [
     isDisabled,
     isOpen,
@@ -256,7 +258,7 @@ const SignatureModal = () => {
               />
             </TabPanel>
             <div className="footer">
-              <button className="signature-create" onClick={isSavedTabSelected ? () => setSignature(selectedIndex) : createSignatures}
+              <button className="signature-create" onClick={useFocusOnClose(isSavedTabSelected ? () => setSignature(selectedIndex) : createSignatures)}
                 disabled={isSavedTabSelected ? (!isSavedTabSelected || !displayedSignatures.length || !isOpen) : (!(isOpen) || createButtonDisabled)}
                 title={isInitialsModeEnabled ? t('message.signatureRequired') : ''}>
                 {t(isSavedTabSelected ? 'action.apply' : 'action.create')}

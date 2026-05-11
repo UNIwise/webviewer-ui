@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import RedactionSearchResult from './RedactionSearchResult';
-import { Choice } from '@pdftron/webviewer-react-toolkit';
+import Choice from 'components/Choice';
 import { useTranslation } from 'react-i18next';
 import CollapsibleSection from 'components/CollapsibleSection';
 import './RedactionSearchResultGroup.scss';
@@ -62,7 +62,7 @@ const RedactionSearchResultGroup = (props) => {
         }}
       />
       <CollapsibleSection header={header} style={style} expansionDescription={`${t('option.shared.page')} ${pageNumber}`}>
-        <div role="list">
+        <ul className="redaction-search-results">
           {searchResults.map((searchResult, index) => (
             <RedactionSearchResult
               checked={selectedSearchResultIndexes[searchResult.index]}
@@ -71,7 +71,7 @@ const RedactionSearchResultGroup = (props) => {
               key={`${index}-${pageNumber}`}
             />)
           )}
-        </div>
+        </ul>
       </CollapsibleSection>
     </div>
   );

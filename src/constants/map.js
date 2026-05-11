@@ -1,5 +1,4 @@
-import i18next from 'i18next';
-import { OFFICE_EDITOR_TRACKED_CHANGE_KEY } from './officeEditor';
+import { OFFICE_EDITOR_COMMENT_KEY, OFFICE_EDITOR_TRACKED_CHANGE_KEY } from './officeEditor';
 
 export const annotationMapKeys = {
   SIGNATURE: 'signature',
@@ -52,9 +51,11 @@ export const annotationMapKeys = {
   RADIO_BUTTON_FORM_FIELD: 'radioButtonFormField',
   LIST_BOX_FORM_FIELD: 'listBoxFormField',
   COMBO_BOX_FORM_FIELD: 'comboBoxFormField',
+  PUSH_BUTTON_FORM_FIELD: 'pushButtonFormField',
   ARC: 'arc',
   CHANGE_VIEW: 'changeView',
   TRACKED_CHANGE: 'trackedChange',
+  OFFICE_EDITOR_COMMENT: 'officeEditorComment',
 };
 
 /**
@@ -73,8 +74,8 @@ const map = {
     currentStyleTab: 'StrokeColor',
     styleTabs: ['StrokeColor'],
     toolNames: ['AnnotationCreateSignature'],
-    annotationCheck: (annotation) => annotation instanceof window.Core.Annotations.FreeHandAnnotation &&
-      annotation.Subject === i18next.t('annotation.signature'),
+    annotationCheck: (annotation) => annotation instanceof window.Core.Annotations.SignatureWidgetAnnotation &&
+      annotation.Subject === 'Widget',
   },
   [annotationMapKeys.FREE_HAND]: {
     icon: 'icon-tool-pen-line',
@@ -249,7 +250,7 @@ const map = {
       annotation.isRectangularPolygon(),
   },
   [annotationMapKeys.AREA_MEASUREMENT]: {
-    icon: 'ic_annotation_area_black_24px',
+    icon: 'icon-tool-measurement-area-polygon-line',
     iconColor: 'StrokeColor',
     validStyleTabs: ['StrokeColor', 'FillColor'],
     currentStyleTab: 'StrokeColor',
@@ -385,8 +386,9 @@ const map = {
       'AnnotationCreateTextHighlight3',
       'AnnotationCreateTextHighlight4',
     ],
-    annotationCheck: (annotation) => annotation instanceof window.Core.Annotations.TextHighlightAnnotation &&
-      annotation.getCustomData(OFFICE_EDITOR_TRACKED_CHANGE_KEY) === '',
+    annotationCheck: (annotation) => annotation instanceof window.Core.Annotations.TextHighlightAnnotation
+      && !annotation.getCustomData(OFFICE_EDITOR_TRACKED_CHANGE_KEY)
+      && !annotation.getCustomData(OFFICE_EDITOR_COMMENT_KEY),
   },
   [annotationMapKeys.UNDERLINE]: {
     icon: 'icon-tool-text-manipulation-underline',
@@ -417,7 +419,7 @@ const map = {
     annotationCheck: (annotation) => annotation instanceof window.Core.Annotations.TextSquigglyAnnotation,
   },
   [annotationMapKeys.STRIKEOUT]: {
-    icon: 'icon-tool-text-manipulation-strikethrough',
+    icon: 'icon-text-strikeout',
     iconColor: 'StrokeColor',
     validStyleTabs: ['StrokeColor'],
     currentStyleTab: 'StrokeColor',
@@ -456,8 +458,7 @@ const map = {
       'AnnotationCreateRectangle3',
       'AnnotationCreateRectangle4',
     ],
-    annotationCheck: (annotation) => annotation instanceof window.Core.Annotations.RectangleAnnotation &&
-      annotation.getCustomData('trn-form-field-type') === '',
+    annotationCheck: (annotation) => annotation instanceof window.Core.Annotations.RectangleAnnotation,
   },
   [annotationMapKeys.ELLIPSE]: {
     icon: 'icon-tool-shape-oval',
@@ -514,7 +515,9 @@ const map = {
       'AnnotationCreateSticky3',
       'AnnotationCreateSticky4',
     ],
-    annotationCheck: (annotation) => annotation instanceof window.Core.Annotations.StickyAnnotation,
+    annotationCheck: (annotation) => annotation instanceof window.Core.Annotations.StickyAnnotation
+      && !annotation.getCustomData(OFFICE_EDITOR_TRACKED_CHANGE_KEY)
+      && !annotation.getCustomData(OFFICE_EDITOR_COMMENT_KEY),
   },
   [annotationMapKeys.CHANGE_VIEW]: {
     icon: 'icon-tool-changeview',
@@ -685,8 +688,7 @@ const map = {
       'TextFormFieldCreateTool3',
       'TextFormFieldCreateTool4',
     ],
-    annotationCheck: (annotation) => annotation instanceof window.Core.Annotations.RectangleAnnotation &&
-      annotation.getCustomData('trn-form-field-type') === 'TextFormField'
+    annotationCheck: (annotation) => annotation instanceof window.Core.Annotations.TextWidgetAnnotation
   },
   [annotationMapKeys.SIGNATURE_FORM_FIELD]: {
     icon: 'icon-form-field-signature',
@@ -700,28 +702,35 @@ const map = {
       'SignatureFormFieldCreateTool3',
       'SignatureFormFieldCreateTool4',
     ],
-    annotationCheck: (annotation) => annotation instanceof window.Core.Annotations.RectangleAnnotation &&
-      annotation.getCustomData('trn-form-field-type') === 'SignatureFormField'
+    annotationCheck: (annotation) => annotation instanceof window.Core.Annotations.SignatureWidgetAnnotation
   },
   [annotationMapKeys.CHECK_BOX_FORM_FIELD]: {
     icon: 'icon-form-field-checkbox',
     iconColor: 'StrokeColor',
-    validStyleTabs: ['StrokeColor'],
+    validStyleTabs: ['StrokeColor', 'FillColor'],
     currentStyleTab: 'StrokeColor',
-    styleTabs: ['StrokeColor'],
-    toolNames: ['CheckBoxFormFieldCreateTool'],
-    annotationCheck: (annotation) => annotation instanceof window.Core.Annotations.RectangleAnnotation &&
-      annotation.getCustomData('trn-form-field-type') === 'CheckBoxFormField'
+    styleTabs: ['StrokeColor', 'FillColor'],
+    toolNames: [
+      'CheckBoxFormFieldCreateTool',
+      'CheckBoxFormFieldCreateTool2',
+      'CheckBoxFormFieldCreateTool3',
+      'CheckBoxFormFieldCreateTool4',
+    ],
+    annotationCheck: (annotation) => annotation instanceof window.Core.Annotations.CheckButtonWidgetAnnotation
   },
   [annotationMapKeys.RADIO_BUTTON_FORM_FIELD]: {
     icon: 'icon-form-field-radiobutton',
     iconColor: 'StrokeColor',
-    validStyleTabs: ['StrokeColor'],
+    validStyleTabs: ['StrokeColor', 'FillColor'],
     currentStyleTab: 'StrokeColor',
-    styleTabs: ['StrokeColor'],
-    toolNames: ['RadioButtonFormFieldCreateTool'],
-    annotationCheck: (annotation) => annotation instanceof window.Core.Annotations.RectangleAnnotation &&
-      annotation.getCustomData('trn-form-field-type') === 'RadioButtonFormField'
+    styleTabs: ['StrokeColor', 'FillColor'],
+    toolNames: [
+      'RadioButtonFormFieldCreateTool',
+      'RadioButtonFormFieldCreateTool2',
+      'RadioButtonFormFieldCreateTool3',
+      'RadioButtonFormFieldCreateTool4',
+    ],
+    annotationCheck: (annotation) => annotation instanceof window.Core.Annotations.RadioButtonWidgetAnnotation
   },
   [annotationMapKeys.LIST_BOX_FORM_FIELD]: {
     icon: 'icon-form-field-listbox',
@@ -735,8 +744,7 @@ const map = {
       'ListBoxFormFieldCreateTool3',
       'ListBoxFormFieldCreateTool4',
     ],
-    annotationCheck: (annotation) => annotation instanceof window.Core.Annotations.RectangleAnnotation &&
-      annotation.getCustomData('trn-form-field-type') === 'ListBoxFormField'
+    annotationCheck: (annotation) => annotation instanceof window.Core.Annotations.ListWidgetAnnotation
   },
   [annotationMapKeys.COMBO_BOX_FORM_FIELD]: {
     icon: 'icon-form-field-combobox',
@@ -750,8 +758,16 @@ const map = {
       'ComboBoxFormFieldCreateTool3',
       'ComboBoxFormFieldCreateTool4',
     ],
-    annotationCheck: (annotation) => annotation instanceof window.Core.Annotations.RectangleAnnotation &&
-      annotation.getCustomData('trn-form-field-type') === 'ComboBoxFormField'
+    annotationCheck: (annotation) => annotation instanceof window.Core.Annotations.ChoiceWidgetAnnotation
+  },
+  [annotationMapKeys.PUSH_BUTTON_FORM_FIELD]: {
+    icon: 'icon-form-field-button',
+    iconColor: null,
+    validStyleTabs: [],
+    currentStyleTab: null,
+    styleTabs: [],
+    toolNames: [],
+    annotationCheck: (annotation) => annotation instanceof window.Core.Annotations.PushButtonWidgetAnnotation
   },
   [annotationMapKeys.TRACKED_CHANGE]: {
     icon: 'ic-edit-page',
@@ -763,13 +779,25 @@ const map = {
     annotationCheck: (annotation) => annotation instanceof window.Core.Annotations.TextHighlightAnnotation &&
       annotation.getCustomData(OFFICE_EDITOR_TRACKED_CHANGE_KEY)
   },
+  [annotationMapKeys.OFFICE_EDITOR_COMMENT]: {
+    icon: 'icon-tool-comment-line',
+    iconColor: 'FillColor',
+    validStyleTabs: [],
+    currentStyleTab: null,
+    styleTabs: [],
+    toolNames: [],
+    annotationCheck: (annotation) =>
+      (annotation instanceof window.Core.Annotations.TextHighlightAnnotation ||
+      annotation instanceof window.Core.Annotations.StickyAnnotation) &&
+      annotation.getCustomData(OFFICE_EDITOR_COMMENT_KEY)
+  },
 };
 
 export const mapToolNameToKey = (toolName) => Object.keys(map).find((key) => map[key].toolNames.includes(toolName));
 
 export const mapAnnotationToKey = (annotation) => Object.keys(map).find((key) => {
   const { annotationCheck } = map[key];
-  return annotationCheck && annotationCheck(annotation);
+  return annotationCheck?.(annotation);
 });
 
 export const mapAnnotationToToolName = (annotation) => map[mapAnnotationToKey(annotation)].toolNames[0];
@@ -789,7 +817,7 @@ export const register = (tool, annotationConstructor, customAnnotCheckFunc) => {
   const { toolName, buttonImage, toolObject } = tool;
   const key = toolName;
   const styleTabs = ['TextColor', 'StrokeColor', 'FillColor'].filter(
-    (property) => toolObject.defaults && toolObject.defaults[property],
+    (property) => toolObject?.defaults?.[property],
   );
 
   map[key] = {
@@ -849,53 +877,53 @@ export const updateAnnotationStylePopupTabs = (annotationKey, newAnnotationStyle
 /**
  * A constant containing keys that identify annotations.
  * @name UI.AnnotationKeys
- * @property {string} SIGNATURE The key represents the signature annotation
- * @property {string} FREE_HAND The key represents the free hand annotation
- * @property {string} FREE_HAND_HIGHLIGHT The key represents the free hand highlight annotation
- * @property {string} FREE_TEXT The key represents the free text annotation
- * @property {string} DATE_FREE_TEXT The key represents the date free text annotation
- * @property {string} DISTANCE_MEASUREMENT The key represents the distance measurement annotation
- * @property {string} PERIMETER_MEASUREMENT The key represents the perimeter measurement annotation
- * @property {string} ARC_MEASUREMENT The key represents the arc measurement annotation
- * @property {string} RECTANGULAR_AREA_MEASUREMENT The key represents the rectangular area measurement annotation
- * @property {string} CLOUDY_RECTANGULAR_AREA_MEASUREMENT The key represents the cloudy rectangular area measurement annotation
- * @property {string} AREA_MEASUREMENT The key represents the area measurement annotation
- * @property {string} ELLIPSE_MEASUREMENT The key represents the ellipse measurement annotation
- * @property {string} COUNT_MEASUREMENT The key represents the count measurement annotation
- * @property {string} CALLOUT The key represents the callout annotation
- * @property {string} LINE The key represents the line annotation
- * @property {string} ARROW The key represents the arrow annotation
- * @property {string} POLYGON The key represents the polygon annotation
- * @property {string} CLOUD The key represents the cloud annotation
- * @property {string} HIGHLIGHT The key represents the highlight annotation
- * @property {string} UNDERLINE The key represents the underline annotation
- * @property {string} SQUIGGLY The key represents the squiggly annotation
- * @property {string} STRIKEOUT The key represents the strikeout annotation
- * @property {string} REDACTION The key represents the redaction annotation
- * @property {string} RECTANGLE The key represents the rectangle annotation
- * @property {string} ELLIPSE The key represents the ellipse annotation
- * @property {string} ARC The key represents the arc annotation
- * @property {string} POLYLINE The key represents the polyline annotation
- * @property {string} STICKYNOTE The key represents the sticky note annotation
- * @property {string} IMAGE The key represents the image annotation
- * @property {string} STAMP The key represents the stamp annotaiton
- * @property {string} EDIT The key represents the edit annotation
- * @property {string} PAN The key represents the pan annotation
- * @property {string} CONTENT_EDIT_TOOL The key represents the content edit tool annotation
- * @property {string} ADD_PARAGRAPH_TOOL The key represents the add paragraph tool annotation
- * @property {string} TEXT_SELECT The key represents the text select annotation
- * @property {string} MARQUEE_ZOOM_TOOL The key represents the marquee zoom tool annotation
- * @property {string} ERASER The key represents the eraser annotation
- * @property {string} CROP_PAGE The key represents the crop page annotation
- * @property {string} FILE_ATTACHMENT The key represents the file attachment annotation
- * @property {string} SOUND The key represents the sound annotation
- * @property {string} THREE_D_ANNOTATION The key represents the 3D annotation
- * @property {string} TEXT_FIELD The key represents the text field annotation
- * @property {string} SIGNATURE_FORM_FIELD The key represents the signature form field annotation
- * @property {string} CHECK_BOX_FORM_FIELD The key represents the check box form field annotaiton
- * @property {string} RADIO_BUTTON_FORM_FIELD The key represents the radio button form field annotation
- * @property {string} LIST_BOX_FORM_FIELD The key represents list box form field annotation
- * @property {string} COMBO_BOX_FORM_FIELD The key represents the combo box form field annotation
+ * @property {string} SIGNATURE The key represents the signature annotation.
+ * @property {string} FREE_HAND The key represents the free hand annotation.
+ * @property {string} FREE_HAND_HIGHLIGHT The key represents the free hand highlight annotation.
+ * @property {string} FREE_TEXT The key represents the free text annotation.
+ * @property {string} DATE_FREE_TEXT The key represents the date free text annotation.
+ * @property {string} DISTANCE_MEASUREMENT The key represents the distance measurement annotation.
+ * @property {string} PERIMETER_MEASUREMENT The key represents the perimeter measurement annotation.
+ * @property {string} ARC_MEASUREMENT The key represents the arc measurement annotation.
+ * @property {string} RECTANGULAR_AREA_MEASUREMENT The key represents the rectangular area measurement annotation.
+ * @property {string} CLOUDY_RECTANGULAR_AREA_MEASUREMENT The key represents the cloudy rectangular area measurement annotation.
+ * @property {string} AREA_MEASUREMENT The key represents the area measurement annotation.
+ * @property {string} ELLIPSE_MEASUREMENT The key represents the ellipse measurement annotation.
+ * @property {string} COUNT_MEASUREMENT The key represents the count measurement annotation.
+ * @property {string} CALLOUT The key represents the callout annotation.
+ * @property {string} LINE The key represents the line annotation.
+ * @property {string} ARROW The key represents the arrow annotation.
+ * @property {string} POLYGON The key represents the polygon annotation.
+ * @property {string} CLOUD The key represents the cloud annotation.
+ * @property {string} HIGHLIGHT The key represents the highlight annotation.
+ * @property {string} UNDERLINE The key represents the underline annotation.
+ * @property {string} SQUIGGLY The key represents the squiggly annotation.
+ * @property {string} STRIKEOUT The key represents the strikeout annotation.
+ * @property {string} REDACTION The key represents the redaction annotation.
+ * @property {string} RECTANGLE The key represents the rectangle annotation.
+ * @property {string} ELLIPSE The key represents the ellipse annotation.
+ * @property {string} ARC The key represents the arc annotation.
+ * @property {string} POLYLINE The key represents the polyline annotation.
+ * @property {string} STICKYNOTE The key represents the sticky note annotation.
+ * @property {string} IMAGE The key represents the image annotation.
+ * @property {string} STAMP The key represents the stamp annotation.
+ * @property {string} EDIT The key represents the edit annotation.
+ * @property {string} PAN The key represents the pan annotation.
+ * @property {string} CONTENT_EDIT_TOOL The key represents the content edit tool annotation.
+ * @property {string} ADD_PARAGRAPH_TOOL The key represents the add paragraph tool annotation.
+ * @property {string} TEXT_SELECT The key represents the text select annotation.
+ * @property {string} MARQUEE_ZOOM_TOOL The key represents the marquee zoom tool annotation.
+ * @property {string} ERASER The key represents the eraser annotation.
+ * @property {string} CROP_PAGE The key represents the crop page annotation.
+ * @property {string} FILE_ATTACHMENT The key represents the file attachment annotation.
+ * @property {string} SOUND The key represents the sound annotation.
+ * @property {string} THREE_D_ANNOTATION The key represents the 3D annotation.
+ * @property {string} TEXT_FIELD The key represents the text field annotation.
+ * @property {string} SIGNATURE_FORM_FIELD The key represents the signature form field annotation.
+ * @property {string} CHECK_BOX_FORM_FIELD The key represents the check box form field annotation.
+ * @property {string} RADIO_BUTTON_FORM_FIELD The key represents the radio button form field annotation.
+ * @property {string} LIST_BOX_FORM_FIELD The key represents the list box form field annotation.
+ * @property {string} COMBO_BOX_FORM_FIELD The key represents the combo box form field annotation.
  */
 
 export const AnnotationKeys = {
@@ -951,9 +979,9 @@ export const AnnotationKeys = {
 /**
  * The different available style tabs in the annotation popup.
  * @name UI.AnnotationStylePopupTabs
- * @property {string} TEXT_COLOR Indicates the text style tab in the annotation popup window
- * @property {string} STROKE_COLOR Indicates the stroke color tab in the annotation popup window
- * @property {string} FILL_COLOR Indicates the fill color tab in the annotation popup window
+ * @property {string} TEXT_COLOR Indicates the text style tab in the annotation popup window.
+ * @property {string} STROKE_COLOR Indicates the stroke color tab in the annotation popup window.
+ * @property {string} FILL_COLOR Indicates the fill color tab in the annotation popup window.
  */
 
 export const AnnotationStylePopupTabs = {

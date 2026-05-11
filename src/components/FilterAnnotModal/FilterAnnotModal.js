@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import classNames from 'classnames';
 import { useSelector, useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
+import useCore from 'hooks/useCore';
 import { ShareTypeColors } from 'constants/shareTypes';
 import { getAnnotationShareType } from 'helpers/annotationShareType';
 import getAnnotationAuthor from 'helpers/getAnnotationAuthor';
-import core from 'core';
 import actions from 'actions';
 import selectors from 'selectors';
+import PropTypes from 'prop-types';
 import fireEvent from 'helpers/fireEvent';
 import defaultTool from 'constants/defaultTool';
 import Events from 'constants/events';
@@ -26,15 +27,19 @@ import './FilterAnnotModal.scss';
 
 const TABS_ID = 'filterAnnotModal';
 
-const FilterAnnotModal = () => {
-  const [isDisabled, isOpen, colorMap, selectedTab, annotationFilters, isMeasurementAnnotationFilterEnabled] = useSelector((state) => [
+const FilterAnnotModal = ({ isInFormBuilderMode }) => {
+  const { core } = useCore();
+  const [isDisabled, isOpen, colorMap, selectedTab, annotationFilters,
+    isMeasurementAnnotationFilterEnabled, customNoteFilter] = useSelector((state) => [
     selectors.isElementDisabled(state, DataElements.FILTER_MODAL),
     selectors.isElementOpen(state, DataElements.FILTER_MODAL),
     selectors.getColorMap(state),
     selectors.getSelectedTab(state, TABS_ID),
     selectors.getAnnotationFilters(state),
     selectors.getIsMeasurementAnnotationFilterEnabled(state),
+    selectors.getCustomNoteFilter(state),
   ]);
+
   const [t] = useTranslation();
   const dispatch = useDispatch();
 
@@ -136,10 +141,17 @@ const FilterAnnotModal = () => {
       typeFilter: typesFilter,
       shareTypesFilter,
     }));
+
     const redrawList = [];
     if (isDocumentFilterActive) {
       core.getDocumentViewers().forEach((documentViewer, index) => documentViewer.getAnnotationManager()
         .getAnnotationsList().forEach((annot) => {
+
+          // Do not hide widgets if filtering outside of form builder mode.
+          if (!isInFormBuilderMode && annot instanceof window.Core.Annotations.WidgetAnnotation) {
+            return;
+          }
+
           const shouldHide = !newFilter(annot, index + 1);
           if (shouldHide !== annot.NoView) {
             annot.NoView = shouldHide;
@@ -204,7 +216,15 @@ const FilterAnnotModal = () => {
   }, []);
 
   useEffect(() => {
-    const annotLists = core.getDocumentViewers().map((documentViewer) => documentViewer.getAnnotationManager().getAnnotationsList());
+    let annotLists = core.getDocumentViewers().map((documentViewer) => documentViewer.getAnnotationManager().getAnnotationsList());
+
+    if (customNoteFilter) {
+      const filteredList = (annotLists[0]) ? annotLists[0].filter(customNoteFilter): [];
+      annotLists[0] = filteredList;
+      const filteredList2 = (annotLists[1]) ? annotLists[1].filter(customNoteFilter) : [];
+      annotLists[1] = filteredList2;
+    }
+
     const annots = [].concat(...annotLists).filter((annot) => !annot.Hidden);
     // set is a great way to remove any duplicate additions and ensure the unique items are present
     // the only gotcha that it should not be used by state since not always it will trigger a rerender
@@ -218,12 +238,14 @@ const FilterAnnotModal = () => {
       if (displayAuthor && displayAuthor !== '') {
         authorsToBeAdded.add(displayAuthor);
       }
-      // We don't show it in the filter for WidgetAnnotation or StickyAnnotation or LinkAnnotation from the comments
-      if (
-        annot instanceof window.Core.Annotations.WidgetAnnotation ||
+
+      const ignoreFilter = (
+        (!isInFormBuilderMode && annot instanceof window.Core.Annotations.WidgetAnnotation) ||
         (annot instanceof window.Core.Annotations.StickyAnnotation && annot.isReply()) ||
         annot instanceof window.Core.Annotations.Link
-      ) {
+      );
+
+      if (ignoreFilter) {
         return;
       }
 
@@ -299,6 +321,7 @@ const FilterAnnotModal = () => {
             <Choice
               type="checkbox"
               key={index}
+              aria-label={`${val} ${t('formField.types.checkbox')}`}
               label={<Tooltip content={val}><div>{val}</div></Tooltip>}
               checked={authorFilter.includes(val)}
               id={val}
@@ -349,24 +372,22 @@ const FilterAnnotModal = () => {
         {[...colors].map((val, index) => {
           return (
             <div className="colorSelect" key={`color${index}`}>
-              <Choice
-                type="checkbox"
-                checked={colorFilter.includes(val)}
-                id={val}
-                onChange={(e) => {
-                  if (colorFilter.indexOf(e.target.getAttribute('id')) === -1) {
-                    setColorFilter([...colorFilter, e.target.getAttribute('id')]);
-                  } else {
-                    setColorFilter(colorFilter.filter((color) => color !== e.target.getAttribute('id')));
-                  }
-                }}
-              />
-              <div
-                className="colorCell"
-                style={{
-                  background: getHexToRgbaString(val),
-                }}
-              ></div>
+              <Tooltip content={`${t('option.colorPalette.colorLabel')} ${val?.toUpperCase?.()}`} hideOnClick={false}>
+                <Choice
+                  type="checkbox"
+                  checked={colorFilter.includes(val)}
+                  aria-label={`${t('option.colorPalette.colorLabel')} ${val?.toUpperCase()} ${t('formField.types.checkbox')}`}
+                  id={val}
+                  onChange={(e) => {
+                    if (colorFilter.indexOf(e.target.getAttribute('id')) === -1) {
+                      setColorFilter([...colorFilter, e.target.getAttribute('id')]);
+                    } else {
+                      setColorFilter(colorFilter.filter((color) => color !== e.target.getAttribute('id')));
+                    }
+                  }}
+                />
+              </Tooltip>
+              <div className="colorCell" style={{ background: getHexToRgbaString(val) }}></div>
             </div>
           );
         })}
@@ -474,9 +495,9 @@ const FilterAnnotModal = () => {
                 </Tabs>
               </div>
               <div className="divider"></div>
-              <div className="settings-body">
-                <div className="settings-header">{t('option.filterAnnotModal.filterSettings')}</div>
-                <div className="settings">
+              <fieldset className="settings-body">
+                <legend id="filter-settings" className="settings-header">{t('option.filterAnnotModal.filterSettings')}</legend>
+                <div className="settings" role="group" aria-labelledby='filter-settings'>
                   {/* <Choice
                     label={t('option.filterAnnotModal.includeReplies')}
                     checked={checkRepliesForAuthorFilter}
@@ -490,7 +511,7 @@ const FilterAnnotModal = () => {
                     id="filter-annot-modal-filter-document"
                   />
                 </div>
-              </div>
+              </fieldset>
               <div className="divider"></div>
               <div className="footer">
                 <Button className="filter-annot-cancel" onClick={closeModal} label={t('action.cancel')} />
@@ -509,6 +530,10 @@ const FilterAnnotModal = () => {
       </ModalWrapper>
     </div>
   );
+};
+
+FilterAnnotModal.propTypes = {
+  isInFormBuilderMode: PropTypes.bool,
 };
 
 export default FilterAnnotModal;

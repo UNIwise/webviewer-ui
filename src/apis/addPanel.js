@@ -1,16 +1,18 @@
 import actions from 'actions';
 import { panelNames } from 'constants/panel';
 import { Panel } from 'src/apis/getPanels';
+import { PANEL_LOCATION } from 'constants/customizationVariables';
 
 /**
  * @typedef {Object} PanelProperties
+ * @memberof UI
  * @property {string} dataElement The data-element for panel.
  * @property {string} location Location of the panel in UI, left or right.
  * @property {string | UI.renderCustomPanel} render Either the name of a predefined panel to render or a function that returns a panel element.
  */
 
 /**
- * Adds a custom panel in left or right side of the UI.
+ * Adds a custom panel to the left or right side of the UI.
  * @method UI.addPanel
  * @param {Object<PanelProperties>} panel The panel object to be added in the UI.
  * @example
@@ -47,7 +49,7 @@ WebViewer(...)
 const { TYPES } = window.Core;
 const PANEL_TYPE = TYPES.MULTI_TYPE(TYPES.OBJECT({
   dataElement: TYPES.STRING,
-  location: TYPES.ONE_OF('left', 'right'),
+  location: TYPES.ONE_OF(Object.values(PANEL_LOCATION)),
   render: TYPES.MULTI_TYPE(TYPES.ONE_OF(...Object.values(panelNames)), TYPES.FUNCTION)
 }), TYPES.OBJECT(Panel));
 

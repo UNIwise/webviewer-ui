@@ -1,24 +1,46 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import Dropdown from 'components/Dropdown';
-import core from 'core';
-import { useSelector, shallowEqual } from 'react-redux';
+import useCore from 'hooks/useCore';
+import { useSelector, shallowEqual, useDispatch } from 'react-redux';
 import selectors from 'selectors';
 import { AVAILABLE_STYLE_PRESET_MAP } from 'constants/officeEditor';
 import { COMMON_COLORS } from 'constants/commonColors';
+import classNames from 'classnames';
+import actions from 'actions';
 
-const StylePresetDropdown = () => {
+import './StylePresetDropdown.scss';
+
+const propTypes = {
+  isFlyoutItem: PropTypes.bool,
+  activeFlyout: PropTypes.string,
+  onKeyDownHandler: PropTypes.func,
+};
+
+const StylePresetDropdown = (props) => {
+  const { core } = useCore();
+  const { isFlyoutItem, activeFlyout, onKeyDownHandler } = props;
+  const dispatch = useDispatch();
   const [
-    cursorStyleToPreset
+    cursorStyleToPreset,
+    customizableUI,
   ] = useSelector(
     (state) => [
       selectors.getCursorStyleToPreset(state, AVAILABLE_STYLE_PRESET_MAP, COMMON_COLORS),
+      selectors.getFeatureFlags(state)?.customizableUI,
     ],
     shallowEqual
   );
 
   return (
     <Dropdown
-      className="text-left"
+      id="office-editor-style-preset-dropdown"
+      className={classNames({
+        'OfficeEditorStylePresetDropdown': true,
+        'text-left': true,
+        'flyout-item': isFlyoutItem,
+        'modular-ui': customizableUI,
+      })}
       items={Object.keys(AVAILABLE_STYLE_PRESET_MAP)}
       onClickItem={async (item) => {
         const stylePreset = AVAILABLE_STYLE_PRESET_MAP[item];
@@ -41,16 +63,23 @@ const StylePresetDropdown = () => {
 
         await core.getOfficeEditor().updateParagraphStylePresets(newTextStyle);
         await core.getOfficeEditor().setMainCursorStyle(newTextStyle);
+        if (activeFlyout) {
+          dispatch(actions.closeElement(activeFlyout));
+        }
       }}
       getCustomItemStyle={(item) => ({ ...AVAILABLE_STYLE_PRESET_MAP[item], padding: '20px 10px', color: null })}
       applyCustomStyleToButton={false}
       currentSelectionKey={cursorStyleToPreset}
-      width={160}
+      width={180}
       dataElement="office-editor-text-format"
       showLabelInList={true}
       translationPrefix="officeEditor.fontStyles"
+      isFlyoutItem={isFlyoutItem}
+      onKeyDownHandler={onKeyDownHandler}
     />
   );
 };
+
+StylePresetDropdown.propTypes = propTypes;
 
 export default StylePresetDropdown;

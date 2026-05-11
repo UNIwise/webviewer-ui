@@ -3,14 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
 import selectors from 'selectors';
 import classNames from 'classnames';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import PropTypes from 'prop-types';
-import ToggleElementButton from 'components/ModularComponents/ToggleElementButton';
 import Button from '../Button';
+import TextButton from '../TextButton';
 import DataElementWrapper from '../DataElementWrapper';
-import Choice from 'components/Choice';
-import MoreOptionsContextMenuFlyout, { menuTypes } from '../MoreOptionsContextMenuFlyout/MoreOptionsContextMenuFlyout';
+import { menuTypes } from 'helpers/outlineFlyoutHelper';
 import DataElements from 'constants/dataElement';
+import PanelListItem from 'components/PanelListItem';
 
 import '../../constants/bookmarksOutlinesShared.scss';
 
@@ -41,6 +41,7 @@ const Bookmark = ({
   onCancel,
   panelSelector,
 }) => {
+  const { core } = useCore();
   const [t] = useTranslation();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -49,14 +50,12 @@ const Bookmark = ({
   const [clearSingleClick, setClearSingleClick] = useState(undefined);
   const inputRef = useRef();
 
-  const isRenameButtonDisabled = () => {
-    return !bookmarkText || text === bookmarkText;
-  };
+  const isRenameButtonDisabled = !bookmarkText || text === bookmarkText;
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.stopPropagation();
-      if (isAdding || (isEditing && !isRenameButtonDisabled())) {
+      if (isAdding || (isEditing && !isRenameButtonDisabled)) {
         onSaveBookmark();
       }
     }
@@ -113,128 +112,107 @@ const Bookmark = ({
     }
   };
 
-  const flyoutSelector = `${DataElements.BOOKMARK_FLYOUT}-${'outlinePath'}`;
+  const flyoutSelector = `${DataElements.BOOKMARK_FLYOUT}-${pageIndex}`;
   const currentFlyout = useSelector((state) => selectors.getFlyout(state, flyoutSelector));
+  const isViewOnly = useSelector(selectors.isViewOnly);
+  const canEditBookmark = !isViewOnly;
+
+  const bookmarkMoreOptionsDataElement = `bookmark-more-button-${panelSelector}-${pageIndex}`;
+  const panelListType = 'bookmark';
+
+  const bookmarkPanelListProps = {
+    labelHeader: defaultLabel,
+    description: text,
+    enableMoreOptionsContextMenuFlyout: canEditBookmark,
+    contentMenuFlyoutOptions: {
+      shouldHideDeleteButton: false,
+      currentFlyout: currentFlyout,
+      flyoutSelector: flyoutSelector,
+      type: panelListType,
+      handleOnClick : handleOnClick,
+    },
+    contextMenuMoreButtonOptions: {
+      flyoutToggleElement: flyoutSelector,
+      moreOptionsDataElement: bookmarkMoreOptionsDataElement,
+    },
+    onClick: (e) => {
+      if (isDefault && e.detail === 1) {
+        setClearSingleClick(setTimeout(() => {
+          setCurrentPage(pageIndex);
+        }, 300));
+      }
+    },
+    onDoubleClick: () => {
+      if (isDefault) {
+        setIsEditing(true);
+      }
+    },
+    checkboxOptions: {
+      id: `bookmark-checkbox-${pageIndex + 1}`,
+      onChange: (e) => {
+        setSelected(pageIndex, e.target.checked);
+      },
+      ariaLabel: `${t('action.select')} ${label}`,
+      disabled: !isMultiSelectionMode
+    }
+  };
 
   return (
-    <DataElementWrapper
-      className={classNames({
-        'bookmark-outline-single-container': true,
-        'editing': isAdding || isEditing,
-        'default': isDefault,
-      })}
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') {
-          setCurrentPage(pageIndex);
-        }
-      }}
-      onClick={(e) => {
-        if (isDefault && e.detail === 1) {
-          setClearSingleClick(setTimeout(() => {
-            setCurrentPage(pageIndex);
-          }, 300));
-        }
-      }}
-      onDoubleClick={() => {
-        if (isDefault) {
-          clearTimeout(clearSingleClick);
-        }
-      }}
-    >
-      {isMultiSelectionMode &&
-        <Choice
-          type="checkbox"
-          className="bookmark-outline-checkbox"
-          id={`bookmark-checkbox-${pageIndex + 1}`}
-          onClick={(e) => e.stopPropagation()}
-          onChange={(e) => setSelected(pageIndex, e.target.checked)}
-        />
-      }
-
-      <div className="bookmark-outline-label-row">
-        <div className="bookmark-outline-label">{(isAdding || isEditing) ? label : defaultLabel}</div>
-
-        {isDefault &&
-          <>
-            {isMultiSelectionMode &&
+    <>
+      {isDefault && <PanelListItem {...bookmarkPanelListProps} />}
+      {(isAdding || isEditing) && <DataElementWrapper
+        className={classNames({
+          'bookmark-outline-single-container': true,
+          'editing': isAdding || isEditing,
+          'default': isDefault,
+        })}
+        onDoubleClick={() => {
+          if (isDefault) {
+            clearTimeout(clearSingleClick);
+          }
+        }}
+      >
+        <div className="bookmark-outline-label-row">
+          <div className="bookmark-outline-label">{(isAdding || isEditing) ? label : defaultLabel}</div>
+          <input
+            type="text"
+            name="bookmark"
+            ref={inputRef}
+            className="bookmark-outline-input bookmark-text-input"
+            aria-label={t('action.name')}
+            value={bookmarkText}
+            onKeyDown={handleKeyDown}
+            onChange={(e) => setBookmarkText(e.target.value)}
+          />
+          <div className="bookmark-outline-editing-controls">
+            <TextButton
+              label={t('action.cancel')}
+              onClick={onCancelBookmark}
+              ariaLabel={`${t('action.cancel')} ${t('component.bookmarkPanel')}`}
+            />
+            {isAdding &&
               <Button
-                className="bookmark-outline-more-button"
-                dataElement={`bookmark-more-button-${pageIndex}`}
-                img="icon-pencil-line"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsEditing(true);
-                }}
-                tabIndex={-1}
+                className="bookmark-outline-save-button"
+                label={t('action.add')}
+                isSubmitType
+                onClick={onSaveBookmark}
+                ariaLabel={`${t('action.add')} ${t('component.bookmarkPanel')}`}
               />
             }
-            {!isMultiSelectionMode &&
-              <ToggleElementButton
-                className="bookmark-outline-more-button"
-                dataElement={`bookmark-more-button-${panelSelector}-${pageIndex}`}
-                img="icon-tool-more"
-                toggleElement={flyoutSelector}
-                disabled={false}
+            {isEditing &&
+              <Button
+                className="bookmark-outline-save-button"
+                label={t('action.save')}
+                isSubmitType
+                disabled={isRenameButtonDisabled}
+                onClick={onSaveBookmark}
+                ariaLabel={`${t('action.save')} ${t('component.bookmarkPanel')}`}
               />
             }
-            <MoreOptionsContextMenuFlyout
-              shouldHideDeleteButton={false}
-              currentFlyout={currentFlyout}
-              flyoutSelector={flyoutSelector}
-              type={'bookmark'}
-              handleOnClick={handleOnClick}
-            />
-            <div
-              className="bookmark-outline-text bookmark-text-input"
-              onDoubleClick={() => setIsEditing(true)}
-            >
-              {text}
-            </div>
-          </>
-        }
-
-        {(isAdding || isEditing) &&
-          <>
-            <input
-              type="text"
-              name="bookmark"
-              ref={inputRef}
-              className="bookmark-outline-input bookmark-text-input"
-              aria-label={t('action.name')}
-              value={bookmarkText}
-              onKeyDown={handleKeyDown}
-              onChange={(e) => setBookmarkText(e.target.value)}
-            />
-
-            <div className="bookmark-outline-editing-controls">
-              <Button
-                className="bookmark-outline-cancel-button"
-                label={t('action.cancel')}
-                onClick={onCancelBookmark}
-              />
-              {isAdding &&
-                <Button
-                  className="bookmark-outline-save-button"
-                  label={t('action.add')}
-                  isSubmitType
-                  onClick={onSaveBookmark}
-                />
-              }
-              {isEditing &&
-                <Button
-                  className="bookmark-outline-save-button"
-                  label={t('action.save')}
-                  isSubmitType
-                  disabled={isRenameButtonDisabled()}
-                  onClick={onSaveBookmark}
-                />
-              }
-            </div>
-          </>
-        }
-      </div>
-    </DataElementWrapper>
+          </div>
+        </div>
+      </DataElementWrapper>}
+    </>
   );
 };
 

@@ -1,10 +1,10 @@
-@import "../../constants/styles";
-@import "../../constants/modal";
+@import '../../constants/styles';
+@import '../../constants/modal';
 
 .EditKeyboardShortcutModal.Modal {
   @extend %modal;
 
-  .container {
+  .modal-container {
     @extend %modal-shared-container-style;
     @extend %modal-shared-container-style-mobile;
 
@@ -35,23 +35,27 @@
       }
 
       .keyboard-shortcut {
-        margin-top: 16px;
         height: 100%;
         color: var(--gray-7);
         display: flex;
+        direction: ltr;
         align-items: center;
         justify-content: center;
         background: var(--gray-2);
         border-radius: 4px;
 
         span:not(:last-child) {
-          margin-right: 8px;
+          margin-inline-end: 8px;
+        }
+
+        &.recording {
+          outline: var(--focus-visible-outline);
         }
       }
 
       .conflict-warning {
         position: absolute;
-        bottom: 50px;
+        inset-block-end: 50px;
         font-size: 13px;
         color: var(--red);
         width: calc(100% - 32px);
@@ -69,15 +73,12 @@
     .footer {
       padding: 16px;
       margin-top: 0px;
+      gap: 8px;
 
       .modal-button {
         height: 32px;
         margin: 0px;
         font-weight: unset;
-
-        .disabled span, &.disabled span {
-          color: var(--gray-0) !important;
-        }
       }
     }
   }

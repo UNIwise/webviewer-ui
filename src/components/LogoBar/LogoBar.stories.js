@@ -3,6 +3,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import LogoBar from './LogoBar';
 
 import { Provider } from 'react-redux';
+import { disableChromaticParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/LogoBar',
@@ -27,3 +28,5 @@ export const LogoBarComponent = () => (
     </div>
   </Provider>
 );
+
+LogoBarComponent.parameters = disableChromaticParameters;

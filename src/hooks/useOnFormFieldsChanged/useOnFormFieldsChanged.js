@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
-import core from 'core';
+import useCore from 'hooks/useCore';
+
+const { Annotations } = window.Core;
 
 export default function useOnFormFieldsChanged() {
+  const { core } = useCore();
   const [formFieldAnnotationsList, setFormFieldAnnotationsList] = useState([]);
 
   useEffect(() => {
@@ -10,13 +13,13 @@ export default function useOnFormFieldsChanged() {
       const annotations = core.getAnnotationsList();
       const formFieldCreationManager = core.getFormFieldCreationManager();
       if (formFieldCreationManager.isInFormFieldCreationMode()) {
-        const formFieldPlaceholders = annotations.filter((annotation) => annotation.isFormFieldPlaceholder());
+        const widgets = annotations.filter((annotation) => annotation instanceof Annotations.WidgetAnnotation);
         formFieldIndicators = [
-          ...formFieldPlaceholders
+          ...widgets
             .reduce(
               (fieldNameMap, field) => {
-                if (!fieldNameMap.has(field.getCustomData(formFieldCreationManager.getFieldLabels().FIELD_NAME))) {
-                  fieldNameMap.set(field.getCustomData(formFieldCreationManager.getFieldLabels().FIELD_NAME), field);
+                if (!fieldNameMap.has(field.getField().name)) {
+                  fieldNameMap.set(field.getField().name, field);
                 }
                 return fieldNameMap;
               },
@@ -58,7 +61,7 @@ export default function useOnFormFieldsChanged() {
       core.removeEventListener('annotationChanged', setFormFieldIndicators);
       core.removeEventListener('pageNumberUpdated', setFormFieldIndicators);
     };
-  });
+  }, [core]);
 
   return formFieldAnnotationsList;
 }

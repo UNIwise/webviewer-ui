@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import classNames from 'classnames';
 import selectors from 'selectors';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import { useTranslation } from 'react-i18next';
 import FileListPanel from './FileListPanel';
 import FileInputPanel from './FileInputPanel';
@@ -17,7 +17,7 @@ import getRootNode, { getInstanceNode } from 'helpers/getRootNode';
 import './PageReplacementModal.scss';
 
 const isValidUrlRegex = new RegExp(/^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$/, 'm');
-const options = { loadAsPDF: true, l: window.sampleL /* license key here */ };
+const options = { loadAsPDF: true };
 
 const PageReplacementModal = ({
   closeModal,
@@ -26,8 +26,10 @@ const PageReplacementModal = ({
   selectedThumbnailPageIndexes,
   selectedTab,
 }) => {
+  const { core } = useCore();
   const [t] = useTranslation();
   const [source, setSource] = useState({});
+  const [error, setError] = useState(null);
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [isFileSelected, setIsFileSelected] = useState(false);
   const [selectedTabInternal, setSelectedTabInternal] = useState(null);
@@ -67,16 +69,25 @@ const PageReplacementModal = ({
 
   const srcString = source[selectedTabInternal];
   const handleSelection = async () => {
-    setIsFileSelected(true);
     let document;
     if (srcString && selectedTabInternal === 'customFileListPanelButton') {
       if (srcString.onSelect) {
         document = await srcString.onSelect();
         setSelectedDoc(document);
       }
+
+      setIsFileSelected(true);
     } else if (srcString) {
-      document = await core.createDocument(srcString, options);
-      setSelectedDoc(document);
+      try {
+        document = await core.createDocument(srcString, options);
+
+        setSelectedDoc(document);
+        setIsFileSelected(true);
+      } catch (error) {
+        setError(t('message.urlInputFileLoadError'));
+        setIsFileSelected(false);
+        console.error('Error loading file from URL:', error);
+      }
     }
   };
 
@@ -133,11 +144,11 @@ const PageReplacementModal = ({
           <div className="swipe-indicator" />
           <Tabs className="page-replacement-tabs" id="pageReplacementModal">
             <div className="tabs-header-container">
-              <div className="tab-list">
+              <div role="tablist" className="tab-list">
                 {isFilePanelEnabled &&
                   <>
                     <Tab dataElement="customFileListPanelButton">
-                      <button className="tab-options-button">
+                      <button role="tab" className="tab-options-button">
                         {t('option.pageReplacementModal.yourFiles')}
                       </button>
                     </Tab>
@@ -145,13 +156,13 @@ const PageReplacementModal = ({
                   </>
                 }
                 <Tab dataElement="urlInputPanelButton">
-                  <button className="tab-options-button">
+                  <button role="tab" className="tab-options-button">
                     {t('link.url')}
                   </button>
                 </Tab>
                 <div className="tab-options-divider" />
                 <Tab dataElement="filePickerPanelButton">
-                  <button className="tab-options-button">
+                  <button role="tab" className="tab-options-button">
                     {t('option.pageReplacementModal.localFile')}
                   </button>
                 </Tab>
@@ -171,6 +182,7 @@ const PageReplacementModal = ({
             <TabPanel dataElement="urlInputPanel">
               <div className="panel-body">
                 <FileInputPanel
+                  error={error}
                   onFileSelect={(url) => {
                     setSource({ [selectedTabInternal]: url });
                   }}
@@ -183,6 +195,7 @@ const PageReplacementModal = ({
                 <FilePickerPanel
                   fileInputId={fileInputId}
                   onFileProcessed={(file) => fileProcessedHandler(file)}
+                  allowMultiple={true}
                 />
               </div>
             </TabPanel>

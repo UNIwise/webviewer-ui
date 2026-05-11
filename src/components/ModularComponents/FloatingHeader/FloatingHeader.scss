@@ -1,7 +1,7 @@
 @import '../../../constants/styles.scss';
 
 .FloatingHeaderContainer {
-  transition: all .3s ease-in-out;
+  transition: all 0.3s ease-in-out;
   position: absolute;
   width: 100%;
   box-sizing: border-box;
@@ -75,7 +75,7 @@
 .FloatingHeader {
   border-radius: 4px;
   pointer-events: auto;
-  transition: opacity .2s ease;
+  transition: opacity 0.2s ease;
 
   // customizable styles
   padding: 8px 12px;
@@ -102,6 +102,9 @@
   }
 
   &.opacity-mode-dynamic:hover {
+    opacity: 1;
+  }
+  &.opacity-mode-dynamic:focus-within {
     opacity: 1;
   }
 }

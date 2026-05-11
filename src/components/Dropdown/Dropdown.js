@@ -1,4 +1,4 @@
-import core from 'core';
+import useCore from 'hooks/useCore';
 import classNames from 'classnames';
 import Icon from 'components/Icon';
 import useOnClickOutside from 'hooks/useOnClickOutside';
@@ -6,8 +6,8 @@ import PropTypes from 'prop-types';
 import React, { useCallback, useRef, useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import DataElementWrapper from 'components/DataElementWrapper';
-import useArrowFocus from '../../hooks/useArrowFocus';
-
+import isNumber from 'lodash/isNumber';
+import { css } from '@emotion/react';
 import './Dropdown.scss';
 
 const DEFAULT_WIDTH = 100;
@@ -20,7 +20,7 @@ const directionMap = {
 };
 
 const propTypes = {
-  id: PropTypes.string,
+  id: PropTypes.string.isRequired,
   items: PropTypes.array,
   images: PropTypes.array,
   width: PropTypes.oneOfType([
@@ -46,25 +46,50 @@ const propTypes = {
   getDisplayValue: PropTypes.func,
   className: PropTypes.string,
   onOpened: PropTypes.func,
+  onClosed: PropTypes.func,
   arrowDirection: PropTypes.string,
   disableFocusing: PropTypes.bool,
   renderItem: PropTypes.func,
   renderSelectedItem: PropTypes.func,
-  ariaLabel: PropTypes.string,
+  labelledById: PropTypes.string,
   showLabelInList: PropTypes.bool,
+  isFlyoutItem: PropTypes.bool,
+  onKeyDownHandler: PropTypes.func,
+  onFocus: PropTypes.func,
+  stopPropagationOnMouseDown: PropTypes.bool,
+  ariaLabel: PropTypes.string,
+};
+
+// Save a list of named combobox actions, for future readability
+const SelectActions = {
+  Close: 0,
+  CloseSelect: 1,
+  First: 2,
+  Last: 3,
+  Next: 4,
+  Open: 5,
+  PageDown: 6,
+  PageUp: 7,
+  Previous: 8,
+  Select: 9,
+  Type: 10,
+  MoveCursor: 11,
+  //Close and navigate is needed for dropdowns in headers, where the arrow left/right are used to navigate
+  CloseAndNavigate: 12,
+  FlyoutAction: 13,
 };
 
 function Dropdown({
   id = '',
-  items = [],
-  images = [],
+  items,
+  images,
   width = DEFAULT_WIDTH,
   height,
   columns = 1,
   currentSelectionKey,
   translationPrefix,
   getTranslationLabel,
-  onClickItem = () => {},
+  onClickItem = () => { },
   dataElement,
   disabled = false,
   applyCustomStyleToButton = true,
@@ -74,35 +99,91 @@ function Dropdown({
   getKey = (item) => item,
   getDisplayValue = (item) => item,
   className = '',
+  ariaLabel,
   hasInput = false,
   displayButton = null,
   customDataValidator = () => true,
   isSearchEnabled = true,
-  onOpened = () => {},
+  onOpened = () => { },
+  onClosed = () => { },
   arrowDirection = 'down',
   children,
   disableFocusing = false,
   renderItem = (item, getTranslatedDisplayValue) => (<>{getTranslatedDisplayValue(item)}</>),
   renderSelectedItem = (item, getTranslatedDisplayValue) => (<>{getTranslatedDisplayValue(item)}</>),
-  ariaLabel,
+  labelledById,
   showLabelInList = false,
+  isFlyoutItem = false,
+  onKeyDownHandler = null,
+  onFocus = null,
+  stopPropagationOnMouseDown = false,
 }) {
+  const { core } = useCore();
   const { t, ready: tReady } = useTranslation();
   const overlayRef = useRef(null);
   const buttonRef = useRef(null);
   const inputRef = useRef(null);
   const [isOpen, setIsOpen] = useState(false);
   const [inputVal, setInputVal] = useState('');
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const [displayKeys, setDisplayKeys] = useState([]);
+  const [filteredItems, setFilteredItems] = useState(items);
+  const [noMatchMessage, setNoMatchMessage] = useState('');
+  // Create a ref that holds an array of refs for each option
+  const optionRefs = useRef([]);
+
+  useEffect(() => {
+    // we ether have images or items, and need a list of keys to determine the active index
+    let keys = [];
+    if (images && images.length > 0) {
+      keys = images.map((image) => image.key);
+    } else if (items && items.length > 0) {
+      keys = items.map((item) => getKey(item));
+    }
+    setDisplayKeys(keys);
+    setActiveIndex(keys.findIndex((key) => key === currentSelectionKey));
+    setFilteredItems(items);
+  }, [currentSelectionKey, items, images]);
+
+
+  useEffect(() => {
+    // on open set the active index to the current selection key
+    if (isOpen) {
+      setActiveIndex(displayKeys.findIndex((key) => key === currentSelectionKey));
+    }
+  }, [isOpen]);
 
   const hasImages = images && images.length > 0;
   if (hasImages) {
     getKey = (item) => item.key;
   }
 
+  const maintainScrollVisibility = (activeElement, scrollParent) => {
+    const { offsetHeight, offsetTop } = activeElement;
+    const { offsetHeight: parentOffsetHeight, scrollTop } = scrollParent;
+
+    const isAbove = offsetTop < scrollTop;
+    const isBelow = offsetTop + offsetHeight > scrollTop + parentOffsetHeight;
+
+    if (isAbove) {
+      scrollParent.scrollTo(0, offsetTop);
+    } else if (isBelow) {
+      scrollParent.scrollTo(0, offsetTop - parentOffsetHeight + offsetHeight);
+    }
+  };
+
+  const isScrollable = (element) => {
+    return element && element.clientHeight < element.scrollHeight;
+  };
+
   const onClose = useCallback(() => setIsOpen(false), []);
   const onToggle = useCallback((e) => {
     if (hasInput && e.target === inputRef?.current) {
       return;
+    }
+
+    if (!disableFocusing) {
+      buttonRef.current.focus();
     }
 
     e.preventDefault();
@@ -113,47 +194,82 @@ function Dropdown({
       setIsOpen((prev) => !prev);
     }
 
-    if (hasInput && !isOpen) {
+    if (hasInput && !isOpen && !disableFocusing) {
       setTimeout(() => {
         inputRef?.current?.focus();
       });
     }
 
     // Keep the dropdown within the bounds of the viewer.
-    const overlayBounds = overlayRef?.current?.getBoundingClientRect();
-    const buttonBounds = buttonRef?.current?.getBoundingClientRect();
-    let scrollViewRect = overlayRef?.current?.closest('body')?.getBoundingClientRect();
-    if (core && core.getDocumentViewer()) {
-      scrollViewRect = core.getScrollViewElement().getBoundingClientRect();
+    let overlayHeight = overlayRef.current?.scrollHeight;
+    if (maxHeight) {
+      overlayHeight = Math.min(overlayHeight, maxHeight);
     }
-    if (overlayBounds && !isOpen) {
-      const horizontalOpening = arrowDirection === 'left' || arrowDirection === 'right';
-      const bottomTop = scrollViewRect.top <= overlayBounds.top && scrollViewRect.top <= buttonBounds.top - overlayBounds.height;
-      const topBottom = scrollViewRect.bottom >= overlayBounds.bottom && scrollViewRect.bottom >= buttonBounds.bottom + overlayBounds.height;
-      const offset = horizontalOpening ? buttonBounds.height : 0;
-      // Check for containment vertically only.
-      if (bottomTop && topBottom) {
-        // Still inside the viewer, no need to adjust.
+    const buttonBounds = buttonRef?.current?.getBoundingClientRect();
+    let scrollBounds = overlayRef?.current?.closest('body')?.getBoundingClientRect();
+
+    if (core?.getDocumentViewer()) {
+      scrollBounds = core.getScrollViewElement().getBoundingClientRect();
+    }
+
+    // Only proceed with positioning if we have bounds and the dropdown is being opened.
+    if (overlayHeight && !isOpen) {
+      const offset = (arrowDirection === 'left' || arrowDirection === 'right') ? buttonBounds.height : 0;
+
+      // Determine whether to open downward or upward based on available space
+      const canOpenDownward = scrollBounds.bottom >= buttonBounds.bottom + overlayHeight;
+      const canOpenUpward = scrollBounds.top <= buttonBounds.top - overlayHeight;
+
+      // Adjust the top position of the dropdown based on available space
+      if (canOpenDownward) {
         overlayRef.current.style.top = `${buttonBounds.height - offset}px`;
+        overlayRef.current.style.maxHeight = maxHeight ? `${maxHeight}px` : '';
+      } else if (canOpenUpward) {
+        overlayRef.current.style.top = `-${overlayHeight - offset}px`;
+        overlayRef.current.style.maxHeight = maxHeight ? `${maxHeight}px` : ''; // Use prop if available
       } else {
-        // If the overlay is past the bottom of the viewer, move it to the top instead.
-        if (overlayBounds.bottom > scrollViewRect.bottom || buttonBounds.bottom + overlayBounds.height > scrollViewRect.bottom) {
-          overlayRef.current.style.top = `-${overlayBounds.height - offset}px`;
-        } else {
-          // Otherwise the overlay is past the top of the viewer, move it to the bottom instead.
+        const spaceAbove = buttonBounds.top;
+        const spaceBelow = scrollBounds.bottom - buttonBounds.bottom;
+        const SMALLEST_HEIGHT = 24;
+        const getMaxHeight = (availableSpace) => {
+          let valuesToCheck = [maxHeight, overlayHeight, availableSpace].filter((val) => isNumber(val));
+          let val = Math.min(...valuesToCheck);
+          return Math.max(val, SMALLEST_HEIGHT);
+        };
+        if (spaceBelow >= spaceAbove) {
+          const newHeight = getMaxHeight(spaceBelow);
           overlayRef.current.style.top = `${buttonBounds.height - offset}px`;
+          overlayRef.current.style.maxHeight = `${newHeight}px`;
+        } else {
+          const newHeight = getMaxHeight(spaceAbove);
+          overlayRef.current.style.top = `-${newHeight - offset}px`;
+          overlayRef.current.style.maxHeight = `${newHeight}px`;
         }
+        overlayRef.current.style.overflowY = 'auto'; // Enable vertical scrolling
       }
+
+      // Adjust horizontal positioning for left or right opening
       if (arrowDirection === 'left') {
         overlayRef.current.style.left = `-${buttonBounds.width}px`;
-      }
-      if (arrowDirection === 'right') {
+      } else if (arrowDirection === 'right') {
         overlayRef.current.style.left = `${buttonBounds.width}px`;
       }
     } else {
+      // Reset top positioning and max height when closing
       overlayRef.current.style.top = '';
+      overlayRef.current.style.maxHeight = maxHeight ? `${maxHeight}px` : '';
     }
-  }, [hasInput, isOpen, disabled]);
+
+    //Make sure the active element is visible
+    if (isScrollable(overlayRef.current)) {
+      const activeElement = optionRefs.current[activeIndex];
+      // in situations where the active element is not in the dropdown, for instance with a font size not
+      // in the predefined list, we do nothing
+      if (activeElement) {
+        maintainScrollVisibility(activeElement, overlayRef.current);
+      }
+    }
+  }, [hasInput, isOpen, disabled, activeIndex]);
 
   useEffect(() => {
     if (!isOpen && overlayRef?.current) {
@@ -179,17 +295,19 @@ function Dropdown({
   useEffect(() => {
     if (!isOpen) {
       setInputVal('');
+      onClosed();
     } else {
       onOpened();
     }
 
     if (isOpen && hasInput && inputRef?.current) {
       inputRef.current.value = currentSelectionKey;
-      inputRef.current.select();
+      // Focus causes issues with quill so we added this prop to disable focusing
+      if (!disableFocusing) {
+        inputRef.current.select();
+      }
     }
-  }, [isOpen]);
-
-  useArrowFocus(isOpen, onClose, overlayRef);
+  }, [isOpen, inputRef.current, currentSelectionKey, hasInput]);
 
   const onClickOutside = useCallback((e) => {
     if (!buttonRef.current.contains(e.target)) {
@@ -229,19 +347,30 @@ function Dropdown({
   const getDropdownStyles = (item, maxheight) => {
     const dropdownItemStyles = getCustomItemStyle(item);
     if (maxheight) {
-      dropdownItemStyles.lineHeight = `${height || DEFAULT_HEIGHT}px`;
+      return {
+        '&&&&&&': {
+          ...dropdownItemStyles,
+          lineHeight: `${height || DEFAULT_HEIGHT}px`,
+        }
+      };
     }
-    return dropdownItemStyles;
+    return {
+      '&&&&&&': dropdownItemStyles
+    };
   };
 
-  const renderDropdownImages = () => images.map((image) => {
+  const renderDropdownImages = () => images.map((image, i) => {
     const key = getKey(image);
     return (
       <DataElementWrapper
         key={key}
-        type="button"
+        id={`${id}-${key}`}
+        role="option"
+        aria-label={key}
+        aria-selected={key === currentSelectionKey}
         dataElement={`dropdown-item-${key}`}
-        className={classNames('Dropdown__item', { active: key === currentSelectionKey })}
+        ref={(el) => optionRefs.current[i] = el}
+        className={classNames('Dropdown__item', { selected: key === currentSelectionKey, active: i === activeIndex })}
         tabIndex={isOpen ? undefined : -1} // Just to be safe.
         onClick={(e) => onClickDropdownItem(e, key)}
       >
@@ -250,28 +379,76 @@ function Dropdown({
     );
   });
 
-  const renderDropdownItems = () => items
-    .filter((item) => !isSearchEnabled || getTranslatedDisplayValue(item).toLowerCase().includes(inputVal.toLowerCase()))
+  const stopPropagationCheck = (e) => {
+    if (stopPropagationOnMouseDown) {
+      e.stopPropagation();
+    }
+  };
+
+  useEffect(() => {
+    if (isSearchEnabled) {
+      setFilteredItems(items.filter((key) => getTranslatedDisplayValue(key).toLowerCase().includes(inputVal.toLowerCase())));
+    }
+
+  }, [inputVal, isSearchEnabled, displayKeys, items]);
+
+  useEffect(() => {
+    if (filteredItems.length === 0) {
+      setNoMatchMessage(t('message.noResults'));
+    } else {
+      setNoMatchMessage('');
+    }
+  }, [filteredItems]);
+
+
+  useEffect(() => {
+    if (isSearchEnabled) {
+      setActiveIndex(0);
+    } else {
+      const index = displayKeys.findIndex((key) => key === inputVal);
+      setActiveIndex(index);
+    }
+  }, [inputVal, isSearchEnabled]);
+
+
+  // on close we need to set the active index to the current selection key
+  // so it can open at the correct index
+  useEffect(() => {
+    if (!isOpen) {
+      setActiveIndex(displayKeys.findIndex((key) => key === currentSelectionKey));
+    }
+  }, [isOpen, displayKeys, currentSelectionKey]);
+
+  const renderDropdownItems = () => filteredItems
     .map((item, i) => {
       const key = getKey(item);
       const translatedDisplayValue = getTranslatedDisplayValue(item);
+      const dropdownItemCss = css(getDropdownStyles(item, maxHeight) || {});
+
+      // This is a corner case for the text signatures
+      // because the font family is not displayed in the dropdown, but the signature is.
+      const isFont = !!item.font;
 
       return (
         <DataElementWrapper
           key={key}
-          type="button"
+          role="option"
+          aria-label={isFont ? item.font : null}
+          id={`${id}-${key}`}
+          aria-selected={key === currentSelectionKey}
           dataElement={`dropdown-item-${key}`}
-          className={classNames('Dropdown__item', { active: key === currentSelectionKey })}
+          className={classNames('Dropdown__item', { selected: key === currentSelectionKey, active: i === activeIndex })}
+          css={dropdownItemCss}
           onClick={(e) => onClickDropdownItem(e, key, i, translatedDisplayValue)}
-          tabIndex={isOpen ? undefined : -1} // Just to be safe.
-          style={getDropdownStyles(item, maxHeight)}
+          onMouseDown={stopPropagationCheck}
+          tabIndex={isOpen ? 0 : -1}
+          ref={(el) => optionRefs.current[i] = el}
         >
           {renderItem(item, getTranslatedDisplayValue)}
         </DataElementWrapper>
       );
     });
 
-  let dropdownItems;
   let optionIsSelected;
   let selectedItem;
   let selectedItemDisplay;
@@ -286,7 +463,6 @@ function Dropdown({
     selectedItemDisplay = (
       <Icon glyph={glyph} className={className} />
     );
-    dropdownItems = useMemo(renderDropdownImages, [images, currentSelectionKey]);
   } else if (!children) {
     if (optionIsSelected) {
       selectedItemDisplay = renderSelectedItem(selectedItem, getTranslatedDisplayValue);
@@ -295,29 +471,47 @@ function Dropdown({
       selectedItemDisplay = currentSelectionKey;
       selectedItem = currentSelectionKey;
     }
-
-    dropdownItems = useMemo(renderDropdownItems, [
-      currentSelectionKey,
-      isOpen,
-      items,
-      onClickDropdownItem,
-      inputVal,
-      translationPrefix,
-    ]);
   }
 
-  const onOverlayKeyDown = (e) => {
-    if (e.key === 'ArrowUp' || e.key === 'ArrowDown' && isOpen) {
-      // prevent overlay div scrolling when using arrow keys
-      e.preventDefault();
+  const dropdownItems = useMemo(() => {
+    if (hasImages) {
+      return renderDropdownImages();
+    } else if (!children) {
+      return renderDropdownItems();
     }
-  };
+  }, [
+    currentSelectionKey,
+    isOpen,
+    items,
+    onClickDropdownItem,
+    inputVal,
+    translationPrefix,
+    activeIndex,
+    images,
+    filteredItems,
+    renderItem,
+  ]);
 
-  const buttonStyle = { width: `${width}px` };
-  if (height) {
-    buttonStyle.height = `${height}px`;
-  }
-  const scrollItemsStyle = { maxHeight: `${maxHeight}px` };
+  // Make it so the combo and listbox have the same widths
+  const comboBoxStyles = useMemo(() => css({
+    '&&': {
+      width: typeof width === 'number' ? `${width}px` : width,
+      ...(height ? { height: typeof height === 'number' ? `${height}px` : height } : {}),
+    },
+  }), [width, height]);
+
+  const listBoxCss = useMemo(() => {
+    const style = {};
+    if (maxHeight) {
+      style.maxHeight = `${maxHeight}px`;
+    }
+    if (width !== DEFAULT_WIDTH) {
+      style['&&&'] = {
+        width: typeof width === 'number' ? `${width}px` : width,
+      };
+    }
+    return css(style);
+  }, [maxHeight, width]);
 
   const createDropdownButton = useCallback((value) => {
     if (isOpen && hasInput) {
@@ -355,20 +549,20 @@ function Dropdown({
           inputRef?.current?.blur();
           setIsOpen(false);
         }
-
-        if (e.key === 'ArrowUp' || e.key === 'ArrowDown' && isOpen) {
-          // prevents scrolling when moving to overlay div using arrow keys
-          e.preventDefault();
-        }
       };
 
       return (
         <input
           className="Dropdown__input"
+          role="combobox"
+          aria-expanded={isOpen}
+          aria-controls={`${id}-dropdown`}
           onBlur={onBlur}
           onChange={onInputChange}
           ref={inputRef}
+          onFocus={onFocus}
           onKeyDown={onKeyDown}
+          aria-activedescendant={isOpen ? `${id}-${filteredItems[activeIndex]}` : null}
         />
       );
     }
@@ -381,60 +575,238 @@ function Dropdown({
     onClickItem,
     isOpen,
     selectedItem,
-    customDataValidator
+    customDataValidator,
+    id,
+    displayKeys,
+    activeIndex,
+    filteredItems,
   ]);
 
+
+
+  const getActionFromKey = (event, isOpen, hasInput) => {
+    const { key, altKey, ctrlKey, metaKey } = event;
+    const openKeys = ['ArrowDown', 'ArrowUp', 'Enter', ' '];
+    // handle flyout onKeyDownHandler precedence over default dropdown behavior
+    if (onKeyDownHandler) {
+      const isFlyoutItemVerticalNavigation = isFlyoutItem && !isOpen && ['ArrowDown', 'ArrowUp'].includes(key);
+      const isFlyoutItemCloseCondition = isFlyoutItem && ['Escape', 'Tab'].includes(key);
+      if (isFlyoutItemVerticalNavigation || isFlyoutItemCloseCondition) {
+        return SelectActions.FlyoutAction;
+      }
+    }
+
+    // handle opening when closed
+    if (!isOpen && openKeys.includes(key)) {
+      return SelectActions.Open;
+    }
+
+    // home and end move the selected option when open or closed
+    if (key === 'Home') {
+      return SelectActions.First;
+    }
+    if (key === 'End') {
+      return SelectActions.Last;
+    }
+
+    // handle typing characters when open or closed
+    if (
+      key === 'Backspace' ||
+      key === 'Clear' ||
+      (key.length === 1 && key !== ' ' && !altKey && !ctrlKey && !metaKey)
+    ) {
+      return SelectActions.Type;
+    }
+
+    // handle keys when open
+    if (isOpen) {
+      if (key === 'ArrowUp' && altKey) {
+        return SelectActions.CloseSelect;
+      } else if (key === 'ArrowDown' && !altKey) {
+        return SelectActions.Next;
+      } else if (key === 'ArrowUp') {
+        return SelectActions.Previous;
+      } else if (key === 'PageUp') {
+        return SelectActions.PageUp;
+      } else if (key === 'PageDown') {
+        return SelectActions.PageDown;
+      } else if (key === 'Escape') {
+        return SelectActions.Close;
+      } else if (key === 'Enter' || key === ' ' || key === 'Tab') {
+        return SelectActions.CloseSelect;
+      } else if (key === 'ArrowRight' || key === 'ArrowLeft') {
+        if (hasInput) {
+          return SelectActions.MoveCursor;
+        } else {
+          return SelectActions.CloseAndNavigate;
+        }
+      }
+    }
+  };
+
+  const onOptionChange = (action) => {
+    let newIndex = activeIndex;
+
+    if (action === SelectActions.Next) {
+      // if we have a filter then displayKeys will be different than filteredItems
+      const maxIndex = Math.max(displayKeys.length - 1, filteredItems.length - 1);
+      if (activeIndex < maxIndex) {
+        newIndex = activeIndex + 1;
+      }
+    } else if (action === SelectActions.Previous) {
+      newIndex = Math.max(0, activeIndex - 1);
+    }
+
+    setActiveIndex(newIndex);
+
+    if (isScrollable(overlayRef.current)) {
+      const activeElement = optionRefs.current[newIndex];
+      maintainScrollVisibility(activeElement, overlayRef.current);
+    }
+  };
+
+  const selectOption = () => {
+    // if we have a filter in place then the value is from a different array
+    let key;
+    if (displayKeys.length !== filteredItems.length && images.length === 0) {
+      key = filteredItems[activeIndex];
+    } else {
+      key = displayKeys[activeIndex];
+    }
+    if (!key) {
+      // if we have an input and the key is not in the dropdown, we need to use the input value
+      key = inputVal;
+    }
+    onClickItem(key, activeIndex);
+    setIsOpen(false);
+  };
+
+  const onComboBoxKeyDown = (event) => {
+    const action = getActionFromKey(event, isOpen, hasInput);
+    switch (action) {
+      case SelectActions.FlyoutAction:
+        return onKeyDownHandler(event);
+      case SelectActions.Next:
+      case SelectActions.Previous:
+        event.preventDefault();
+        event.stopPropagation();
+        return onOptionChange(action);
+      case SelectActions.Open:
+        event.preventDefault();
+        event.stopPropagation();
+        return onToggle(event);
+      case SelectActions.CloseSelect:
+        event.preventDefault();
+        event.stopPropagation();
+        return selectOption();
+      case SelectActions.Close:
+        event.preventDefault();
+        event.stopPropagation();
+        return setIsOpen(false);
+      case SelectActions.MoveCursor:
+        event.stopPropagation();
+        return;
+      case SelectActions.CloseAndNavigate:
+        return setIsOpen(false);
+    }
+  };
+
+  // If we are showing the label in the list, we just use that as our labelled by id
+  labelledById = showLabelInList ? `${id}-dropdown-label` : labelledById;
+  let activeDescendantId = 'id-no-result';
+  if (activeIndex >= 0) {
+    if (images.length > 0 && images[activeIndex]) {
+      activeDescendantId = `${id}-${getKey(images[activeIndex])}`;
+    } else if (filteredItems.length > 0 && filteredItems[activeIndex]) {
+      activeDescendantId = `${id}-${getKey(filteredItems[activeIndex])}`;
+    }
+  }
+
   return (
-    <DataElementWrapper id={id} className={`Dropdown__wrapper ${className} ${isOpen ? 'open' : ''}`} dataElement={dataElement}>
+    <DataElementWrapper id={id} className={`Dropdown__wrapper ${className} ${isOpen ? 'open' : ''}`} dataElement={dataElement} disabled={disabled}>
       {!displayButton &&
-        <button
-          className={classNames({
-            'Dropdown': true,
-            [className]: className,
-          })}
-          aria-label={ariaLabel}
+        <div
+          className={classNames('Dropdown', className, { 'disabled': disabled })}
+          css={comboBoxStyles}
+          role='combobox'
+          aria-haspopup="listbox"
+          aria-describedby={images.length > 0 ? activeDescendantId : null}
           aria-expanded={isOpen}
-          style={buttonStyle}
+          aria-activedescendant={isOpen ? activeDescendantId : null}
+          aria-labelledby={labelledById}
+          aria-label={ariaLabel}
+          aria-controls={`${id}-dropdown`}
           onMouseDown={onToggle}
           onTouchEnd={onToggle}
+          onKeyDown={onComboBoxKeyDown}
           ref={buttonRef}
+          aria-disabled={disabled}
           disabled={disabled}
+          tabIndex={disabled ? -1 : 0}
         >
           <div className="picked-option">
             <div
               className="picked-option-text"
-              style={(optionIsSelected && applyCustomStyleToButton) ? getCustomItemStyle(selectedItem) : {}}
+              css={(optionIsSelected && applyCustomStyleToButton) ? css({
+                '&&&&&&': getCustomItemStyle(selectedItem)
+              }) : undefined}
             >
               {createDropdownButton(optionIsSelected ? selectedItemDisplay : (placeholder || ''))}
             </div>
-            <Icon className="arrow" disabled={disabled} glyph={`icon-chevron-${isOpen ? directionMap[arrowDirection] : arrowDirection}`} />
+            <Icon className="arrow" disabled={disabled} glyph={`icon-chevron-${isOpen ? directionMap[arrowDirection] : arrowDirection}`} ariaHidden />
           </div>
-        </button>
+        </div>
       }
       {displayButton &&
-        <div ref={buttonRef} onClick={onToggle} className='display-button'>
+        <div
+          ref={buttonRef}
+          className='display-button'
+          role='combobox'
+          aria-expanded={isOpen}
+          aria-controls={`${id}-dropdown`}
+          aria-labelledby={labelledById}
+          aria-label={ariaLabel}
+          tabIndex={disabled ? -1 : 0}
+          aria-activedescendant={isOpen ? activeDescendantId : null}
+          onClick={onToggle}
+          onKeyDown={onComboBoxKeyDown}
+          onMouseDown={stopPropagationCheck}
+        >
           {displayButton(isOpen)}
         </div>
       }
       <div
-        className={classNames('Dropdown__items', { 'hide': !isOpen, 'dropdown-items-with-custom-display': displayButton })}
+        className={classNames('Dropdown__items', { 'hide': !isOpen, 'dropdown-items-with-custom-display': displayButton, 'dropdown-items-with-label': showLabelInList })}
         ref={overlayRef}
         role="listbox"
-        aria-label={t(`${translationPrefix}.dropdownLabel`)}
-        style={maxHeight ? scrollItemsStyle : undefined}
-        onKeyDown={onOverlayKeyDown}
+        id={`${id}-dropdown`}
+        css={listBoxCss}
       >
-        {showLabelInList && <div className="Dropdown__label">{t(`${translationPrefix}.dropdownLabel`)}</div>}
-        {children ? React.cloneElement(children, { onClose }) :
-          dropdownItems.length > 0 ?
-            (columns > 1 ?
-              displayDropdownAsList(dropdownItems, columns) :
-              dropdownItems
-            ) :
-            <>
-              <button data-testid="sig-no-result" className="Dropdown__item">{t('message.noResults')}</button>
-            </>
-        }
+        <div role="group" aria-labelledby={labelledById}>
+          {showLabelInList && <div className="Dropdown__label" id={labelledById}>{t(`${translationPrefix}.dropdownLabel`)}</div>}
+          {children ? React.cloneElement(children, { onClose }) :
+            dropdownItems.length > 0 ?
+              (columns > 1 ?
+                displayDropdownAsList(dropdownItems, columns) :
+                dropdownItems
+              ) :
+              <>
+                <div
+                  role="option"
+                  id='id-no-result'
+                  aria-disabled="true"
+                  aria-selected="true"
+                  className={classNames('Dropdown__item', 'selected', 'active')}
+                  data-testid="sig-no-result"
+                >
+                  {t('message.noResults')}
+                </div>
+              </>
+          }
+        </div>
+      </div>
+      <div aria-live="polite" className='noMatchMessage'>
+        {noMatchMessage}
       </div>
     </DataElementWrapper>
   );
@@ -475,4 +847,8 @@ const displayDropdownAsList = (items, columns) => {
 };
 
 Dropdown.propTypes = propTypes;
+Dropdown.defaultProps = {
+  items: [],
+  images: [],
+};
 export default Dropdown;

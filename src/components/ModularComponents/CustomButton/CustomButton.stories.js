@@ -3,6 +3,8 @@ import CustomButton from './CustomButton';
 import initialState from 'src/redux/initialState';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
+import { expect, within } from 'storybook/test';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/CustomButton',
@@ -33,6 +35,8 @@ DefaultButton.args = {
   }
 };
 
+DefaultButton.parameters = disableRtlModeParameters;
+
 export const DefaultButtonOnHover = BasicComponent.bind({});
 DefaultButtonOnHover.args = {
   dataElement: 'button-data-element',
@@ -47,6 +51,7 @@ DefaultButtonOnHover.args = {
 
 DefaultButtonOnHover.parameters = {
   pseudo: { hover: true },
+  ...disableRtlModeParameters,
 };
 
 export const ConfirmButton = BasicComponent.bind({});
@@ -60,6 +65,8 @@ ConfirmButton.args = {
   }
 };
 
+ConfirmButton.parameters = disableRtlModeParameters;
+
 export const CancelButton = BasicComponent.bind({});
 CancelButton.args = {
   dataElement: 'button-data-element',
@@ -69,4 +76,33 @@ CancelButton.args = {
   onClick: () => {
     alert('Cancel button clicked!');
   }
+};
+
+CancelButton.parameters = disableRtlModeParameters;
+
+export const CustomButtonWithStyle = BasicComponent.bind({});
+CustomButtonWithStyle.args = {
+  dataElement: 'button-data-element',
+  title: 'Button title',
+  disabled: false,
+  label: 'Click',
+  img: 'icon-save',
+  onClick: () => {
+    alert('Clicked!');
+  },
+  style: {
+    backgroundColor: 'red',
+    color: 'white',
+  },
+  className: 'custom-class',
+};
+CustomButtonWithStyle.parameters = disableRtlModeParameters;
+
+CustomButtonWithStyle.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+  const span = canvas.getByText('Click');
+  const button = span.closest('button');
+  expect(button).not.toBeNull();
+  // Checking if the class was added to the button
+  expect(button.classList.contains('custom-class')).toBe(true);
 };

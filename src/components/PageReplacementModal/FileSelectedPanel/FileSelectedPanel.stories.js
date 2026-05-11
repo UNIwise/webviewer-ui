@@ -2,6 +2,7 @@ import React from 'react';
 import FileSelectedPanel from './FileSelectedPanel';
 import { createStore } from 'redux';
 import { Provider } from 'react-redux';
+import { mobileStoryParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/PageReplacementModal/FileSelectedPanel',
@@ -52,7 +53,7 @@ const ProcessingFile = () => (
   </Provider>
 );
 
-// This story is solely for the purposes of a unit test
+// This story is solely for the purposes of a unit test.
 const FileSelected = () => {
   return (
     <Provider store={store}>
@@ -68,8 +69,8 @@ const FileSelected = () => {
 
 export const ProcessingFileDesktop = () => <ProcessingFile />;
 export const ProcessingFileMobile = () => <ProcessingFile />;
-ProcessingFileMobile.parameters = window.storybook?.MobileParameters;
+ProcessingFileMobile.parameters = mobileStoryParameters;
 
 export const FileSelectedDesktop = () => <FileSelected />;
 export const FileSelectedMobile = () => <FileSelected />;
-FileSelectedMobile.parameters = window.storybook?.MobileParameters;
+FileSelectedMobile.parameters = mobileStoryParameters;

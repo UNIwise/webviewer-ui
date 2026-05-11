@@ -6,6 +6,7 @@ const DataElements = {
   ANNOTATION_STYLE_POPUP_BACK_BUTTON_CONTAINER: 'annotationStylePopupBackButtonContainer',
   INLINE_COMMENT_POPUP_EXPAND_BUTTON: 'inlineCommentPopupExpandButton',
   INLINE_COMMENT_POPUP_CLOSE_BUTTON: 'inlineCommentPopupCloseButton',
+  INLINE_COMMENT_POPUP_TABS: 'inlineCommentPopupTabs',
 
   LOGO_BAR: 'logoBar',
   COLOR_PALETTE: 'colorPalette',
@@ -24,38 +25,43 @@ const DataElements = {
   STYLE_POPUP_LABEL_TEXT_CONTAINER: 'stylePopupLabelTextContainer',
   REDACTION_PANEL: 'redactionPanel',
   REDACTION_PANEL_TOGGLE: 'redactionPanelToggle',
+  REDACT_ALL_MARKED_BUTTON: 'redactAllMarkedButton',
   WV3D_PROPERTIES_PANEL: 'wv3dPropertiesPanel',
   WV3D_PROPERTIES_PANEL_TOGGLE: 'wv3dPropertiesPanelToggle',
   LEFT_PANEL: 'leftPanel',
-  OUTLINE_PANEL: 'outlinesPanel',
+  LEFT_PANEL_BUTTON: 'leftPanelButton',
   STROKE_STYLE_CONTAINER: 'strokeStyleContainer',
   FILL_COLOR_CONTAINER: 'fillColorContainer',
   OPACITY_CONTAINER: 'opacityContainer',
+  OUTLINE_PANEL: 'outlinesPanel',
+  OUTLINE_PANEL_BUTTON: 'outlinesPanelButton',
   OUTLINE_MULTI_SELECT: 'outlineMultiSelect',
-  OUTLINE_CONTROLS: 'outlineControls',
   OUTLINE_ADD_NEW_BUTTON_CONTAINER: 'addNewOutlineButtonContainer',
   OUTLINE_ADD_NEW_BUTTON: 'addNewOutlineButton',
-  OUTLINE_MOVE_UP_BUTTON: 'moveOutlineUpButton',
-  OUTLINE_MOVE_DOWN_BUTTON: 'moveOutlineDownButton',
-  OUTLINE_MOVE_OUTWARD_BUTTON: 'moveOutlineOutwardButton',
-  OUTLINE_MOVE_INWARD_BUTTON: 'moveOutlineInwardButton',
+  OUTLINE_RENAME_BUTTON: 'outlineRenameButton',
+  OUTLINE_SET_DESTINATION_BUTTON: 'outlineSetDestinationButton',
+  OUTLINE_DELETE_BUTTON: 'outlineDeleteButton',
+  OUTLINE_MOVE_UP_BUTTON: 'outlineMoveUpButton',
+  OUTLINE_MOVE_DOWN_BUTTON: 'outlineMoveDownButton',
+  OUTLINE_MOVE_LEFT_BUTTON: 'outlineMoveLeftButton',
+  OUTLINE_MOVE_RIGHT_BUTTON: 'outlineMoveRightButton',
   BOOKMARK_PANEL: 'bookmarksPanel',
   BOOKMARK_MULTI_SELECT: 'bookmarkMultiSelect',
   BOOKMARK_SHORTCUT_OPTION: 'bookmarkShortcutOption',
   BOOKMARK_ADD_NEW_BUTTON_CONTAINER: 'addNewBookmarkButtonContainer',
   BOOKMARK_ADD_NEW_BUTTON: 'addNewBookmarkButton',
   NOTES_PANEL: 'notesPanel',
+  INDEX_PANEL: 'indexPanel',
   FORM_FIELD_INDICATOR_CONTAINER: 'formFieldIndicatorContainer',
-  WATERMARK_PANEL: 'watermarkPanel',
-  WATERMARK_PANEL_TOGGLE: 'watermarkPanelToggle',
-  WATERMARK_PANEL_IMAGE_TAB: 'watermarkPanelImageTab',
-  WATERMARK_PANEL_TEXT_TAB: 'watermarkPanelTextTab',
+  FORM_FIELD_PANEL: 'formFieldPanel',
   SEARCH_PANEL: 'searchPanel',
+  SEARCH_PANEL_REPLACE_CONTAINER: 'searchAndReplace',
   TEXT_EDITING_PANEL: 'textEditingPanel',
   COMPARE_PANEL: 'comparePanel',
   PORTFOLIO_PANEL: 'portfolioPanel',
   PORTFOLIO_PANEL_BUTTON: 'portfolioPanelButton',
   LAYERS_PANEL: 'layersPanel',
+  LAYERS_PANEL_BUTTON: 'layersPanelButton',
   SIGNATURE_PANEL: 'signaturePanel',
   ATTACHMENT_PANEL: 'attachmentPanel',
   MOBILE_PANEL_WRAPPER: 'MobilePanelWrapper',
@@ -65,6 +71,32 @@ const DataElements = {
   RICH_TEXT_STYLE_CONTAINER: 'richTextStyleContainer',
   CALIBRATION_POPUP_BUTTON: 'calibratePopupButton',
   CALIBRATION_MODAL: 'calibrationModal',
+  PAGE_NAV_FLOATING_HEADER: 'page-nav-floating-header',
+  TABS_LIST_MENU: 'tabsListMenu',
+  ADDITIONAL_SPREADSHEET_TABS_MENU: 'additionalSpreadsheetTabsMenu',
+
+  StylePanel: {
+    STYLE_PANEL_HEADER_CONTAINER: 'stylePanelHeaderContainer',
+    STROKE_STYLE_CONTAINER: 'stylePanel-strokeStyleContainer',
+    FILL_COLOR_CONTAINER: 'stylePanel-fillColorContainer',
+    OPACITY_CONTAINER: 'stylePanel-opacityContainer',
+    SNAP_MODE_CONTAINER: 'stylePanel-snapModeContainer',
+    TEXT_STYLE_CONTAINER: 'stylePanel-textStyleContainer',
+    LINE_STYLE_PICKER_CONTAINER: 'stylePanel-lineStylePickerContainer',
+    NO_STYLE_CONTAINER: 'stylePanel-noStyleContainer',
+    NO_TOOL_SELECTED_CONTAINER: 'stylePanel-noToolSelectedContainer',
+    NO_SHARED_STYLE_CONTAINER: 'stylePanel-noSharedStyleContainer',
+    REDACTION_TEXT_LABEL: 'stylePanel-redactionTextLabel',
+    TEXT_COLOR_PICKER: 'stylePanel-textColorPicker',
+    STROKE_COLOR_PICKER: 'stylePanel-strokeColorPicker',
+    FILL_COLOR_PICKER: 'stylePanel-fillColorPicker',
+    NO_STYLE_ICON: 'stylePanel-noStyleIcon',
+    NO_STYLE_MESSAGE: 'stylePanel-noStyleMessage',
+    NO_TOOL_SELECTED_ICON: 'stylePanel-noToolSelectedIcon',
+    NO_TOOL_SELECTED_MESSAGE: 'stylePanel-noToolSelectedMessage',
+    NO_SHARED_STYLE_ICON: 'stylePanel-noSharedStyleIcon',
+    NO_SHARED_STYLE_MESSAGE: 'stylePanel-noSharedStyleMessage',
+  },
 
   NotesPanel: {
     DefaultHeader: {
@@ -78,6 +110,7 @@ const DataElements = {
   MULTITABS_EMPTY_PAGE: 'multiTabsEmptyPage',
 
   // Overlays
+  SCALE_OVERLAY: 'scaleOverlay',
   SCALE_OVERLAY_CONTAINER: 'scaleOverlayContainer',
   MEASUREMENT_OVERLAY: 'measurementOverlay',
   VIEW_CONTROLS_OVERLAY: 'viewControlsOverlay',
@@ -129,10 +162,22 @@ const DataElements = {
   LINK_URI: 'linkUri',
   EMBEDDED_JS_POPUP: 'embeddedJsPopup',
   MAIN_MENU: 'MainMenuFlyout',
-  VIEWER_CONTROLS_FLYOUT: 'viewControlsFlyout',
+  VIEW_CONTROLS_FLYOUT: 'viewControlsFlyout',
+  PAGE_CONTROLS_FLYOUT: 'pageControlsFlyout',
   NOTE_STATE_FLYOUT: 'noteStateFlyout',
+  NOTE_POPUP_FLYOUT: 'notePopupFlyout',
+  MULTI_SELECT_STYLE_PANEL_FLYOUT: 'multiSelectStylePanelFlyout',
+  SHEET_TAB_OPTIONS_FLYOUT: 'sheetTabOptionsFlyout',
   BOOKMARK_OUTLINE_FLYOUT: 'bookmarkOutlineFlyout',
   BOOKMARK_FLYOUT: 'bookmarkFlyout',
+  LINE_SPACING_FLYOUT: 'lineSpacingFlyout',
+  PAGE_MANIPULATION: 'pageManipulationFlyout',
+  PAGE_MANIPULATION_FLYOUT_MULTI_SELECT: 'pageManipulationFlyoutMultiSelect',
+  CELL_TEXT_COLOR_FLYOUT: 'cellTextColorFlyout',
+  CELL_BACKGROUND_COLOR_FLYOUT: 'cellBackgroundColorFlyout',
+  CELL_BORDER_COLOR_FLYOUT: 'cellBorderColorFlyout',
+  CELL_BORDER_BUTTONS_FLYOUT: 'cellBorderButtonsFlyout',
+  SEARCH_OPTIONS_FLYOUT: 'searchOptionsFlyout',
 
   // Modals
   PAGE_REDACT_MODAL: 'pageRedactionModal',
@@ -182,6 +227,7 @@ const DataElements = {
 
   // Signature Modal
   SAVED_SIGNATURES_TAB: 'signatureModalSavedSignaturesTab',
+  SIGNATURE_ADD_BUTTON: 'signatureAddButton',
 
   // Notes panel - multi select
   NOTE_MULTI_SELECT_MODE_BUTTON: 'multiSelectModeButton',
@@ -202,16 +248,20 @@ const DataElements = {
 
   // MultiViewer Mode (MultiViewer)
   MULTI_VIEWER_SAVE_DOCUMENT_BUTTON: 'multiViewerSaveDocumentButton',
+  // Spreadsheet Editor
+  SPREADSHEET_EDITOR_TOOLS_HEADER: 'spreadsheetEditorToolsHeader',
 
   // Office Editor
   OFFICE_EDITOR_TOOLS_HEADER: 'officeEditorToolsHeader',
   OFFICE_EDITOR_TOOLS_HEADER_INSERT_IMAGE: 'officeEditorToolsHeaderInsertImage',
   OFFICE_EDITOR_TOOLS_HEADER_INSERT_TABLE: 'officeEditorToolsHeaderInsertTable',
+  OFFICE_EDITOR_TOOLS_HEADER_INSERT_TABLE_BUTTON: 'officeEditorToolsHeaderInsertTableButton',
   OFFICE_EDITOR_FILE_NAME: 'officeEditorFileName',
   OFFICE_EDITOR_CUT: 'officeEditorCut',
   OFFICE_EDITOR_COPY: 'officeEditorCopy',
   OFFICE_EDITOR_PASTE: 'officeEditorPaste',
   OFFICE_EDITOR_PASTE_WITHOUT_FORMATTING: 'officeEditorPasteWithoutFormatting',
+  OFFICE_EDITOR_ADD_COMMENT: 'officeEditorAddComment',
   OFFICE_EDITOR_DELETE: 'officeEditorDelete',
   OFFICE_EDITOR_INSERT_ROW_ABOVE: 'officeEditorInsertRowAbove',
   OFFICE_EDITOR_INSERT_ROW_BELOW: 'officeEditorInsertRowBelow',
@@ -220,7 +270,28 @@ const DataElements = {
   OFFICE_EDITOR_DELETE_ROW: 'officeEditorDeleteRow',
   OFFICE_EDITOR_DELETE_COLUMN: 'officeEditorDeleteColumn',
   OFFICE_EDITOR_DELETE_TABLE: 'officeEditorDeleteTable',
+  OFFICE_EDITOR_BREAK_DROPDOWN_TOGGLE: 'officeEditorBreakDropdownToggle',
+  OFFICE_EDITOR_BREAK_DROPDOWN: 'officeEditorBreakDropdown',
   OFFICE_EDITOR_PAGE_BREAK: 'officeEditorPageBreak',
+  OFFICE_EDITOR_FLYOUT_COLOR_PICKER: 'officeEditorColorPicker',
+  OFFICE_EDITOR_COLOR_PICKER_OVERLAY: 'officeEditorColorPickerOverlay',
+  OFFICE_EDITOR_TEXT_COLOR_BUTTON: 'textColorButton',
+  OFFICE_EDITOR_REVIEW_PANEL: 'officeEditorReviewPanel',
+  HEADER_FOOTER_OPTIONS_MODAL: 'headerFooterOptionsModal',
+  OFFICE_EDITOR_MARGINS_MODAL: 'officeEditorMarginsModal',
+  OFFICE_EDITOR_COLUMNS_MODAL: 'officeEditorColumnsModal',
+  HEADER_FOOTER_CONTROLS_OVERLAY: 'headerFooterControlsOverlay',
+  TRACK_CHANGE_DROPDOWN: 'trackChangeDropdown',
+  OFFICE_EDITOR_MARGIN_DROPDOWN_TOGGLE: 'officeEditorMarginDropdownToggle',
+  OFFICE_EDITOR_MARGIN_DROPDOWN: 'officeEditorMarginDropdown',
+  OFFICE_EDITOR_MARGIN_UNIT: 'officeEditorMarginUnit',
+  OFFICE_EDITOR_COLUMN_DROPDOWN_TOGGLE: 'officeEditorColumnDropdownToggle',
+  OFFICE_EDITOR_COLUMN_DROPDOWN: 'officeEditorColumnDropdown',
+  OFFICE_EDITOR_COLUMN_UNIT: 'officeEditorColumnUnit',
+  OFFICE_EDITOR_COMMENT_PANEL: 'officeEditorCommentPanel',
+  OFFICE_EDITOR_COMMENT_ADD_NEW_BUTTON: 'officeEditorCommentAddNewButton',
+  OFFICE_EDITOR_INLINE_COMMENT_POPUP_TAB_CHANGES: 'officeEditorInlineCommentPopupTabChanges',
+  OFFICE_EDITOR_INLINE_COMMENT_POPUP_TAB_COMMENT: 'officeEditorInlineCommentPopupTabComment',
 
   // Insert Page Modal tabs
   INSERT_BLANK_PAGE_TAB: 'insertBlankPagePanelButton',
@@ -257,8 +328,8 @@ const DataElements = {
   SETTINGS_BUTTON: 'settingsButton',
 
   // Preset Buttons
-  UNDO_PRESET_BUTTON: 'undoPresetButton',
-  REDO_PRESET_BUTTON: 'redoPresetButton',
+  UNDO_PRESET_BUTTON: 'undoButton',
+  REDO_PRESET_BUTTON: 'redoButton',
   NEW_DOCUMENT_PRESET_BUTTON: 'newDocumentPresetButton',
   FILE_PICKER_PRESET_BUTTON: 'filePickerPresetButton',
   DOWNLOAD_PRESET_BUTTON: 'downloadPresetButton',
@@ -269,9 +340,116 @@ const DataElements = {
   SETTINGS_PRESET_BUTTON: 'settingsPresetButton',
   FORM_FIELD_EDIT_PRESET_BUTTON: 'formFieldEditPresetButton',
   CONTENT_EDIT_PRESET_BUTTON: 'contentEditPresetButton',
+  TOGGLE_ACCESSIBILITY_MODE_PRESET_BUTTON: 'toggleAccessibilityModePresetButton',
+  BOLD_PRESET_BUTTON: 'boldPresetButton',
+  ITALIC_PRESET_BUTTON: 'italicPresetButton',
+  UNDERLINE_PRESET_BUTTON: 'underlinePresetButton',
+  INCREASE_INDENT_PRESET_BUTTON: 'increaseIndentPresetButton',
+  DECREASE_INDENT_PRESET_BUTTON: 'decreaseIndentPresetButton',
+  OFFICE_EDITOR_TOGGLE_NON_PRINTING_CHARACTERS_BUTTON: 'officeEditorToggleNonPrintingCharactersButton',
+  JUSTIFY_LEFT_PRESET_BUTTON: 'justifyLeftPresetButton',
+  JUSTIFY_CENTER_PRESET_BUTTON: 'justifyCenterPresetButton',
+  JUSTIFY_RIGHT_PRESET_BUTTON: 'justifyRightPresetButton',
+  JUSTIFY_BOTH_PRESET_BUTTON: 'justifyBothPresetButton',
+  OFFICE_EDITOR_COLOR_PICKER_PRESET_BUTTON: 'officeEditorColorPickerPresetButton',
+  NEW_SPREADSHEET_PRESET_BUTTON: 'newSpreadsheetPresetButton',
+
+  STRIKETHROUGH_PRESET_BUTTON: 'strikethroughPresetButton',
+
+  CELL_TEXT_COLOR_BUTTON: 'cellTextColorButton',
+  CELL_BG_COLOR_BUTTON: 'cellBackgroundColorButton',
+
+
+  // Cell Border Style
+  CELL_BORDER_FLYOUT: 'cellBorderFlyout',
+  BORDER_STYLE_DROPDOWN: 'cellBorderStyleDropdown',
+
+  MERGE_TOGGLE_BUTTON: 'mergeToggleButton',
+  UNMERGE_TOGGLE_BUTTON: 'unmergeToggleButton',
+
+  // Cell Formats
+  CELL_FORMAT_CURRENCY_BUTTON: 'cellFormatAsCurrencyButton',
+  CELL_FORMAT_PERCENT_BUTTON: 'cellFormatAsPercentButton',
+  CELL_FORMAT_DEC_DECIMAL_BUTTON: 'cellFormatAsDecDecimalButton',
+  CELL_FORMAT_INC_DECIMAL_BUTTON: 'cellFormatAsIncDecimalButton',
+  CELL_FORMAT_MORE_FLYOUT: 'cellFormatMoreFlyout',
+  CELL_COPY_BUTTON: 'cellCopyButton',
+  CELL_CUT_BUTTON: 'cellCutButton',
+  CELL_PASTE_BUTTON: 'cellPasteButton',
+
+  // Text Alignment
+  CELL_TEXT_ALIGNMENT_BUTTON: 'cellTextAlignmentButton',
+  CELL_TEXT_ALIGN_LEFT_BUTTON: 'cellTextAlignLeftButton',
+  CELL_TEXT_ALIGN_CENTER_BUTTON: 'cellTextAlignCenterButton',
+  CELL_TEXT_ALIGN_RIGHT_BUTTON: 'cellTextAlignRightButton',
+  CELL_TEXT_ALIGN_TOP_BUTTON: 'cellTextAlignTopButton',
+  CELL_TEXT_ALIGN_MIDDLE_BUTTON: 'cellTextAlignMiddleButton',
+  CELL_TEXT_ALIGN_BOTTOM_BUTTON: 'cellTextAlignBottomButton',
+  CELL_TEXT_ALIGNMENT_FLYOUT: 'cellTextAlignmentFlyout',
+
+  // Cell Adjustment
+  CELL_ADJUSTMENT_BUTTON: 'cellAdjustmentButton',
+  CELL_ADJUSTMENT_FLYOUT: 'cellAdjustmentFlyout',
+
+  // Cell Text Wrap
+  CELL_TEXT_WRAP_BUTTON: 'cellTextWrapButton',
+  CELL_TEXT_WRAP_FLYOUT: 'cellTextWrapFlyout',
 
   // Rubber Stamp Panel
+  CREATE_RUBBER_STAMP_BUTTON_WRAP: 'createRubberStampButtonWrap',
   CREATE_RUBBER_STAMP_BUTTON: 'createRubberStampButton',
+
+  PREVIOUS_PAGE_BUTTON: 'previousPageButton',
+  NEXT_PAGE_BUTTON: 'nextPageButton',
+
+  // Search options button
+  CASE_SENSITIVE_SEARCH_OPTION: 'caseSensitiveSearchOption',
+  WHOLE_WORD_SEARCH_OPTION: 'wholeWordSearchOption',
+  WILD_CARD_SEARCH_OPTION: 'wildCardSearchOption',
+
+  // Sheets Editor
+  FORMULA_BAR: 'formulaBar',
+  FORMULA_OVERLAY: 'formulaOverlay',
+  SPREADSHEET_SWITCHER: 'spreadsheetSwitcher',
+
+  // Annotation Popup Buttons
+  VIEW_FILE_BUTTON: 'viewFileButton',
+  COMMENT_BUTTON: 'annotationCommentButton',
+  STYLE_EDIT_BUTTON: 'annotationStyleEditButton',
+  DATE_EDIT_BUTTON: 'annotationDateEditButton',
+  REDACT_BUTTON: 'annotationRedactButton',
+  CROP_BUTTON: 'annotationCropButton',
+  CONTENT_EDIT_BUTTON: 'annotationContentEditButton',
+  CLEAR_SIGNATURE_BUTTON: 'annotationClearSignatureButton',
+  GROUP_BUTTON: 'annotationGroupButton',
+  UNGROUP_BUTTON: 'annotationUngroupButton',
+  FORM_FIELD_EDIT_BUTTON: 'formFieldEditButton',
+  LINK_BUTTON: 'linkButton',
+  FILE_ATTACHMENT_DOWNLOAD: 'fileAttachmentDownload',
+  ANNOTATION_DELETE_BUTTON: 'annotationDeleteButton',
+  SHORTCUT_KEYS_FOR_3D: 'shortCutKeysFor3D',
+  PLAY_SOUND_BUTTON: 'playSoundButton',
+  OPEN_ALIGNMENT_BUTTON: 'openAlignmentButton',
+
+  // Text Popup
+  COPY_TEXT_BUTTON: 'copyTextButton',
+  TEXT_HIGHLIGHT_TOOL_BUTTON: 'textHighlightToolButton',
+  TEXT_UNDERLINE_TOOL_BUTTON: 'textUnderlineToolButton',
+  TEXT_SQUIGGLY_TOOL_BUTTON: 'textSquigglyToolButton',
+  TEXT_STRIKEOUT_TOOL_BUTTON: 'textStrikeoutToolButton',
+  TEXT_REDACT_TOOL_BUTTON: 'textRedactToolButton',
+
+  // Context Menu Popup
+  PAN_TOOL_BUTTON: 'panToolButton',
+  STICKY_TOOL_BUTTON: 'stickyToolButton',
+  HIGHLIGHT_TOOL_BUTTON: 'highlightToolButton',
+  FREE_HAND_TOOL_BUTTON: 'freeHandToolButton',
+  FREE_HAND_HIGHLIGHT_TOOL_BUTTON: 'freeHandHighlightToolButton',
+  FREE_TEXT_TOOL_BUTTON: 'freeTextToolButton',
+  MARK_INSERT_TEXT_TOOL_BUTTON: 'markInsertTextToolButton',
+  MARK_REPLACE_TEXT_TOOL_BUTTON: 'markReplaceTextToolButton',
+
+  SPREADSHEET_EDITOR_INSERT_IMAGE_BUTTON: 'spreadsheetEditorInsertImageButton',
 };
 
 DataElements.TOOLBAR_GROUPS = [

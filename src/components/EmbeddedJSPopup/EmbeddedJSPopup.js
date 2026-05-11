@@ -7,11 +7,14 @@ import EmbeddedJSPopupMenu from './EmbeddedJSPopupMenu';
 import useOnClickOutside from 'hooks/useOnClickOutside';
 import actions from 'actions';
 import selectors from 'selectors';
-import core from 'core';
+import useCore from 'hooks/useCore';
+import { getMouseEventPosition } from 'helpers/getPopupPosition';
 
 import './EmbeddedJSPopup.scss';
 
 const EmbeddedJSPopup = () => {
+  const { core } = useCore();
+  const activeDocumentViewerKey = useSelector(selectors.getActiveDocumentViewerKey);
   const documentViewer = core.getDocumentViewer();
   const annotManager = core.getAnnotationManager();
   const fieldManager = annotManager.getFieldManager();
@@ -47,9 +50,11 @@ const EmbeddedJSPopup = () => {
   }, [dispatch, isOpen]);
 
   const onFieldClick = (e) => {
+    const { top, left } = getMouseEventPosition(e);
+
     setPosition({
-      left: `${parseInt(e.x, 10) + 10}px`,
-      top: `${parseInt(e.y, 10)}px`,
+      left: `${left + 10}px`,
+      top: `${top}px`,
     });
   };
 
@@ -70,7 +75,7 @@ const EmbeddedJSPopup = () => {
     return () => {
       documentViewer.removeEventListener('embeddedPopUpMenu', onPopUpMenu);
     };
-  }, [dispatch]);
+  }, [dispatch, activeDocumentViewerKey]);
 
   const clickMenuItem = (value) => {
     if (popupData) {

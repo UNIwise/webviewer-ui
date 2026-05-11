@@ -10,6 +10,7 @@ import fireEvent from 'helpers/fireEvent';
 import { isMac, isWindows, isIOS, isAndroid } from 'helpers/device';
 import getRootNode from 'helpers/getRootNode';
 import Events from 'constants/events';
+import { css } from '@emotion/react';
 import './Tooltip.scss';
 
 const propTypes = {
@@ -18,6 +19,7 @@ const propTypes = {
   hideShortcut: PropTypes.bool,
   forcePosition: PropTypes.string,
   hideOnClick: PropTypes.bool,
+  xOffset: PropTypes.number
 };
 
 const isMouseOverElement = (elementBoundingRect, e) => {
@@ -29,12 +31,14 @@ const isMouseOverElement = (elementBoundingRect, e) => {
   );
 };
 
-const Tooltip = forwardRef(({ content = '', children, hideShortcut, forcePosition, hideOnClick = true }, ref) => {
+const Tooltip = forwardRef(({ content = '', children, hideShortcut, forcePosition, hideOnClick = true, xOffset = 0 }, ref) => {
   const timeoutRef = useRef(null);
   const hiddenByClickRef = useRef(false);
   const childRef = useRef(null);
+  const showRef = useRef(false); // track current show state to avoid redundant enqueues from high-frequency pointermove
+  const opacityRef = useRef(0); // track current opacity to avoid redundant enqueues
   useImperativeHandle(ref, () => childRef.current);
-  const isDisabled = useSelector(state => selectors.isElementDisabled(state, 'tooltip'));
+  const isDisabled = useSelector((state) => selectors.isElementDisabled(state, 'tooltip'));
 
   const tooltipRef = useRef(null);
   const [show, setShow] = useState(false);
@@ -44,9 +48,23 @@ const Tooltip = forwardRef(({ content = '', children, hideShortcut, forcePositio
     left: 0,
   });
   const [location, setLocation] = useState('bottom');
-  const [t] = useTranslation();
+  const [t, i18n, ready] = useTranslation();
   const delayShow = 300;
   const opacityTimeout = 50;
+
+  const setShowGuarded = (value) => {
+    if (showRef.current !== value) {
+      showRef.current = value;
+      setShow(value);
+    }
+  };
+
+  const setOpacityGuarded = (value) => {
+    if (opacityRef.current !== value) {
+      opacityRef.current = value;
+      setOpacity(value);
+    }
+  };
 
   useEffect(() => {
     const showToolTip = () => {
@@ -56,14 +74,15 @@ const Tooltip = forwardRef(({ content = '', children, hideShortcut, forcePositio
       }
       timeoutRef.current = setTimeout(() => {
         setCloseToolTipFunc(hideByClick);
-        setShow(true);
+        setShowGuarded(true);
         fireEvent(Events.TOOLTIP_OPENED);
       }, delayShow - opacityTimeout);
     };
 
     const hideTooltip = () => {
       clearTimeout(timeoutRef.current);
-      setShow(false);
+      setShowGuarded(false);
+      setOpacityGuarded(0);
     };
 
     const hideByBlur = () => {
@@ -76,7 +95,7 @@ const Tooltip = forwardRef(({ content = '', children, hideShortcut, forcePositio
       hideTooltip();
     };
 
-    const changeToolTipState = e => {
+    const changeToolTipState = (e) => {
       if (childRef.current?.contains(e.target) || tooltipRef.current?.contains(e.target)) {
         showToolTip();
       } else {
@@ -86,17 +105,17 @@ const Tooltip = forwardRef(({ content = '', children, hideShortcut, forcePositio
         const isMouseOverTooltip = tooltipBoundingRect && isMouseOverElement(tooltipBoundingRect, e);
         const rectBetweenChildAndTooltip = tooltipBoundingRect &&
           childBoundingRect && {
-            top: Math.min(childBoundingRect.top, tooltipBoundingRect.top),
-            bottom: Math.max(childBoundingRect.bottom, tooltipBoundingRect.bottom),
-            left: Math[childBoundingRect.bottom < tooltipBoundingRect.top ? 'max' : 'min'](
-              childBoundingRect.left,
-              tooltipBoundingRect.left,
-            ),
-            right: Math[childBoundingRect.bottom < tooltipBoundingRect.top ? 'min' : 'max'](
-              childBoundingRect.right,
-              tooltipBoundingRect.right,
-            ),
-          };
+          top: Math.min(childBoundingRect.top, tooltipBoundingRect.top),
+          bottom: Math.max(childBoundingRect.bottom, tooltipBoundingRect.bottom),
+          left: Math[childBoundingRect.bottom < tooltipBoundingRect.top ? 'max' : 'min'](
+            childBoundingRect.left,
+            tooltipBoundingRect.left,
+          ),
+          right: Math[childBoundingRect.bottom < tooltipBoundingRect.top ? 'min' : 'max'](
+            childBoundingRect.right,
+            tooltipBoundingRect.right,
+          ),
+        };
         const isMouseBetweenChildAndTooltip =
           rectBetweenChildAndTooltip && isMouseOverElement(rectBetweenChildAndTooltip, e);
         if (!isMouseOverChild && !isMouseOverTooltip && !isMouseBetweenChildAndTooltip) {
@@ -122,7 +141,7 @@ const Tooltip = forwardRef(({ content = '', children, hideShortcut, forcePositio
       childRef.current?.addEventListener('blur', hideByBlur);
     }
 
-    const observer = new MutationObserver(mutations => {
+    const observer = new MutationObserver((mutations) => {
       // hide tooltip when button get disabled, disable buttons don't have "mouseleave" events
       const lastMutation = mutations[mutations.length - 1];
       if (lastMutation && lastMutation.attributeName === 'disabled' && lastMutation.target.disabled) {
@@ -198,7 +217,7 @@ const Tooltip = forwardRef(({ content = '', children, hideShortcut, forcePositio
       // starting from placing the tooltip at the bottom location
       // if the tooltip can't fit into the window, try placing it counterclockwise until we can find a location to fit it
       const bestLocation =
-        Object.keys(locationTopLeftMap).find(location => {
+        Object.keys(locationTopLeftMap).find((location) => {
           if (forcePosition) {
             return location === forcePosition;
           }
@@ -217,7 +236,7 @@ const Tooltip = forwardRef(({ content = '', children, hideShortcut, forcePositio
 
       setPosition({
         top: tooltipTop / scaleY,
-        left: tooltipLeft / scaleX,
+        left: (tooltipLeft + xOffset) / scaleX,
       });
       setLocation(bestLocation);
     };
@@ -225,10 +244,10 @@ const Tooltip = forwardRef(({ content = '', children, hideShortcut, forcePositio
     if (show && childEle && tooltipEle) {
       setTopAndLeft();
       setTimeout(() => {
-        setOpacity(1);
+        setOpacityGuarded(1);
       }, opacityTimeout);
     } else {
-      setOpacity(0);
+      setOpacityGuarded(0);
     }
   }, [childRef, show, translatedContent]);
 
@@ -246,7 +265,8 @@ const Tooltip = forwardRef(({ content = '', children, hideShortcut, forcePositio
   const isActive = hotkeysManager.isActive(shortcutKey);
 
   let hasShortcut = t(`shortcut.${shortcutKey}`).indexOf('.') === -1;
-  let shortcut = t(`shortcut.${shortcutKey}`);
+  const englishT = ready ? i18n.getFixedT('en') : (val) => val;
+  let shortcut = englishT(`shortcut.${shortcutKey}`);
   if (isMac) {
     shortcut = shortcut.replace('Ctrl', 'Cmd');
   }
@@ -265,7 +285,10 @@ const Tooltip = forwardRef(({ content = '', children, hideShortcut, forcePositio
         ReactDOM.createPortal(
           <div
             className={`tooltip--${location}`}
-            style={{ opacity, ...position }}
+            css={css({
+              opacity,
+              ...position,
+            })}
             ref={tooltipRef}
             data-element="tooltip"
           >
@@ -283,4 +306,4 @@ const Tooltip = forwardRef(({ content = '', children, hideShortcut, forcePositio
 Tooltip.displayName = 'Tooltip';
 Tooltip.propTypes = propTypes;
 
-export default Tooltip;
+export default React.memo(Tooltip);

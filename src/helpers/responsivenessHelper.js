@@ -1,27 +1,84 @@
-import { ITEM_TYPE, RESPONSIVE_ITEMS, BUTTON_TYPES, DIRECTION } from 'constants/customizationVariables';
-import { useLayoutEffect } from 'react';
+import { ITEM_TYPE, RESPONSIVE_ITEMS, DIRECTION } from 'constants/customizationVariables';
+import { useEffect, useLayoutEffect } from 'react';
+import { useStore } from 'react-redux';
+import selectors from 'selectors';
+import getRootNode from 'helpers/getRootNode';
 
 const sizeManager = {};
 export default sizeManager;
 
-export const useSizeStore = (dataElement, size, elementRef, headerDirection) => {
+export const ResizingPromises = {};
+
+export const storeWidth = ({ dataElement, element, headerDirection, size }) => {
+  if (element && element.sizeManagerSize === size) {
+    const freeSpace = getCurrentFreeSpace({ headerDirection, element });
+    if (!sizeManager[dataElement]) {
+      sizeManager[dataElement] = {};
+    }
+    const boundingRect = element.getBoundingClientRect();
+    sizeManager[dataElement].sizeToWidth = {
+      ...(sizeManager[dataElement].sizeToWidth ? sizeManager[dataElement].sizeToWidth : {}),
+      [size]: boundingRect.width - (headerDirection === DIRECTION.ROW ? freeSpace : 0),
+    };
+    sizeManager[dataElement].sizeToHeight = {
+      ...(sizeManager[dataElement].sizeToHeight ? sizeManager[dataElement].sizeToHeight : {}),
+      [size]: boundingRect.height - (headerDirection === DIRECTION.COLUMN ? freeSpace : 0),
+    };
+    resolvePromise(dataElement);
+  }
+};
+
+export const useSizeStore = ({
+  dataElement,
+  elementRef,
+  headerDirection,
+}) => {
+  const store = useStore();
+  const getSize = () => selectors.getCustomElementSize(store.getState(), dataElement);
+  const storeWidthWrapper = () =>
+    storeWidth({ dataElement, element: elementRef.current, headerDirection, size: getSize() });
+
+  if (!ResizingPromises[dataElement]) {
+    queueResizingPromise(dataElement);
+  }
+
   useLayoutEffect(() => {
     if (elementRef.current) {
-      const isVertical = headerDirection === DIRECTION.COLUMN;
-      const freeSpace = getCurrentFreeSpace(headerDirection, elementRef.current, true);
-      if (!sizeManager[dataElement]) {
-        sizeManager[dataElement] = {};
-      }
-      sizeManager[dataElement].sizeToWidth = {
-        ...(sizeManager[dataElement].sizeToWidth ? sizeManager[dataElement].sizeToWidth : {}),
-        [size]: elementRef.current.clientWidth - (isVertical ? 0 : freeSpace),
-      };
-      sizeManager[dataElement].sizeToHeight = {
-        ...(sizeManager[dataElement].sizeToHeight ? sizeManager[dataElement].sizeToHeight : {}),
-        [size]: elementRef.current.clientHeight - (isVertical ? freeSpace : 0)
-      };
+      elementRef.current.sizeManagerSize = getSize();
     }
-  }, [size, elementRef.current]);
+  }, [getSize()]);
+
+  useEffect(() => {
+    sizeManager[dataElement] = {
+      ...(sizeManager[dataElement] ? sizeManager[dataElement] : {}),
+      dataElement,
+      storeWidth: storeWidthWrapper,
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!window.ResizeObserver || !window.MutationObserver) {
+      return console.error('Browser not support for header responsiveness');
+    }
+    if (!elementRef.current) {
+      // Element might be disabled so no error or warning
+      return;
+    }
+    const resizeObserver = new ResizeObserver(storeWidthWrapper);
+    resizeObserver.observe(elementRef.current);
+    const mutationObserver = new MutationObserver(storeWidthWrapper);
+    mutationObserver.observe(elementRef.current, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      characterData: true,
+    });
+    storeWidthWrapper();
+    return () => {
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
+    };
+  }, [elementRef.current]);
 };
 
 const cssNonNumberValues = ['auto', 'inherit', 'initial', 'unset', 'normal', 'revert', 'revert-layer', 'none'];
@@ -33,7 +90,11 @@ const getCSSValue = (style, property) => {
   }
   return pixelToNumber(value);
 };
-export const getCurrentFreeSpace = (headerDirection, element, isChild = false) => {
+export const getCurrentFreeSpace = ({
+  headerDirection = DIRECTION.ROW,
+  element,
+  isChild = false,
+}) => {
   const isVertical = headerDirection === DIRECTION.COLUMN;
   const widthOrHeight = isVertical ? 'height' : 'width';
   const style = window.getComputedStyle(element);
@@ -43,10 +104,14 @@ export const getCurrentFreeSpace = (headerDirection, element, isChild = false) =
   }
   let calculatedFreeSpace = rect[widthOrHeight];
   for (const child of element.children) {
-    calculatedFreeSpace -= child.getBoundingClientRect()[widthOrHeight] - getCurrentFreeSpace(headerDirection, child, true);
+    calculatedFreeSpace -= child.getBoundingClientRect()[widthOrHeight] - getCurrentFreeSpace({
+      headerDirection,
+      element: child,
+      isChild: true,
+    });
   }
-  const leftOrTop = isVertical ? 'Left' : 'Top';
-  const rightOrBottom = isVertical ? 'Right' : 'Bottom';
+  const leftOrTop = isVertical ? 'Top': 'Left';
+  const rightOrBottom = isVertical ? 'Bottom' : 'Right';
   calculatedFreeSpace -= getCSSValue(style, `padding${leftOrTop}`) + getCSSValue(style, `padding${rightOrBottom}`);
   calculatedFreeSpace -= getCSSValue(style, `margin${leftOrTop}`) + getCSSValue(style, `margin${rightOrBottom}`);
   calculatedFreeSpace -= getCSSValue(style, `border${leftOrTop}Width`) + getCSSValue(style, `border${rightOrBottom}Width`);
@@ -59,7 +124,6 @@ export const getCurrentFreeSpace = (headerDirection, element, isChild = false) =
 
 const SIZE_CHANGE_TYPES = { GROW: 'grow', SHRINK: 'shrink' };
 const lastSizedElementMap = {};
-const elementToPreventLoop = {};
 
 // To be used in the unit tests
 export const resetLastSizedElementMap = () => {
@@ -68,39 +132,35 @@ export const resetLastSizedElementMap = () => {
   });
 };
 
-export const findItemToResize = (items, freeSpace, headerDirection, parentDataElement, parentDomElement) => {
+export const findItemToResize = ({ items, freeSpace, headerDirection, parentDataElement }) => {
   if (freeSpace === 0 || !items || items.length === 0) {
     return null;
   }
   const isVertical = headerDirection === DIRECTION.COLUMN;
   if (lastSizedElementMap[parentDataElement]) {
     const lastSizedElement = lastSizedElementMap[parentDataElement];
-    const element = lastSizedElement.getElement();
-    const hasToShrink = (lastSizedElement.type === SIZE_CHANGE_TYPES.GROW && freeSpace < 0);
-    const hasToGrow = element.canGrow && (lastSizedElement.type === SIZE_CHANGE_TYPES.SHRINK && freeSpace > 0);
-    if (hasToGrow && element.canGrow) {
-      const growSizeIncrease = getGrowSizeIncrease(element, parentDataElement, isVertical, items, parentDomElement);
-      if (growSizeIncrease > freeSpace) {
-        return null;
+    const isLastElementStillAvailable = items.some((item) => item.dataElement === lastSizedElement.dataElement);
+    if (isLastElementStillAvailable) {
+      const element = lastSizedElement.getElement();
+      const hasToShrink = (lastSizedElement.changeType === SIZE_CHANGE_TYPES.GROW && freeSpace < 0);
+      const hasToGrow = element.canGrow && (lastSizedElement.changeType === SIZE_CHANGE_TYPES.SHRINK && freeSpace > 0);
+      if (hasToGrow) {
+        const growSizeIncrease = getGrowSizeIncrease({ element, isVertical });
+        if (growSizeIncrease > freeSpace) {
+          return null;
+        }
       }
-    }
-    if (hasToShrink || hasToGrow) {
-      if (lastSizedElement.getElement() === elementToPreventLoop[parentDataElement]?.getElement()) {
-        elementToPreventLoop[parentDataElement] = null;
-        return null;
-      }
-      return () => {
-        const newSizeChangeEntry = {
-          type: hasToShrink ? SIZE_CHANGE_TYPES.SHRINK : SIZE_CHANGE_TYPES.GROW,
-          getElement: lastSizedElement.getElement,
-          reverse: () => {
-            lastSizedElement.getElement()[hasToShrink ? SIZE_CHANGE_TYPES.GROW : SIZE_CHANGE_TYPES.SHRINK]();
-          }
+      if (hasToShrink || hasToGrow) {
+        return () => {
+          createSizeChange({
+            parentDataElement,
+            item: lastSizedElement,
+            changeType: hasToShrink ? SIZE_CHANGE_TYPES.SHRINK : SIZE_CHANGE_TYPES.GROW,
+          });
         };
-        lastSizedElementMap[parentDataElement] = newSizeChangeEntry;
-        elementToPreventLoop[parentDataElement] = newSizeChangeEntry;
-        lastSizedElement.reverse();
-      };
+      }
+    } else {
+      lastSizedElementMap[parentDataElement] = null;
     }
   }
   const [itemList, groupedItemList] = sortResponsiveItems(items, parentDataElement);
@@ -110,21 +170,16 @@ export const findItemToResize = (items, freeSpace, headerDirection, parentDataEl
     if (!itemToGrow) {
       return null;
     }
-    const sizeDifference = getGrowSizeIncrease(sizeManager[itemToGrow.dataElement], parentDataElement, isVertical, items, parentDomElement);
+    const sizeDifference = getGrowSizeIncrease({ element: sizeManager[itemToGrow.dataElement], isVertical });
     if (sizeDifference > freeSpace) {
       return null;
     }
-    if (elementToPreventLoop[parentDataElement]?.type === SIZE_CHANGE_TYPES.SHRINK && lastSizedElementMap[parentDataElement].getElement() === elementToPreventLoop[parentDataElement]?.getElement()) {
-      elementToPreventLoop[parentDataElement] = null;
-      return null;
-    }
     return () => {
-      lastSizedElementMap[parentDataElement] = {
-        type: SIZE_CHANGE_TYPES.GROW,
-        getElement: () => sizeManager[itemToGrow.dataElement],
-        reverse: () => sizeManager[itemToGrow.dataElement].shrink(),
-      };
-      sizeManager[itemToGrow.dataElement].grow();
+      createSizeChange({
+        parentDataElement,
+        item: itemToGrow,
+        changeType: SIZE_CHANGE_TYPES.GROW,
+      });
     };
   }
   const itemToShrink = findItemToShrink(itemList, groupedItemList);
@@ -132,12 +187,11 @@ export const findItemToResize = (items, freeSpace, headerDirection, parentDataEl
     return null;
   }
   return () => {
-    lastSizedElementMap[parentDataElement] = {
-      type: SIZE_CHANGE_TYPES.SHRINK,
-      getElement: () => sizeManager[itemToShrink.dataElement],
-      reverse: () => sizeManager[itemToShrink.dataElement].grow(),
-    };
-    sizeManager[itemToShrink.dataElement].shrink();
+    createSizeChange({
+      parentDataElement,
+      item: itemToShrink,
+      changeType: SIZE_CHANGE_TYPES.SHRINK,
+    });
   };
 };
 
@@ -165,7 +219,7 @@ const findItemToShrink = (items, groupedItems) => {
   while (searchIndex < items.length) {
     const rawItem = items[searchIndex];
     const item = sizeManager[rawItem.dataElement];
-    if (item && item.canShrink) {
+    if (item?.canShrink) {
       return rawItem;
     }
     searchIndex++;
@@ -174,7 +228,7 @@ const findItemToShrink = (items, groupedItems) => {
   while (searchIndex < groupedItems.length) {
     const rawItem = groupedItems[searchIndex];
     const item = sizeManager[rawItem.dataElement];
-    if (item && item.canShrink) {
+    if (item?.canShrink) {
       return rawItem;
     }
     searchIndex++;
@@ -186,7 +240,7 @@ const findItemToGrow = (items, groupedItems) => {
   while (searchIndex >= 0) {
     const rawItem = groupedItems[searchIndex];
     const item = sizeManager[rawItem.dataElement];
-    if (item && item.canGrow) {
+    if (item?.canGrow) {
       return rawItem;
     }
     searchIndex--;
@@ -195,41 +249,64 @@ const findItemToGrow = (items, groupedItems) => {
   while (searchIndex >= 0) {
     const rawItem = items[searchIndex];
     const item = sizeManager[rawItem.dataElement];
-    if (item && item.canGrow) {
+    if (item?.canGrow) {
       return rawItem;
     }
     searchIndex--;
   }
 };
 
-const getGrowSizeIncrease = (element, parentDataElement, isVertical, items, parentElement) => {
-  if (sizeManager[parentDataElement] === element) {
-    const currentSize = element.size;
-    if (currentSize === 0) {
-      return 0;
-    }
-    const sizeToGet = isVertical ? 'sizeToHeight' : 'sizeToWidth';
-    const itemToBeAddedIndex = items.length - currentSize;
-    let itemToBeAdded = items[itemToBeAddedIndex];
-    let itemsCount = 1;
-    if (itemToBeAdded.type === ITEM_TYPE.DIVIDER) {
-      itemsCount++;
-      itemToBeAdded = items[itemToBeAddedIndex + 1];
-    }
-    const columnOrRow = isVertical ? DIRECTION.COLUMN : DIRECTION.ROW;
-    const paddingSizeIncrease = currentSize === 1 ? 0 : pixelToNumber(getComputedStyle(parentElement)[`${columnOrRow}Gap`]) * itemsCount;
-    if (BUTTON_TYPES.includes(itemToBeAdded.type)) {
-      if (currentSize === 1) {
-        return 0;
-      }
-      return 32 + paddingSizeIncrease;
-    }
-    const itemToBeAddedSize = sizeManager[itemToBeAdded.dataElement].size;
-    const elementToBeAdded = sizeManager[itemToBeAdded.dataElement];
-    const elementSize = elementToBeAdded[sizeToGet][itemToBeAddedSize];
-    return elementSize + paddingSizeIncrease;
-  }
+const getGrowSizeIncrease = ({ element, isVertical }) => {
   const currentSize = element.size;
   const sizeToGet = isVertical ? 'sizeToHeight' : 'sizeToWidth';
   return element[sizeToGet][currentSize - 1] - element[sizeToGet][currentSize];
+};
+
+const createSizeChange = ({ parentDataElement, item, changeType }) => {
+  const { dataElement } = item;
+  const elementStack = getParentElements(dataElement);
+  queueResizingPromise(dataElement);
+  for (const element of elementStack) {
+    queueResizingPromise(element);
+  }
+  lastSizedElementMap[parentDataElement] = {
+    changeType,
+    getElement: () => sizeManager[dataElement],
+    dataElement,
+  };
+  sizeManager[item.dataElement][changeType]();
+};
+
+const getParentElements = (dataElement) => {
+  const stack = [];
+  let element = getRootNode().querySelector(`[data-element="${dataElement}"]`);
+  while (element?.parentElement) {
+    element = element.parentElement;
+    const dataElement = element.dataset.element;
+    if (dataElement) {
+      stack.push(dataElement);
+    }
+    if (element.classList.contains('ModularHeaderItems')) {
+      break;
+    }
+  }
+  return stack;
+};
+
+const queueResizingPromise = (dataElement) => {
+  const promiseCapability = {};
+  promiseCapability.promise = new Promise((resolve, reject) => {
+    // Timeout to auto resolve to prevent getting stuck
+    let timeout = setTimeout(() => sizeManager[dataElement].storeWidth(), 200);
+    promiseCapability.resolve = () => {
+      clearTimeout(timeout);
+      resolve();
+    };
+    promiseCapability.reject = reject;
+  });
+  ResizingPromises[dataElement] = promiseCapability;
+};
+
+const resolvePromise = (dataElement) => {
+  ResizingPromises[dataElement].resolve();
 };

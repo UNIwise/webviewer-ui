@@ -4,14 +4,11 @@ import { createStore } from 'redux';
 import { Provider } from 'react-redux';
 import defaultFonts from 'constants/defaultFonts';
 import defaultDateTimeFormats from 'constants/defaultDateTimeFormats';
-import { userEvent, expect } from '@storybook/test';
+import { userEvent, expect } from 'storybook/test';
 
 export default {
   title: 'Components/CreateStampModal',
   component: CreateStampModal,
-  parameters: {
-    customizableUI: true,
-  },
 };
 
 const initialState = {

@@ -6,9 +6,9 @@ import getPageArrayFromString from 'helpers/getPageArrayFromString';
 import selectors from 'selectors';
 import actions from 'actions';
 import pageNumberPlaceholder from 'constants/pageNumberPlaceholder';
-import core from 'src/core';
 import { useTranslation } from 'react-i18next';
-import LeftPanelPageTabs from 'components/LeftPanelPageTabs';
+import ThumbnailControlsMulti from 'src/components/ThumbnailControlsMulti';
+import useCore from 'hooks/useCore';
 import './DocumentControls.scss';
 
 function getPageString(selectedPageArray, pageLabels) {
@@ -32,7 +32,9 @@ function getPageString(selectedPageArray, pageLabels) {
 
 const DocumentControls = ({ shouldShowControls, parentElement }) => {
   const [t] = useTranslation();
+  const { core } = useCore();
   const dispatch = useDispatch();
+  const activeDocumentViewerKey = useSelector(selectors.getActiveDocumentViewerKey);
 
   const [
     selectedPageIndexes,
@@ -43,7 +45,7 @@ const DocumentControls = ({ shouldShowControls, parentElement }) => {
   ] = useSelector((state) => [
     selectors.getSelectedThumbnailPageIndexes(state),
     selectors.isElementDisabled(state, 'documentControl'),
-    selectors.getPageLabels(state),
+    selectors.getPageLabels(state, activeDocumentViewerKey),
     selectors.isThumbnailSelectingPages(state),
     selectors.getFeatureFlags(state),
   ]);
@@ -78,7 +80,9 @@ const DocumentControls = ({ shouldShowControls, parentElement }) => {
       // set a short timeout due to race condition caused by onBlur and
       // changing the documentControlsButton based on isThumbnailSelectingPages
       setTimeout(() => {
-        enableThumbnailSelectingPages();
+        if (pageString !== previousPageString) {
+          enableThumbnailSelectingPages();
+        }
       }, 100);
     }
   };
@@ -101,7 +105,7 @@ const DocumentControls = ({ shouldShowControls, parentElement }) => {
       {shouldShowControls ? (
         <div className={'documentControls'}>
           <div className={'divider'}></div>
-          {isThumbnailSelectingPages && <LeftPanelPageTabs parentElement={parentElement} />}
+          {isThumbnailSelectingPages && <ThumbnailControlsMulti parentElement={parentElement}/>}
           {customizableUI &&
             <label className={'documentControlsLabel'} htmlFor="pageNumbersInput">
               <span>

@@ -3,6 +3,12 @@ import DocumentCropPopup from './DocumentCropPopup';
 import { createStore } from 'redux';
 import { Provider } from 'react-redux';
 import DimensionsInput from './DimensionsInput';
+import { MockApp, createStore as createMockAppStore } from 'helpers/storybookHelper';
+import { setItemToFlyoutStore } from 'helpers/itemToFlyoutHelper';
+import initialState from 'src/redux/initialState';
+import { userEvent, within, expect } from 'storybook/test';
+import { getTranslatedText } from 'helpers/testTranslationHelper';
+import { mobileStoryParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/DocumentCropPopup',
@@ -12,14 +18,14 @@ export default {
   }
 };
 
-const initialState = {
+const basicInitialState = {
   viewer: {
     disabledElements: {},
     customElementOverrides: {},
   },
 };
 
-function rootReducer(state = initialState, action) {
+function rootReducer(state = basicInitialState, action) {
   return state;
 }
 
@@ -180,4 +186,49 @@ export function DocumentCropPopupMobile() {
   );
 }
 
-DocumentCropPopupMobile.parameters = window.storybook?.MobileParameters;
+DocumentCropPopupMobile.parameters = mobileStoryParameters;
+
+export function PopupInApp(args, context) {
+  const { addonRtl } = context.globals;
+  const mockState = {
+    ...initialState,
+    viewer: {
+      ...initialState.viewer,
+      activeToolName: 'CropPage',
+      openElements: {
+        documentCropPopup: true,
+      },
+      isInDesktopOnlyMode: false,
+      activeTheme: context.globals.theme,
+    },
+    featureFlags: {
+      customizableUI: true,
+    },
+  };
+
+  const mockAppStore = createMockAppStore(mockState);
+  setItemToFlyoutStore(mockAppStore);
+
+  return (
+    <MockApp initialState={mockState} initialDirection={addonRtl} />
+  );
+}
+
+// Add interactive tests that clicks on Edit ribbon
+PopupInApp.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+
+  const editRibbon = canvas.getByRole('button', { name: getTranslatedText('option.toolbarGroup.toolbarGroup-Edit') });
+  await userEvent.click(editRibbon);
+
+  // Wait for popup to fully position
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+
+  const snippingToolButton = await canvas.findByRole('button', { name: getTranslatedText('annotation.crop') });
+  expect(snippingToolButton).toBeInTheDocument();
+};
+
+PopupInApp.parameters = {
+  layout: 'fullscreen',
+  chromatic: { delay: 10000 },
+};

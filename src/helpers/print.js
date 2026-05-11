@@ -1,18 +1,19 @@
 /* eslint-disable no-unsanitized/property */
 import i18n from 'i18next';
-
 import actions from 'actions';
 import dayjs from 'dayjs';
 import LocalizedFormat from 'dayjs/plugin/localizedFormat';
-
-import { workerTypes } from 'constants/types';
-
-import core from 'core';
-
-import { creatingPages } from 'helpers/rasterPrint';
+import { createRasterizedPrintPages } from 'helpers/rasterPrint';
 import { isSafari, isChromeOniOS, isFirefoxOniOS } from 'helpers/device';
+import {
+  processEmbeddedPrintOptions,
+  canEmbedPrint,
+  embeddedPrintNoneSupportedOptions,
+  printEmbeddedPDF
+} from 'helpers/embeddedPrint';
 
 import getRootNode from './getRootNode';
+import { createWrappedCore } from 'hooks/useCore/useCore';
 
 const PRINT_QUALITY = 1;
 
@@ -165,7 +166,7 @@ const getResetPrintStyle = () => {
   return style;
 };
 
-export const printPages = (pages) => {
+export const printPages = (core, pages) => {
   const printHandler = getRootNode().getElementById('print-handler');
   printHandler.innerHTML = '';
   const isApryseWebViewerWebComponent = window.isApryseWebViewerWebComponent;
@@ -189,10 +190,9 @@ export const printPages = (pages) => {
 
   printHandler.appendChild(fragment);
 
-  if (isSafari && !(isChromeOniOS || isFirefoxOniOS)) {
-    // Print for Safari browser. Makes Safari 11 consistently work.
-    document.execCommand('print');
-  } else {
+  const isNativeSafariBrowser = isSafari && !(isChromeOniOS || isFirefoxOniOS);
+
+  if (!isNativeSafariBrowser) {
     // It looks like both Chrome and Firefox (on iOS) use the top window as target for window.print instead of the frame where it was triggered,
     // so we need to teleport the print handler div to the top parent and inject some CSS to make it print nicely.
     // This can be removed when Chrome and Firefox for iOS respect the origin frame as the actual target for window.print
@@ -209,17 +209,19 @@ export const printPages = (pages) => {
         node.appendChild(style);
       }
     }
-    if (printHandler.children.length === 1) {
-      printHandler.parentElement.setAttribute('style', 'height: 99.99%;');
-    } else {
-      printHandler.parentElement.setAttribute('style', 'height: 100%;');
-    }
 
-    printDocument();
+    if (!window.isApryseWebViewerWebComponent) {
+      if (printHandler.children.length === 1) {
+        printHandler.parentElement.setAttribute('style', 'height: 99.99%;');
+      } else {
+        printHandler.parentElement.setAttribute('style', 'height: 100%;');
+      }
+    }
   }
+  printDocument(core, isNativeSafariBrowser);
 };
 
-const printDocument = () => {
+const printDocument = (core, isNativeSafariBrowser) => {
   const doc = core.getDocument();
   const tempTitle = window.parent.document.title;
 
@@ -247,7 +249,25 @@ const printDocument = () => {
 
   window.addEventListener('beforeprint', onBeforePrint, { once: true });
   window.addEventListener('afterprint', onAfterPrint, { once: true });
-  window.print();
+  if (isNativeSafariBrowser) {
+    // Print for Safari browser. Makes Safari 11 consistently work.
+    document.execCommand('print');
+  } else {
+    window.print();
+  }
+};
+const pagesToPrintPageArray = (core, pagesToPrint) => {
+  const pageCount = core.getTotalPages();
+  return pagesToPrint ?? Array.from({ length: pageCount }, (_, i) => (i + 1));
+};
+
+const serverPrint = (bbURLPromise) => {
+  const printPage = window.open('', '_blank');
+  // eslint-disable-next-line no-unsanitized/method
+  printPage.document.write(i18n.t('message.preparingToPrint'));
+  bbURLPromise.then((result) => {
+    printPage.location.href = result.url;
+  });
 };
 
 export const print = async (dispatch, useClientSidePrint, isEmbedPrintSupported, sortStrategy, colorMap, options = {}) => {
@@ -262,37 +282,43 @@ export const print = async (dispatch, useClientSidePrint, isEmbedPrintSupported,
     isPrintCurrentView,
     printedNoteDateFormat: dateFormat,
     isGrayscale = false,
-    timezone
+    timezone,
+    pagesToPrint,
+    documentViewerKey = 1,
   } = options;
-  let { pagesToPrint } = options;
 
-  if (!core.getDocument()) {
+  const core = createWrappedCore(documentViewerKey);
+
+  const document = core.getDocument();
+  const annotationManager = core.getAnnotationManager();
+
+  if (!document) {
     return;
   }
 
-  const documentType = core.getDocument().getType();
   const bbURLPromise = core.getPrintablePDF();
+  const isWebViewerServerDocument = bbURLPromise && typeof bbURLPromise.then === 'function';
+  const isServerPrintSupported = !isGrayscale && isWebViewerServerDocument;
 
-  if (!isGrayscale && bbURLPromise && !useClientSidePrint) {
-    const printPage = window.open('', '_blank');
-    // eslint-disable-next-line no-unsanitized/method
-    printPage.document.write(i18n.t('message.preparingToPrint'));
-    bbURLPromise.then((result) => {
-      printPage.location.href = result.url;
-    });
-  } else if (isEmbedPrintSupported && documentType === workerTypes.PDF) {
-    dispatch(actions.openElement('printModal'));
+  const shouldUseServerPrint = isServerPrintSupported && !useClientSidePrint;
+
+  if (shouldUseServerPrint) {
+    serverPrint(bbURLPromise);
+    return;
+  }
+
+  if (!printWithoutModal) {
+    dispatch(actions.openElements(['printModal']));
+    return;
+  }
+  const pageArray = isPrintCurrentView ? [core.getDocumentViewer().getCurrentPage()] : pagesToPrintPageArray(core, pagesToPrint);
+  options.pagesToPrint = pageArray;
+  options.isAlwaysPrintAnnotationsInColorEnabled = core.getDocumentViewer().isAlwaysPrintAnnotationsInColorEnabled();
+
+  if (canEmbedPrint(core, isEmbedPrintSupported)) {
+    embeddedPrintNoneSupportedOptions(options);
+    printEmbeddedPDF(await processEmbeddedPrintOptions(core, options, document, annotationManager));
   } else if (includeAnnotations || includeComments || printWithoutModal) {
-    if (!pagesToPrint) {
-      pagesToPrint = [];
-      for (let i = 1; i <= core.getTotalPages(); i++) {
-        pagesToPrint.push(i);
-      }
-    }
-    if (isPrintCurrentView) {
-      pagesToPrint = [core.getDocumentViewer().getCurrentPage()];
-    }
-
     const printOptions = {
       includeComments,
       includeAnnotations,
@@ -307,19 +333,18 @@ export const print = async (dispatch, useClientSidePrint, isEmbedPrintSupported,
       createCanvases: false,
       isGrayscale
     };
-    const createPages = creatingPages(
-      pagesToPrint,
+    const createPages = createRasterizedPrintPages(
+      core,
+      pageArray,
       printOptions,
       onProgress,
     );
     Promise.all(createPages)
       .then((pages) => {
-        printPages(pages);
+        printPages(core, pages);
       })
       .catch((e) => {
         console.error(e);
       });
-  } else {
-    dispatch(actions.openElement('printModal'));
   }
 };

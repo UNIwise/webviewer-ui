@@ -1,120 +1,108 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import PropTypes from 'prop-types';
 import './StylePicker.scss';
 import ColorPicker from './ColorPicker';
 import Slider from 'components/Slider';
 import DataElements from 'constants/dataElement';
-import { circleRadius } from 'constants/slider';
-import Dropdown from '../Dropdown';
-import {
-  defaultStartLineStyles,
-  defaultStrokeStyles,
-  defaultEndLineStyles,
-  cloudyStrokeStyle
-} from 'constants/strokeStyleIcons';
-import Icon from 'components/Icon';
+import { getStrokeSliderSteps, getStrokeDisplayValue } from 'constants/slider';
 import SnapModeToggle from './SnapModeToggle';
-import selectors from 'selectors';
 import actions from 'actions';
 import {
   hasFillColorAndCollapsablePanelSections,
   stylePanelSectionTitles,
+  shouldHideStrokeDropdowns,
   shouldHideStrokeSlider,
   shouldHideOpacitySlider,
   hasSnapModeCheckbox,
-  shouldShowTextStyle,
   shouldHideTransparentFillColor,
   shouldHideStrokeStyle,
   shouldHideFillColorAndCollapsablePanelSections,
+  useStylePanelSections,
+  shouldHideCloudyLineStyle,
 } from 'helpers/stylePanelHelper';
-import useOnFreeTextEdit from 'hooks/useOnFreeTextEdit';
-import RichTextStyleEditor from '../RichTextStyleEditor';
-import LabelTextEditor from 'components/LabelTextEditor';
-
-const withCloudyStyle = defaultStrokeStyles.concat(cloudyStrokeStyle);
+import CollapsibleSection from '../CollapsibleSection';
+import StrokePanelSection from './StrokePanelSection/StrokePanelSection';
+import OpacityPanelSection from './OpacityPanelSection';
+import NoSharedStylePanel from '../StylePanel/panels/NoSharedStylePanel';
+import DataElementWrapper from '../DataElementWrapper';
 
 const propTypes = {
-  onStyleChange: PropTypes.func.isRequired,
-  style: PropTypes.object.isRequired,
-  sliderProperties: PropTypes.arrayOf(PropTypes.string),
-  isFreeText: PropTypes.bool,
-  isEllipse: PropTypes.bool,
-  isRedaction: PropTypes.bool,
-  isTextStylePickerHidden: PropTypes.bool,
-  redactionLabelProperties: PropTypes.object,
-  isFreeHand: PropTypes.bool,
-  showLineStyleOptions: PropTypes.bool,
-  isArc: PropTypes.bool,
-  isStamp: PropTypes.bool,
-  isInFormFieldCreationMode: PropTypes.bool,
-  startLineStyle: PropTypes.string,
-  endLineStyle: PropTypes.string,
-  strokeStyle: PropTypes.string,
-  onLineStyleChange: PropTypes.func,
-  toolName: PropTypes.string,
-  onFreeTextSizeToggle: PropTypes.func,
-  isFreeTextAutoSize: PropTypes.bool,
-  handleRichTextStyleChange: PropTypes.func,
   activeType: PropTypes.string,
+  endLineStyle: PropTypes.string,
+  isFreeText: PropTypes.bool,
+  isInFormFieldCreationMode: PropTypes.bool,
+  hasParentPicker: PropTypes.bool,
+  isRedaction: PropTypes.bool,
+  isStamp: PropTypes.bool,
+  isTextStylePickerHidden: PropTypes.bool,
+  onLineStyleChange: PropTypes.func,
+  onStyleChange: PropTypes.func.isRequired,
+  redactionLabelProperties: PropTypes.object,
+  showLineStyleOptions: PropTypes.bool,
+  sliderProperties: PropTypes.arrayOf(PropTypes.string),
+  startLineStyle: PropTypes.string,
+  strokeStyle: PropTypes.string,
+  style: PropTypes.object.isRequired,
+  toolName: PropTypes.string,
+  annotationTypes: PropTypes.arrayOf(PropTypes.string),
 };
 
-const MAX_STROKE_THICKNESS = 20;
+const MAX_STROKE_THICKNESS = 23;
 
 const StylePicker = ({
   onStyleChange,
   style,
   isFreeText,
-  isEllipse,
   isRedaction,
-  isTextStylePickerHidden,
-  isFreeHand,
   showLineStyleOptions,
-  isArc,
   isStamp,
   isInFormFieldCreationMode,
   startLineStyle,
   endLineStyle,
   strokeStyle,
   onLineStyleChange,
-  onFreeTextSizeToggle,
-  isFreeTextAutoSize,
-  handleRichTextStyleChange,
   activeTool,
-  saveEditorInstance,
+  hasParentPicker,
+  annotationTypes,
 }) => {
   const [t] = useTranslation();
   const dispatch = useDispatch();
-  const [isRichTextEditMode, setIsRichTextEditMode] = useState(false);
   const [strokeColor, setStrokeColor] = useState(style.StrokeColor);
   const [startingLineStyle, setStartingLineStyle] = useState(startLineStyle);
   const [endingLineStyle, setEndingLineStyle] = useState(endLineStyle);
   const [strokeLineStyle, setStrokeLineStyle] = useState(strokeStyle);
   const [fillColor, setFillColor] = useState(style.FillColor);
 
-  const hideStrokeStyle = shouldHideStrokeStyle(activeTool);
-  const showFillColorAndCollapsablePanelSections = hasFillColorAndCollapsablePanelSections(activeTool);
-  const hideFillColorAndCollapsablePanelSections = shouldHideFillColorAndCollapsablePanelSections(activeTool);
-  const hideStrokeSlider = shouldHideStrokeSlider(activeTool);
-  const showSnapModeCheckbox = hasSnapModeCheckbox(activeTool);
-  const showTextStyle = shouldShowTextStyle(activeTool);
+  const checkAnyAnnotationTypes = (checkFunction) => {
+    if (annotationTypes && annotationTypes.length > 0) {
+      return annotationTypes.some(checkFunction);
+    }
+    return checkFunction(activeTool);
+  };
+
+  const checkAllAnnotationTypes = (checkFunction) => {
+    if (annotationTypes && annotationTypes.length > 0) {
+      return annotationTypes.every(checkFunction);
+    }
+    return checkFunction(activeTool);
+  };
+
+  const hideOpacitySlider = checkAnyAnnotationTypes(shouldHideOpacitySlider);
+  const hideStrokeStyle = checkAnyAnnotationTypes(shouldHideStrokeStyle);
+  const showFillColorAndCollapsablePanelSections = checkAllAnnotationTypes(hasFillColorAndCollapsablePanelSections);
+  const hideFillColorAndCollapsablePanelSections = checkAnyAnnotationTypes(shouldHideFillColorAndCollapsablePanelSections);
+  const hideStrokeDropdowns = checkAnyAnnotationTypes(shouldHideStrokeDropdowns);
+  const hideStrokeSlider = checkAnyAnnotationTypes(shouldHideStrokeSlider);
+  const showSnapModeCheckbox = hasSnapModeCheckbox(activeTool) && !annotationTypes;
+  const hideCloudyLineStyle = checkAnyAnnotationTypes(shouldHideCloudyLineStyle);
 
   useEffect(() => {
     if (showFillColorAndCollapsablePanelSections) {
-      if (showTextStyle) {
-        dispatch(actions.openElement(DataElements.RICH_TEXT_STYLE_CONTAINER));
-      } else {
-        dispatch(actions.openElement(DataElements.STROKE_STYLE_CONTAINER));
-      }
+      dispatch(actions.openElement(DataElements.STROKE_STYLE_CONTAINER));
     }
   }, [activeTool]);
-
-  useEffect(() => {
-    if (isRichTextEditMode) {
-      dispatch(actions.closeElement(DataElements.ANNOTATION_POPUP));
-    }
-  }, [isRichTextEditMode]);
 
   useEffect(() => {
     setStrokeColor(style.StrokeColor);
@@ -138,14 +126,9 @@ const StylePicker = ({
     setStartingLineStyle(style);
   };
 
-  const onStrokeStyleChange = (style, value) => {
-    if (value) {
-      onLineStyleChange?.(style, value);
-      setStrokeLineStyle(value);
-    } else {
-      onLineStyleChange?.('middle', style);
-      setStrokeLineStyle(style);
-    }
+  const onStrokeStyleChange = (style) => {
+    onLineStyleChange?.('middle', style);
+    setStrokeLineStyle(style);
   };
 
   const onEndLineStyleChange = (style) => {
@@ -158,8 +141,8 @@ const StylePicker = ({
     setFillColor(color);
   };
 
-  const onSliderChange = (property, value) => {
-    onStyleChange?.(property, value);
+  const onSliderChange = (property, value, doneStyleChange = true) => {
+    onStyleChange?.(property, value, doneStyleChange);
   };
 
   // We do not have sliders to show up for redaction annots
@@ -168,48 +151,20 @@ const StylePicker = ({
     style.StrokeThickness = null;
   }
 
-  const [
+  const {
     isSnapModeEnabled,
     isStyleOptionDisabled,
     isStrokeStyleContainerActive,
     isFillColorContainerActive,
     isOpacityContainerActive,
-    isTextStyleContainerActive,
-  ] = useSelector((state) => [
-    selectors.isSnapModeEnabled(state),
-    selectors.isElementDisabled(state, DataElements.STYLE_OPTION),
-    selectors.isElementOpen(state, DataElements.STROKE_STYLE_CONTAINER),
-    selectors.isElementOpen(state, DataElements.FILL_COLOR_CONTAINER),
-    selectors.isElementOpen(state, DataElements.OPACITY_CONTAINER),
-    selectors.isElementOpen(state, DataElements.RICH_TEXT_STYLE_CONTAINER),
-  ]);
-
-  const panelItems = {
-    [DataElements.STROKE_STYLE_CONTAINER]: isStrokeStyleContainerActive,
-    [DataElements.FILL_COLOR_CONTAINER]: isFillColorContainerActive,
-    [DataElements.OPACITY_CONTAINER]: isOpacityContainerActive,
-    [DataElements.RICH_TEXT_STYLE_CONTAINER]: isTextStyleContainerActive,
-  };
-
-  const togglePanelItem = (dataElement) => {
-    if (!panelItems[dataElement]) {
-      dispatch(actions.openElement(dataElement));
-    } else {
-      dispatch(actions.closeElement(dataElement));
-    }
-  };
-  const openTextStyleContainer = () => {
-    dispatch(actions.openElements(DataElements.RICH_TEXT_EDITOR));
-    togglePanelItem(DataElements.RICH_TEXT_STYLE_CONTAINER);
-  };
-  const openStrokeStyleContainer = () => togglePanelItem(DataElements.STROKE_STYLE_CONTAINER);
-  const openFillColorContainer = () => togglePanelItem(DataElements.FILL_COLOR_CONTAINER);
-  const openOpacityContainer = () => togglePanelItem(DataElements.OPACITY_CONTAINER);
+    openStrokeStyleContainer,
+    openFillColorContainer,
+    openOpacityContainer,
+  } = useStylePanelSections();
 
   const getSliderProps = (type) => {
     const { Opacity, StrokeThickness, FontSize } = style;
 
-    const lineStart = circleRadius;
     switch (type.toLowerCase()) {
       case 'opacity':
         if (Opacity === null) {
@@ -218,11 +173,9 @@ const StylePicker = ({
         return {
           property: 'Opacity',
           displayProperty: 'opacity',
-          value: Opacity,
-          getDisplayValue: (Opacity) => `${Math.round(Opacity * 100)}%`,
+          value: Opacity * 100,
+          getDisplayValue: (Opacity) => `${Math.round(Opacity)}%`,
           dataElement: DataElements.OPACITY_SLIDER,
-          getCirclePosition: (lineLength, Opacity) => Opacity * lineLength + lineStart,
-          convertRelativeCirclePositionToValue: (circlePosition) => circlePosition,
           withInputField: true,
           inputFieldType: 'number',
           min: 0,
@@ -238,42 +191,14 @@ const StylePicker = ({
           property: 'StrokeThickness',
           displayProperty: 'thickness',
           value: StrokeThickness,
-          getDisplayValue: (strokeThickness) => {
-            const placeOfDecimal =
-              Math.floor(strokeThickness) !== strokeThickness
-                ? strokeThickness?.toString().split('.')[1].length || 0
-                : 0;
-            if (StrokeThickness === 0 || (StrokeThickness >= 1 && (placeOfDecimal > 2 || placeOfDecimal === 0))) {
-              return `${Math.round(strokeThickness)}pt`;
-            }
-            return `${parseFloat(strokeThickness).toFixed(2)}pt`;
-          },
+          getDisplayValue: getStrokeDisplayValue,
           dataElement: DataElements.STROKE_THICKNESS_SLIDER,
-          getCirclePosition: (lineLength, strokeThickness) => (strokeThickness / MAX_STROKE_THICKNESS) * lineLength + lineStart,
-          convertRelativeCirclePositionToValue: (circlePosition) => {
-            if (circlePosition >= 1 / MAX_STROKE_THICKNESS) {
-              return Math.round(circlePosition * MAX_STROKE_THICKNESS);
-            }
-            if (circlePosition >= 0.75 / MAX_STROKE_THICKNESS && circlePosition < 1 / MAX_STROKE_THICKNESS) {
-              return 0.75;
-            }
-            if (circlePosition >= 0.5 / MAX_STROKE_THICKNESS && circlePosition < 0.75 / MAX_STROKE_THICKNESS) {
-              return 0.5;
-            }
-            if (circlePosition >= 0.25 / MAX_STROKE_THICKNESS && circlePosition < 0.5 / MAX_STROKE_THICKNESS) {
-              return 0.25;
-            }
-            if (circlePosition >= 0.08 / MAX_STROKE_THICKNESS && circlePosition < 0.25 / MAX_STROKE_THICKNESS) {
-              return 0.1;
-            }
-            return isFreeText ? 0 : 0.1;
-          },
           withInputField: true,
           inputFieldType: 'number',
-          min: isFreeText ? 0 : 0.1,
+          min: 0,
           max: MAX_STROKE_THICKNESS,
           step: 1,
-          getLocalValue: (strokeThickness) => parseFloat(strokeThickness).toFixed(2),
+          steps: getStrokeSliderSteps(isFreeText),
         };
       case 'fontsize':
         if (FontSize === null) {
@@ -285,8 +210,6 @@ const StylePicker = ({
           value: FontSize,
           getDisplayValue: (FontSize) => `${Math.round(parseInt(FontSize, 10))}pt`,
           dataElement: DataElements.FONT_SIZE_SLIDER,
-          getCirclePosition: (lineLength, FontSize) => ((parseInt(FontSize, 10) - 5) / 40) * lineLength + lineStart,
-          convertRelativeCirclePositionToValue: (circlePosition) => `${circlePosition * 40 + 5}pt`,
           min: 5,
           max: 45,
           step: 1,
@@ -306,7 +229,6 @@ const StylePicker = ({
       <Slider
         key={property}
         {...sliderProps}
-        onStyleChange={onSliderChange}
         onSliderChange={onSliderChange}
         shouldHideSliderTitle={shouldHideSliderTitle}
         customCircleRadius={8}
@@ -315,207 +237,134 @@ const StylePicker = ({
     );
   };
 
-  const renderDivider = () => {
+  const renderDivider = (dataElement) => {
     if (showFillColorAndCollapsablePanelSections) {
-      return <div className="divider" />;
+      return (
+        <DataElementWrapper dataElement={`${dataElement}-divider`}>
+          <div className="divider" />
+        </DataElementWrapper>
+      );
     }
   };
 
-  const onOpenProps = useOnFreeTextEdit(saveEditorInstance);
-  const textSizeSlider = (isTextStylePickerHidden) ? <div className="StyleOption text-size-slider">{renderSlider('fontsize')}</div> : null;
   const strokethicknessComponent = renderSlider('strokethickness');
 
+  const parentProps = hasParentPicker ? {} : {
+    className: 'StylePicker',
+    onMouseDown: (e) => {
+      if (e.type !== 'touchstart' && e.target.tagName.toUpperCase() !== 'INPUT') {
+        e.preventDefault();
+      }
+    }
+  };
+
+  const allOptionsHidden = hideStrokeStyle && hideFillColorAndCollapsablePanelSections && hideOpacitySlider;
+
+  if (allOptionsHidden && annotationTypes?.length > 1) {
+    return <NoSharedStylePanel />;
+  }
+
   return (
-    <div
-      className="StylePicker"
-      onMouseDown={(e) => {
-        if (e.type !== 'touchstart' && e.target.tagName.toUpperCase() !== 'INPUT') {
-          e.preventDefault();
-        }
-      }}
-    >
-      {showTextStyle && (
-        <div className="PanelSection TextStyle">
-          <div
-            className="collapsible-menu"
-            onClick={openTextStyleContainer}
-            tabIndex={0}
-            onKeyDown={(e) => e.key === 'Enter' && openTextStyleContainer()}
-            role={'toolbar'}
-          >
-            <label className="menu-title">{t(stylePanelSectionTitles(activeTool, 'OverlayText') || 'option.stylePopup.textStyle')}</label>
-            <div className="icon-container">
-              <Icon glyph={`icon-chevron-${isTextStyleContainerActive ? 'up' : 'down'}`} />
-            </div>
-          </div>
-          {isTextStyleContainerActive && isRedaction && (
-            <div className="PanelSubsection RedactionTextLabel">
-              <div className="menu-subtitle">{t('stylePanel.headings.redactionTextLabel')}</div>
-              <LabelTextEditor properties={style} onPropertyChange={onStyleChange} placeholderText={' '} />
-            </div>
-          )}
-          {isTextStyleContainerActive && (
-            <RichTextStyleEditor
-              style={style}
-              {...onOpenProps}
-              property={'TextColor'}
-              colorMapKey={'freeText'}
-              isFreeTextAutoSize={isFreeTextAutoSize}
-              onFreeTextSizeToggle={onFreeTextSizeToggle}
-              onPropertyChange={onStyleChange}
-              onRichTextStyleChange={handleRichTextStyleChange}
-              isRichTextEditMode={isRichTextEditMode}
-              setIsRichTextEditMode={setIsRichTextEditMode}
-              isRedaction={isRedaction}
-              activeTool={activeTool}
-              isTextStylePickerHidden={isTextStylePickerHidden}
-              textSizeSliderComponent={textSizeSlider}
-            />
-          )}
-          {renderDivider()}
-        </div>
+    <ParentComponent parentProps={parentProps} hasParentPicker={hasParentPicker}>
+      {!hideStrokeStyle && (
+        <DataElementWrapper className="PanelSection" dataElement={DataElements.StylePanel.STROKE_STYLE_CONTAINER}>
+          <StrokePanelSection
+            showFillColorAndCollapsablePanelSections={showFillColorAndCollapsablePanelSections}
+            isStamp={isStamp}
+            onStrokeColorChange={onStrokeColorChange}
+            onStyleChange={onStyleChange}
+            strokeColor={strokeColor}
+            activeTool={activeTool}
+            hideStrokeDropdowns={hideStrokeDropdowns}
+            hideStrokeSlider={hideStrokeSlider}
+            strokethicknessComponent={strokethicknessComponent}
+            showLineStyleOptions={showLineStyleOptions}
+            renderSlider={renderSlider}
+            strokeStyle={strokeLineStyle}
+            isInFormFieldCreationMode={isInFormFieldCreationMode}
+            isFreeText={isFreeText}
+            onStartLineStyleChange={onStartLineStyleChange}
+            startingLineStyle={startingLineStyle}
+            isStyleOptionDisabled={isStyleOptionDisabled}
+            onStrokeStyleChange={onStrokeStyleChange}
+            strokeLineStyle={strokeLineStyle}
+            onEndLineStyleChange={onEndLineStyleChange}
+            endingLineStyle={endingLineStyle}
+            openStrokeStyleContainer={openStrokeStyleContainer}
+            isStrokeStyleContainerActive={isStrokeStyleContainerActive}
+            hideCloudyLineStyle={hideCloudyLineStyle}
+          />
+          {renderDivider(DataElements.StylePanel.STROKE_STYLE_CONTAINER)}
+        </DataElementWrapper>
       )}
 
-      {!hideStrokeStyle && (
-        <div className="PanelSection">
-          {showFillColorAndCollapsablePanelSections && (
-            <div
-              className="collapsible-menu StrokeColorPicker"
-              onClick={openStrokeStyleContainer}
-              tabIndex={0}
-              onKeyDown={(e) => e.key === 'Enter' && openStrokeStyleContainer()}
-              role={'toolbar'}
-            >
-              <div className="menu-title">
-                {t(stylePanelSectionTitles(activeTool, 'StrokeColor') || 'option.annotationColor.StrokeColor')}
-              </div>
-              <div className="icon-container">
-                <Icon glyph={`icon-chevron-${isStrokeStyleContainerActive ? 'up' : 'down'}`} />
-              </div>
-            </div>
-          )}
-          {(isStrokeStyleContainerActive || !showFillColorAndCollapsablePanelSections) && !isStamp && (
-            <>
-              <div className="menu-items">
-                <ColorPicker onColorChange={onStrokeColorChange} onStyleChange={onStyleChange} color={strokeColor}
-                  activeTool={activeTool} type={'Stroke'}/>
-              </div>
-              {!hideStrokeSlider && strokethicknessComponent && (strokethicknessComponent)}
-              {/*
-                When showLineStyleOptions is true, we want to show the opacity slider together with the stroke slider
-              */}
-              {showLineStyleOptions && <div className="StyleOption">{renderSlider('opacity')}</div>}
-              {!!strokeStyle && !(isInFormFieldCreationMode && !isFreeText) && !isFreeHand && !isArc && (
-                <div className="StyleOption">
-                  <div className="styles-container lineStyleContainer">
-                    <div className="styles-title">Style</div>
-                    <div className="StylePicker-LineStyle">
-                      {showLineStyleOptions && (
-                        <Dropdown
-                          className="StylePicker-StartLineStyleDropdown"
-                          dataElement="startLineStyleDropdown"
-                          images={defaultStartLineStyles}
-                          onClickItem={onStartLineStyleChange}
-                          currentSelectionKey={startingLineStyle}
-                        />
-                      )}
-                      {!isStyleOptionDisabled && (
-                        <Dropdown
-                          className={`StylePicker-StrokeLineStyleDropdown${
-                            !!strokeStyle && !showLineStyleOptions ? ' StyleOptions' : ''
-                          }`}
-                          dataElement="middleLineStyleDropdown"
-                          images={isEllipse || showLineStyleOptions ? defaultStrokeStyles : withCloudyStyle}
-                          onClickItem={onStrokeStyleChange}
-                          currentSelectionKey={strokeLineStyle}
-                        />
-                      )}
-                      {showLineStyleOptions && (
-                        <Dropdown
-                          className="StylePicker-EndLineStyleDropdown"
-                          dataElement="endLineStyleDropdown"
-                          images={defaultEndLineStyles}
-                          onClickItem={onEndLineStyleChange}
-                          currentSelectionKey={endingLineStyle}
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-          {renderDivider()}
-        </div>
-      )}
       {hideStrokeStyle && !hideStrokeSlider && strokethicknessComponent && (strokethicknessComponent)}
       {showFillColorAndCollapsablePanelSections && !hideFillColorAndCollapsablePanelSections && (
-        <div className="PanelSection">
-          <div
-            className="collapsible-menu FillColorPicker"
-            onClick={openFillColorContainer}
-            tabIndex={0}
-            onKeyDown={(e) => e.key === 'Enter' && openFillColorContainer()}
-            role={'toolbar'}
-          >
-            <div className="menu-title">
-              {t(stylePanelSectionTitles(activeTool, 'FillColor') || 'option.annotationColor.FillColor')}
+        <DataElementWrapper className="PanelSection" dataElement={DataElements.StylePanel.FILL_COLOR_CONTAINER}>
+          <CollapsibleSection
+            header={t(stylePanelSectionTitles(activeTool, 'FillColor') || 'option.annotationColor.FillColor')}
+            headingLevel={2}
+            isInitiallyExpanded={false}
+            isExpanded={isFillColorContainerActive}
+            onToggle={openFillColorContainer}>
+            <div className="panel-section-wrapper">
+              <div className="menu-items">
+                <ColorPicker
+                  dataElement={DataElements.StylePanel.FILL_COLOR_PICKER}
+                  onColorChange={onFillColorChange}
+                  onStyleChange={onStyleChange}
+                  color={fillColor}
+                  hasTransparentColor={!shouldHideTransparentFillColor(activeTool)}
+                  activeTool={activeTool}
+                  type={'Fill'}
+                  ariaTypeLabel={t('option.annotationColor.FillColor')}
+                />
+              </div>
             </div>
-            <div className="icon-container">
-              <Icon glyph={`icon-chevron-${isFillColorContainerActive ? 'up' : 'down'}`} />
-            </div>
-          </div>
-          {isFillColorContainerActive && (
-            <div className="menu-items">
-              <ColorPicker
-                onColorChange={onFillColorChange}
-                onStyleChange={onStyleChange}
-                color={fillColor}
-                hasTransparentColor={!shouldHideTransparentFillColor(activeTool)}
-                activeTool={activeTool}
-                type={'Fill'}
-              />
-            </div>
-          )}
-          {!shouldHideOpacitySlider(activeTool) && renderDivider()}
-        </div>
+          </CollapsibleSection>
+          {!hideOpacitySlider && renderDivider(DataElements.StylePanel.FILL_COLOR_PICKER)}
+        </DataElementWrapper>
       )}
 
-      <div className="PanelSection">
-        {showFillColorAndCollapsablePanelSections && !shouldHideOpacitySlider(activeTool) && (
-          <div
-            className="collapsible-menu StrokeColorPicker"
-            onClick={openOpacityContainer}
-            tabIndex={0}
-            onKeyDown={(e) => e.key === 'Enter' && openOpacityContainer()}
-            role={'toolbar'}
-          >
-            <div className="menu-title">{t('option.slider.opacity')}</div>
-            <div className="icon-container">
-              <Icon glyph={`icon-chevron-${isOpacityContainerActive ? 'up' : 'down'}`} />
-            </div>
-          </div>
-        )}
-        {/*
-          If showLineStyleOptions is true, then we don't want to show the opacity slider
-          in the bottom because it is already shown before together with the stroke slider
-        */}
-        {!showLineStyleOptions && !shouldHideOpacitySlider(activeTool) && (isOpacityContainerActive || !showFillColorAndCollapsablePanelSections) && (
-          <div className="StyleOption">{renderSlider('opacity', showFillColorAndCollapsablePanelSections)}</div>
-        )}
-        {showSnapModeCheckbox && renderDivider()}
-      </div>
+      {!hideOpacitySlider && getSliderProps('opacity') && !showLineStyleOptions && (
+        <DataElementWrapper className="PanelSection" dataElement={DataElements.StylePanel.OPACITY_CONTAINER}>
+          <OpacityPanelSection
+            showFillColorAndCollapsablePanelSections={showFillColorAndCollapsablePanelSections}
+            shouldHideOpacitySlider={hideOpacitySlider}
+            activeTool={activeTool}
+            showLineStyleOptions={showLineStyleOptions}
+            renderSlider={renderSlider}
+            isOpacityContainerActive={isOpacityContainerActive}
+            openOpacityContainer={openOpacityContainer}
+          />
+          {showSnapModeCheckbox && renderDivider(DataElements.StylePanel.OPACITY_CONTAINER)}
+        </DataElementWrapper>
+      )}
+
       {showSnapModeCheckbox && (
         <>
           {/* to avoid inline styling when there's no divider */}
           {!showFillColorAndCollapsablePanelSections && <div className="spacer" />}
-          <div className="PanelSection">
+          <DataElementWrapper className="PanelSection" dataElement={DataElements.StylePanel.SNAP_MODE_CONTAINER}>
             <SnapModeToggle Scale={style.Scale} Precision={style.Precision} isSnapModeEnabled={isSnapModeEnabled} />
-          </div>
+          </DataElementWrapper>
         </>
       )}
-    </div>
+    </ParentComponent>
   );
+};
+
+const ParentComponent = ({ hasParentPicker, children, parentProps }) => {
+  if (hasParentPicker) {
+    return <>{children}</>;
+  }
+  return <div {...parentProps}>{children}</div>;
+};
+
+ParentComponent.propTypes = {
+  hasParentPicker: PropTypes.bool,
+  children: PropTypes.any,
+  parentProps: PropTypes.object,
 };
 
 StylePicker.propTypes = propTypes;

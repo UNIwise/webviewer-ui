@@ -10,12 +10,16 @@ import FilePicker from 'components/FilePicker';
 import PortfolioItemGrid from './PortfolioItemGrid';
 import { createPortfolio } from 'helpers/portfolio';
 import loadDocument from 'helpers/loadDocument';
+import ModalWrapper from 'components/ModalWrapper';
+import useFocusOnClose from 'hooks/useFocusOnClose';
+import useCore from 'hooks/useCore';
 
 import './CreatePortfolioModal.scss';
 
 const CreatePortfolioModal = () => {
   const [t] = useTranslation();
   const dispatch = useDispatch();
+  const { core } = useCore();
 
   const [
     isDisabled,
@@ -37,12 +41,14 @@ const CreatePortfolioModal = () => {
     dispatch(actions.closeElement(DataElements.CREATE_PORTFOLIO_MODAL));
   };
 
+  const closeCreatePortfolioModalAfterCreate = useFocusOnClose(closeModal);
+
   const onFilesSelected = (files) => {
     setItems(files);
   };
 
   const create = useCallback(async () => {
-    const pdfDoc = await createPortfolio(items);
+    const pdfDoc = await createPortfolio(core, items);
     if (isMultiTab) {
       const blob = new Blob([await pdfDoc.saveMemoryBuffer(0)], { type: 'application/pdf' });
       await tabManager.addTab(blob, {
@@ -52,8 +58,8 @@ const CreatePortfolioModal = () => {
     } else {
       loadDocument(dispatch, pdfDoc);
     }
-    closeModal();
-  }, [items, isMultiTab, tabManager]);
+    closeCreatePortfolioModalAfterCreate();
+  }, [items, isMultiTab, tabManager, core]);
 
   const addFiles = (files) => {
     if (files.length > 0) {
@@ -96,62 +102,61 @@ const CreatePortfolioModal = () => {
   });
 
   return (isDisabled || !isOpen) ? null : (
-    <div className={modalClass} data-element={DataElements.CREATE_PORTFOLIO_MODAL} onClick={closeModal}>
-      <div className="container" onClick={(e) => e.stopPropagation()}>
-        <div className="header">
-          <div>{t('portfolio.createPDFPortfolio')}</div>
-          <Button
-            img="icon-close"
-            onClick={closeModal}
-            title="action.close"
-          />
-        </div>
-        <div className="divider" />
-        {(items.length === 0) && (
-          <div className='file-picker-container'>
-            <FilePicker
-              onChange={onFilesSelected}
-              onDrop={onFilesSelected}
-              allowMultiple={true}
+    <div className={modalClass} data-element={DataElements.CREATE_PORTFOLIO_MODAL}>
+      <ModalWrapper
+        isOpen={isOpen}
+        title={t('portfolio.createPDFPortfolio')}
+        closehandler={closeModal}
+        onCloseClick={closeModal}
+        swipeToClose
+      >
+        <div className="content-container">
+          {(items.length === 0) && (
+            <div className='file-picker-container'>
+              <FilePicker
+                onChange={onFilesSelected}
+                onDrop={onFilesSelected}
+                allowMultiple={true}
+              />
+            </div>
+          )}
+          {(items.length > 0) && (
+            <PortfolioItemGrid
+              items={items}
+              onDeleteItem={deleteItem}
+              onDropItems={onDropItems}
             />
-          </div>
-        )}
-        {(items.length > 0) && (
-          <PortfolioItemGrid
-            items={items}
-            onDeleteItem={deleteItem}
-            onDropItems={onDropItems}
-          />
-        )}
-        <div className="divider"></div>
-        <div className="footer">
-          <div>
+          )}
+          <div className="divider"></div>
+          <div className="footer">
+            <div>
+              <Button
+                className='add-item-option'
+                img='icon-portfolio-file'
+                onClick={openFilePicker}
+                label={t('portfolio.addFiles')}
+              />
+              <div className="add-item-trigger" data-element={DataElements.PORTFOLIO_MODAL_ADD_ITEM_TRIGGER}></div>
+            </div>
             <Button
-              className='add-item-option'
-              img='icon-portfolio-file'
-              onClick={openFilePicker}
-              label={t('portfolio.addFiles')}
+              className='create-portfolio'
+              disabled={items.length === 0}
+              onClick={create}
+              label={t('action.create')}
             />
-            <div className="add-item-trigger" data-element={DataElements.PORTFOLIO_MODAL_ADD_ITEM_TRIGGER}></div>
           </div>
-          <Button
-            className='create-portfolio'
-            disabled={items.length === 0}
-            onClick={create}
-            label={t('action.create')}
+          <input
+            ref={fileInputRef}
+            multiple
+            style={{ display: 'none' }}
+            type="file"
+            onChange={(event) => {
+              addFiles(event.target.files);
+              event.target.value = null;
+            }}
           />
         </div>
-        <input
-          ref={fileInputRef}
-          multiple
-          style={{ display: 'none' }}
-          type="file"
-          onChange={(event) => {
-            addFiles(event.target.files);
-            event.target.value = null;
-          }}
-        />
-      </div>
+      </ModalWrapper>
     </div>
   );
 };

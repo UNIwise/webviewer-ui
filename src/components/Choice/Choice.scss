@@ -1,13 +1,18 @@
-.ui__choice__input__icon {
-  top: -6px !important;
-}
-
-.ui__icon {
-  align-items: baseline !important;
-}
-
 .ui__choice {
   align-items: center;
+  
+  .ui__choice__input__icon {
+    height: 17px;
+    width: 17px;
+    svg path {
+      fill: var(--color-contrast-1);
+    }
+  }
+}
+
+.ui__choice__label {
+  font-size: 13px !important;
+  overflow: hidden  ;
 }
 
 .ui__choice__label {
@@ -31,7 +36,7 @@
       background-color: var(--checked-option) !important;
 
       .ui__choice__input__toggle {
-        left: 12px !important;
+        inset-inline-start: 12px !important;
       }
     }
 
@@ -43,11 +48,15 @@
       height: 10px !important;
       width: 10px !important;
       background-color: var(--gray-0) !important;
-      left: 2px !important;
+      inset-inline-start: 2px !important;
     }
   }
 
   input:disabled {
     cursor: not-allowed !important;
   }
+}
+
+.ui__choice__input__check--focus {
+  outline: var(--focus-visible-outline);
 }

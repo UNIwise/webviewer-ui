@@ -9,7 +9,7 @@ import Button from 'components/Button';
 import { getInstanceNode } from 'helpers/getRootNode';
 import ModalWrapper from 'components/ModalWrapper';
 
-import core from 'core';
+import useCore from 'hooks/useCore';
 
 import { insertAbove, insertBelow, exitPageInsertionWarning } from '../../helpers/pageManipulationFunctions';
 import InsertBlankPagePanel from './InsertBlankPagePanel';
@@ -19,9 +19,11 @@ import FilePickerPanel from '../PageReplacementModal/FilePickerPanel';
 
 import './InsertPageModal.scss';
 
-const options = { loadAsPDF: true, l: window.sampleL /* license key here */ };
+const options = { loadAsPDF: true };
 
 const InsertPageModal = ({ loadedDocumentPageCount }) => {
+  const { core } = useCore();
+  const documentViewerKey = useSelector(selectors.getActiveDocumentViewerKey);
   const [selectedPageIndexes, currentPage, selectedTab] = useSelector((state) => [
     selectors.getSelectedThumbnailPageIndexes(state),
     selectors.getCurrentPage(state),
@@ -55,11 +57,11 @@ const InsertPageModal = ({ loadedDocumentPageCount }) => {
   const apply = () => {
     if (insertNewPageBelow) {
       for (let i = 0; i < numberOfBlankPagesToInsert; ++i) {
-        insertBelow(insertNewPageIndexes.map((page, index) => page + (index + 1) * i), insertPageWidth, insertPageHeight);
+        insertBelow(insertNewPageIndexes.map((page, index) => page + (index + 1) * i), insertPageWidth, insertPageHeight, documentViewerKey);
       }
     } else {
       for (let i = 0; i < numberOfBlankPagesToInsert; ++i) {
-        insertAbove(insertNewPageIndexes.map((page, index) => page + (index + 1) * i), insertPageWidth, insertPageHeight);
+        insertAbove(insertNewPageIndexes.map((page, index) => page + (index + 1) * i), insertPageWidth, insertPageHeight, documentViewerKey);
       }
     }
     closeModal();
@@ -133,7 +135,9 @@ const InsertPageModal = ({ loadedDocumentPageCount }) => {
           <TabPanel dataElement={DataElements.INSERT_FROM_FILE_PANEL}>
             <div className='panel-body'>
               <FilePickerPanel
-                onFileProcessed={fileProcessedHandler} />
+                onFileProcessed={fileProcessedHandler}
+                allowMultiple={true}
+              />
             </div>
           </TabPanel>
         </Tabs>

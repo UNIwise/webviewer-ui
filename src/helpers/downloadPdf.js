@@ -4,7 +4,7 @@ import { isIE } from 'helpers/device';
 import fireEvent from 'helpers/fireEvent';
 import Events from 'constants/events';
 import actions from 'actions';
-import { creatingPages } from 'helpers/rasterPrint';
+import { createRasterizedPrintPages } from 'helpers/rasterPrint';
 import selectors from 'selectors';
 import blobStream from 'blob-stream';
 import { getSortStrategies } from 'constants/sortStrategies';
@@ -12,9 +12,11 @@ import { mapAnnotationToKey, getDataWithKey } from 'constants/map';
 import range from 'lodash/range';
 import getRootNode from 'helpers/getRootNode';
 import { workerTypes } from 'constants/types';
-import { isOfficeEditorMode } from './officeEditor';
+import { isOfficeEditorMode, isSpreadsheetEditorMode } from './officeEditor';
 import DataElements from 'src/constants/dataElement';
 import { COMMON_COLORS } from 'constants/commonColors';
+import { getDownloadFilename, getDocumentFileExtension } from './downloadHelper';
+import { createWrappedCore } from 'hooks/useCore/useCore';
 
 let isDownloaded = false;
 let previousWatermarkSettings = { };
@@ -22,6 +24,13 @@ let previousFileName = '';
 
 export default async (dispatch, options = {}, documentViewerKey = 1) => {
   let doc = core.getDocument(documentViewerKey);
+  let temporaryModifiedDoc;
+
+  if (!doc) {
+    console.warn('Document is not loaded');
+    return;
+  }
+
   if (previousFileName !== doc?.getFilename()) {
     previousFileName = doc?.getFilename();
     isDownloaded = false;
@@ -53,7 +62,8 @@ export default async (dispatch, options = {}, documentViewerKey = 1) => {
     const { downloadName } = options;
     let file;
     let downloadType = 'application/pdf';
-    if (options.downloadType === 'office') {
+
+    if (options.downloadType === workerTypes.OFFICE || options.downloadType === workerTypes.SPREADSHEET_EDITOR) {
       const extensionToMimetype = reverseObject(window.Core.mimeTypeToExtension);
       downloadType = extensionToMimetype[extension];
     }
@@ -66,8 +76,8 @@ export default async (dispatch, options = {}, documentViewerKey = 1) => {
 
     dispatch(actions.closeElement(DataElements.LOADING_MODAL));
     fireEvent(Events.FILE_DOWNLOADED);
-    if (includeComments || convertToPDF) {
-      doc.unloadResources();
+    if (temporaryModifiedDoc) {
+      temporaryModifiedDoc.unloadResources();
     }
 
     documentViewer.setWatermark(previousWatermarkSettings);
@@ -81,7 +91,7 @@ export default async (dispatch, options = {}, documentViewerKey = 1) => {
   }
 
   if (!options.downloadType) {
-    options.downloadType = 'pdf';
+    options.downloadType = workerTypes.PDF;
   }
   const downloadAsImage = options.downloadType === 'png';
 
@@ -213,9 +223,10 @@ export default async (dispatch, options = {}, documentViewerKey = 1) => {
       isPrintCurrentView: false,
       language,
       createCanvases: true,
-      isGrayscale: false
+      isGrayscale: false,
     };
-    const createdPages = creatingPages(
+    const createdPages = createRasterizedPrintPages(
+      createWrappedCore(documentViewerKey),
       pages,
       printingOptions,
       undefined,
@@ -270,21 +281,21 @@ export default async (dispatch, options = {}, documentViewerKey = 1) => {
   }
 
   let annotationsPromise = Promise.resolve();
-  const convertToPDF = options.downloadType === 'pdf' && (doc.getType() === workerTypes.OFFICE || isOfficeEditorMode());
+  const convertToPDF = options.downloadType === workerTypes.PDF && (doc.getType() === workerTypes.OFFICE || isOfficeEditorMode() || doc.getType() === workerTypes.SPREADSHEET_EDITOR);
 
-  if (isOfficeEditorMode() && convertToPDF) {
+  if ((isOfficeEditorMode() || doc.getType() === workerTypes.SPREADSHEET_EDITOR) && convertToPDF) {
     const data = await doc.getFileData({
-      downloadType: 'pdf'
+      downloadType: workerTypes.PDF
     });
 
-    downloadDataAsFile(data, 'pdf', options);
+    downloadDataAsFile(data, workerTypes.PDF, options);
     return;
   }
 
   if (convertToPDF || includeComments) {
     const xfdfString = await core.exportAnnotations({ fields: true, widgets: true, links: true, useDisplayAuthor }, documentViewerKey);
-    const fileData = await doc.getFileData({ xfdfString, includeAnnotations, downloadType: 'pdf' });
-    doc = await core.createDocument(fileData, { extension: 'pdf', filename });
+    const fileData = await doc.getFileData({ xfdfString, includeAnnotations, downloadType: workerTypes.PDF });
+    temporaryModifiedDoc = await core.createDocument(fileData, { extension: workerTypes.PDF, filename });
     if (includeComments) {
       const canvas2pdf = await import('canvas2pdf');
       const state = store.getState();
@@ -351,9 +362,9 @@ export default async (dispatch, options = {}, documentViewerKey = 1) => {
           await new Promise((resolve) => {
             const key = mapAnnotationToKey(annotation);
             const colorProperty = colorMap[key] && colorMap[key].iconColor;
-            const color = annotation[colorProperty || 'StrokeColor'].toString();
+            const color = annotation[colorProperty || 'StrokeColor']?.toString();
             const iconKey = getDataWithKey(key).icon;
-            // eslint-disable-next-line @typescript-eslint/no-var-requires,global-require,import/no-dynamic-require
+            // eslint-disable-next-line global-require,import/no-dynamic-require
             const icon = require(`../../assets/icons/${iconKey}.svg`);
             const blob = new Blob([icon], { type: 'image/svg+xml;charset=utf-8' });
             const url = URL.createObjectURL(blob);
@@ -505,15 +516,15 @@ export default async (dispatch, options = {}, documentViewerKey = 1) => {
       for (let page of Object.keys(commentPages)) {
         page = parseInt(page);
         for (const blob of commentPages[page]) {
-          const tempDoc = await core.createDocument(blob, { extension: 'pdf' });
-          await doc.insertPages(tempDoc, [1], page + pageOffset);
+          const commentPagesDoc = await core.createDocument(blob, { extension: workerTypes.PDF });
+          await temporaryModifiedDoc.insertPages(commentPagesDoc, [1], page + pageOffset);
           if (!downloadAllPages) {
             // eslint-disable-next-line no-loop-func
             pages = pages.map((p) => (p >= page + pageOffset ? p + 1 : p));
             pages.push(page + pageOffset);
           }
           pageOffset++;
-          tempDoc.unloadResources();
+          commentPagesDoc.unloadResources();
         }
       }
 
@@ -523,7 +534,7 @@ export default async (dispatch, options = {}, documentViewerKey = 1) => {
         pages = pages.sort((a, b) => a - b);
       }
 
-      annotationsPromise = Promise.resolve((await doc.extractXFDF({ pages })).xfdfString);
+      annotationsPromise = Promise.resolve((await temporaryModifiedDoc.extractXFDF({ pages })).xfdfString);
     } else {
       annotationsPromise = Promise.resolve(xfdfString);
     }
@@ -543,30 +554,14 @@ export default async (dispatch, options = {}, documentViewerKey = 1) => {
       options.includeAnnotations = false;
     }
 
-    const getDownloadFilename = (name, extension) => {
-      if (name.slice(-extension.length).toLowerCase() !== extension) {
-        name += extension;
-      }
-      return name;
-    };
-
-    const array = doc.getFilename().split('.');
-    const extension = `${array[array.length - 1]}`;
-    const isNotPDF =
-      doc?.getType().includes('video')
-      || doc?.getType() === 'audio'
-      || doc?.getType() === workerTypes.OFFICE
-      || isOfficeEditorMode();
-    const downloadName =
-      isNotPDF
-        ? getDownloadFilename(filename, `.${extension}`)
-        : getDownloadFilename(filename, '.pdf');
+    const extension = getDocumentFileExtension(doc);
+    const downloadName = getDownloadFilename(filename, doc, options.downloadType);
 
     // Cloning the options object to be able to delete the customDocument property if needed.
     // doc.getFileData(options) will throw an error if this customDocument property is passed in
     const clonedOptions = Object.assign({}, options);
     if (clonedOptions.documentToBeDownloaded) {
-      doc = clonedOptions.documentToBeDownloaded;
+      temporaryModifiedDoc = clonedOptions.documentToBeDownloaded;
       delete clonedOptions.documentToBeDownloaded;
     }
     if (clonedOptions.store) {
@@ -597,10 +592,10 @@ export default async (dispatch, options = {}, documentViewerKey = 1) => {
       downloadIframe.src = externalURL;
       dispatch(actions.closeElement(DataElements.LOADING_MODAL));
       fireEvent(Events.FILE_DOWNLOADED);
-    } else if (pages && !downloadAllPages) {
-      return doc.extractPages(pages, options.xfdfString).then((data) => downloadDataAsFile(data, extension, { ...options, downloadName }), handleError);
+    } else if (pages && !isSpreadsheetEditorMode() && !downloadAllPages) {
+      return (temporaryModifiedDoc || doc).extractPages(pages, options.xfdfString).then((data) => downloadDataAsFile(data, extension, { ...options, downloadName }), handleError);
     } else {
-      return doc.getFileData(clonedOptions).then((data) => downloadDataAsFile(data, extension, { ...options, downloadName }), handleError);
+      return (temporaryModifiedDoc || doc).getFileData(clonedOptions).then((data) => downloadDataAsFile(data, extension, { ...options, downloadName }), handleError);
     }
   }).catch((error) => {
     console.warn(error);

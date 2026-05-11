@@ -11,6 +11,7 @@
   flex: 1;
   color: var(--text-color);
   padding-bottom: 12px;
+  pointer-events: none;
 
   &.isReply {
     padding-bottom: 0px;
@@ -43,8 +44,12 @@
     word-wrap: break-word;
     user-select: text;
     cursor: text;
-    padding-left: 52px;
-    padding-right: var(--note-content-right-padding-width);
+    padding-inline-start: 52px;
+    padding-inline-end: var(--note-content-right-padding-width);
+
+    > * {
+      pointer-events: all;
+    }
   }
 
   .container-reply {
@@ -62,9 +67,10 @@
     flex-direction: column;
     position: relative;
     flex: 1;
-    padding-left: 52px;
-    padding-right: 12px;
+    padding-inline-start: 52px;
+    padding-inline-end: 12px;
     padding-bottom: 12px;
+    pointer-events: auto;
 
     @include ie11 {
       flex: none;
@@ -72,7 +78,7 @@
 
     textarea {
       width: 100%;
-      padding-left: 8px;
+      padding-inline-start: 8px;
       border: 1px solid var(--border);
       border-radius: 4px;
       color: var(--text-color);
@@ -99,7 +105,7 @@
       margin-top: 8px;
 
       > div {
-        margin-right: 4px;
+        margin-inline-end: 4px;
       }
 
       .save-button {
@@ -148,7 +154,11 @@
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        margin-right: 2px;
+        margin-inline-end: 2px;
+
+        @include mobile {
+          font-size: 13px;
+        }
 
         @include mobile {
           font-size: 13px;
@@ -162,13 +172,13 @@
   }
 
   .reply-content {
-    padding-left: 0px;
+    padding-inline-start: 0px;
   }
 
   .contents {
     white-space: pre-wrap;
     color: var(--text-color);
-    margin-right: 5px;
+    margin-inline-end: 5px;
     padding: 0;
     word-break: normal;
     word-wrap: break-word;
@@ -185,8 +195,9 @@
   }
 
   .selected-text-preview {
-    padding-left: 52px;
+    padding-inline-start: 52px;
     padding-top: 8px;
+    pointer-events: auto;
   }
 
   .reply-attachment-list {
@@ -206,9 +217,5 @@
         border: none;
       }
     }
-  }
-
-  a {
-    color: var(--blue-5);
   }
 }

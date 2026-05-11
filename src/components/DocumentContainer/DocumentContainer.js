@@ -8,6 +8,7 @@ import { connect } from 'react-redux';
 import Measure from 'react-measure';
 import throttle from 'lodash/throttle';
 import debounce from 'lodash/debounce';
+/* eslint-disable custom/use-core-hook-in-components */
 import core from 'core';
 import { isIE, isIE11 } from 'helpers/device';
 import { updateContainerWidth, getClassNameInIE, handleWindowResize } from 'helpers/documentContainerHelper';
@@ -15,14 +16,13 @@ import loadDocument from 'helpers/loadDocument';
 import getNumberOfPagesToNavigate from 'helpers/getNumberOfPagesToNavigate';
 import touchEventManager from 'helpers/TouchEventManager';
 import setCurrentPage from 'helpers/setCurrentPage';
-import { getStep } from 'helpers/zoom';
+import { getStep, zoomIn, zoomOut } from 'helpers/zoom';
+import { removeFileNameExtension } from 'helpers/TabManager';
 import { getMinZoomLevel, getMaxZoomLevel } from 'constants/zoomFactors';
 import PageNavOverlay from 'components/PageNavOverlay';
 import ToolsOverlay from 'components/ToolsOverlay';
 import ReaderModeViewer from 'components/ReaderModeViewer';
-import LazyLoadWrapper, { LazyLoadComponents } from 'components/LazyLoadWrapper';
-import useOnMeasurementToolOrAnnotationSelected from 'hooks/useOnMeasurementToolOrAnnotationSelected';
-import useOnCountMeasurementAnnotationSelected from 'hooks/useOnCountMeasurementAnnotationSelected';
+import i18next from 'i18next';
 
 import './DocumentContainer.scss';
 import DataElements from 'src/constants/dataElement';
@@ -57,6 +57,11 @@ class DocumentContainer extends React.PureComponent {
     bottomHeaderHeight: PropTypes.number,
     activeDocumentViewerKey: PropTypes.number,
     isLogoBarEnabled: PropTypes.bool,
+    currentTabs: PropTypes.array,
+    activeTab: PropTypes.number,
+    isSpreadsheetEditorModeEnabled: PropTypes.bool,
+    documentContainerRightMargin: PropTypes.number,
+    documentContainerLeftMargin: PropTypes.number,
   };
 
   constructor(props) {
@@ -67,6 +72,7 @@ class DocumentContainer extends React.PureComponent {
     this.wheelToNavigatePages = throttle(this.wheelToNavigatePages.bind(this), 300, { trailing: false });
     this.wheelToZoom = throttle(this.wheelToZoom.bind(this), 30, { trailing: false });
     this.handleResize = throttle(this.handleResize.bind(this), 200);
+    this.onTransitionEnd = this.onTransitionEnd.bind(this);
     this.debouncedHidePageNavigationOverlay = debounce(
       this.hidePageNavigationOverlay,
       PAGE_NAVIGATION_OVERLAY_FADEOUT,
@@ -109,7 +115,7 @@ class DocumentContainer extends React.PureComponent {
     }
 
     if (process.env.NODE_ENV === 'development') {
-      this.container.current.addEventListener('dragover', this.preventDefault);
+      this.container.current.removeEventListener('dragover', this.preventDefault);
       this.container.current.removeEventListener('drop', this.onDrop);
     }
 
@@ -196,7 +202,11 @@ class DocumentContainer extends React.PureComponent {
   };
 
   wheelToZoom = (e) => {
-    const { zoom: currentZoomFactor, activeDocumentViewerKey } = this.props;
+    const { zoom: currentZoomFactor, activeDocumentViewerKey, isSpreadsheetEditorModeEnabled } = this.props;
+    if (isSpreadsheetEditorModeEnabled) {
+      e.deltaY < 0 ? zoomIn() : zoomOut();
+      return;
+    }
     let newZoomFactor = currentZoomFactor;
     if (e.deltaY < 0) {
       newZoomFactor = Math.min(currentZoomFactor + getStep(currentZoomFactor), getMaxZoomLevel());
@@ -235,11 +245,13 @@ class DocumentContainer extends React.PureComponent {
     this.hidePageNavigationOverlay();
   };
 
-  getClassName = (props) => {
-    const { isSearchOverlayOpen } = props;
+  getClassName = () => {
+    const { isSearchOverlayOpen, isSpreadsheetEditorModeEnabled } = this.props;
+    const disablePageScroll = isSpreadsheetEditorModeEnabled;
 
     return classNames({
       DocumentContainer: true,
+      'disable-page-scroll': disablePageScroll,
       'search-overlay': isSearchOverlayOpen,
     });
   };
@@ -261,9 +273,16 @@ class DocumentContainer extends React.PureComponent {
   }
 
   onTransitionEnd(event) {
+    const { isSpreadsheetEditorModeEnabled } = this.props;
+    const { propertyName } = event;
+    const standardPropertiesToIgnore = ['background-color', 'opacity', 'scrollbar-color'];
+    const spreadsheetSpecificPropertiesToIgnore = ['top', 'left'];
+    const isStandardIgnoredProperty = standardPropertiesToIgnore.includes(propertyName);
+    const isSpreadsheetSpecificIgnoredProperty =
+      isSpreadsheetEditorModeEnabled && spreadsheetSpecificPropertiesToIgnore.includes(propertyName);
     // I don't know if this is needed. But better safe than sorry.
-    const transitionProperiesToIgnore = ['background-color', 'opacity'];
-    if (!transitionProperiesToIgnore.includes(event.propertyName)) {
+    const isTriggeringUpdate = !(isStandardIgnoredProperty || isSpreadsheetSpecificIgnoredProperty);
+    if (isTriggeringUpdate) {
       // We have a corner case where if you have 1st and 2nd page different size and you are in fit page mode
       // if you have callout (freetext) annotation on second page. If you open notes panel then click annotation and click
       // edit on it. This will cause our document container to re-render. We also have background-color transition
@@ -291,6 +310,9 @@ class DocumentContainer extends React.PureComponent {
       bottomHeaderHeight,
       leftHeaderWidth,
       documentContainerLeftMargin,
+      documentContainerRightMargin,
+      currentTabs,
+      activeTab
     } = this.props;
 
     const style = {
@@ -298,15 +320,18 @@ class DocumentContainer extends React.PureComponent {
       // we animate with margin-left. For some reason it looks nicer than transform.
       // Using transform makes a clunky animation because the panels are using transform already.
       marginLeft: `${documentContainerLeftMargin}px`,
+      marginRight: `${documentContainerRightMargin}px`,
     };
-    const documentContainerClassName = isIE ? getClassNameInIE(this.props) : this.getClassName(this.props);
+    const documentContainerClassName = isIE ? getClassNameInIE() : this.getClassName();
     const documentClassName = classNames({
       document: true,
       hidden: this.props.isReaderMode,
     });
-    const showPageNav = totalPages > 1;
+    const document = core.getDocument();
+    const fileName = document ? removeFileNameExtension(document.filename) : '';
 
     const { customizableUI } = featureFlags;
+    const showPageNav = totalPages > 1 && !customizableUI;
     const footerStyle = {
       ...style,
       left: customizableUI ? `${leftHeaderWidth}px` : undefined,
@@ -316,9 +341,15 @@ class DocumentContainer extends React.PureComponent {
     if (customizableUI) {
       style['height'] = `calc(100% - ${bottomHeaderHeight}px)`;
     }
+
+    const ariaLabelledById = currentTabs.length > 0 ? `tab-${fileName}-${activeTab}` : undefined;
+
     return (
       <div
         style={style}
+        id={`document-container-${fileName}`}
+        role="tabpanel"
+        aria-labelledby={ariaLabelledById}
         className={classNames({
           'document-content-container': true,
           'closed': isMultiTabEmptyPageOpen,
@@ -328,26 +359,18 @@ class DocumentContainer extends React.PureComponent {
         <Measure onResize={this.handleResize}>
           {({ measureRef }) => (
             <div className="measurement-container" ref={measureRef}>
-              <div
+              <main
                 className={documentContainerClassName}
                 ref={this.container}
                 data-element="documentContainer"
                 onScroll={this.handleScroll}
+                aria-label={i18next.t('accessibility.landmarks.documentContent')}
+                tabIndex="-1"
               >
                 {/* tabIndex="-1" to keep document focused when in single page mode */}
                 <div className={documentClassName} ref={this.document} tabIndex="-1" />
-              </div>
+              </main>
               {this.props.isReaderMode && <ReaderModeViewer />}
-              <LazyLoadWrapper
-                Component={LazyLoadComponents.ScaleOverlayContainer}
-                dataElement={DataElements.SCALE_OVERLAY_CONTAINER}
-                onOpenHook={useOnMeasurementToolOrAnnotationSelected}
-              />
-              <LazyLoadWrapper
-                Component={LazyLoadComponents.MeasurementOverlay}
-                dataElement={DataElements.MEASUREMENT_OVERLAY}
-                onOpenHook={useOnCountMeasurementAnnotationSelected}
-              />
               <div
                 className="footer"
                 style={footerStyle}
@@ -375,6 +398,7 @@ class DocumentContainer extends React.PureComponent {
 const mapStateToProps = (state) => ({
   documentContentContainerWidthStyle: selectors.getDocumentContentContainerWidthStyle(state),
   documentContainerLeftMargin: selectors.getDocumentContainerLeftMargin(state),
+  documentContainerRightMargin: selectors.getDocumentContainerRightMargin(state),
   isRightPanelOpen: selectors.isElementOpen(state, 'searchPanel') || selectors.isElementOpen(state, 'notesPanel'),
   isMultiTabEmptyPageOpen: selectors.getIsMultiTab(state) && selectors.getTabs(state).length === 0,
   isSearchOverlayOpen: selectors.isElementOpen(state, DataElements.SEARCH_OVERLAY),
@@ -396,6 +420,9 @@ const mapStateToProps = (state) => ({
   activeDocumentViewerKey: selectors.getActiveDocumentViewerKey(state),
   isLogoBarEnabled: !selectors.isElementDisabled(state, DataElements.LOGO_BAR),
   leftHeaderWidth: selectors.getLeftHeaderWidth(state),
+  currentTabs: selectors.getTabs(state),
+  activeTab: selectors.getActiveTab(state),
+  isSpreadsheetEditorModeEnabled: selectors.isSpreadsheetEditorModeEnabled(state),
 });
 
 const mapDispatchToProps = (dispatch) => ({
@@ -426,4 +453,5 @@ const ConnectedComponent = (props) => {
   return <ConnectedDocumentContainer {...props} isMobile={isMobile} />;
 };
 
+export { DocumentContainer as UnconnectedDocumentContainer };
 export default ConnectedComponent;

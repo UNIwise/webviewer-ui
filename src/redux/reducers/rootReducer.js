@@ -9,28 +9,29 @@ import wv3dPropertiesPanelReducer from 'src/redux/reducers/wv3dPropertiesPanelRe
 import officeEditorReducer from 'src/redux/reducers/officeEditorReducer';
 import digitalSignatureValidationReducer from 'src/redux/reducers/digitalSignatureValidationReducer';
 import featureFlagsReducer from './featureFlagsReducer';
+import spreadsheetEditorReducer from './spreadsheetEditorReducer';
 import { getInstanceID } from 'helpers/getRootNode';
 import { persistReducer } from 'redux-persist';
-import storage from 'redux-persist/lib/storage';
+import localStorageManager from '../../helpers/localStorageManager';
 
 const instanceId = getInstanceID();
 
 const viewerPersistConfig = {
-  key: `viewer-${instanceId}`,
-  storage,
+  key: `webviewer-viewer-${instanceId}`,
+  storage: localStorageManager,
   whitelist: [
     'toolbarGroup',
     'lastPickedToolForGroup',
     'lastPickedToolGroup',
     'activeGroupedItems',
-    'lastPickedToolForGroupedItems',
-    'lastPickedToolAndGroup',
+    'lastActiveToolForRibbon',
     'activeCustomRibbon',
     'currentLanguage',
     'activeTheme',
     'fadePageNavigationComponent',
     'toolDefaultStyleUpdateFromAnnotationPopupEnabled',
     'enableNoteSubmissionWithEnter',
+    'isWidgetHighlightingEnabled',
     'isCommentThreadExpansionEnabled',
     'isNotesPanelRepliesCollapsingEnabled',
     'isNotesPanelTextCollapsingEnabled',
@@ -41,9 +42,15 @@ const viewerPersistConfig = {
 };
 
 const searchPersistConfig = {
-  key: `search-${instanceId}`,
-  storage,
+  key: `webviewer-search-${instanceId}`,
+  storage: localStorageManager,
   whitelist: ['clearSearchPanelOnClose']
+};
+
+const officeEditorPersistConfig = {
+  key: `webviewer-office-editor-${instanceId}`,
+  storage: localStorageManager,
+  whitelist: ['unitMeasurement']
 };
 
 export default combineReducers({
@@ -55,6 +62,7 @@ export default combineReducers({
   advanced: () => initialState.advanced,
   featureFlags: featureFlagsReducer(initialState.featureFlags),
   wv3dPropertiesPanel: wv3dPropertiesPanelReducer(initialState.wv3dPropertiesPanel),
-  officeEditor: officeEditorReducer(initialState.officeEditor),
+  officeEditor: persistReducer(officeEditorPersistConfig, officeEditorReducer(initialState.officeEditor)),
   digitalSignatureValidation: digitalSignatureValidationReducer(initialState.digitalSignatureValidation),
+  spreadsheetEditor: spreadsheetEditorReducer(initialState.spreadsheetEditor)
 });

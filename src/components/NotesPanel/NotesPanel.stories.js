@@ -1,5 +1,5 @@
 /* eslint-disable no-unsanitized/property */
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { configureStore } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
 import NotesPanel from './NotesPanelContainer';
@@ -8,14 +8,15 @@ import Panel from 'components/Panel';
 import { default as mockAppState } from 'src/redux/initialState';
 import { mockHeadersNormalized, mockModularComponents } from '../ModularComponents/AppStories/mockAppState';
 import { setItemToFlyoutStore } from 'helpers/itemToFlyoutHelper';
-import { MockApp, createStore } from 'helpers/storybookHelper';
+import { MockApp, createStore, setupNotesPanelCoreMocks } from 'helpers/storybookHelper';
+import core from 'core';
+import { userEvent, within, expect, waitFor, fn } from 'storybook/test';
+import { getTranslatedText } from 'src/helpers/testTranslationHelper';
+import { mobileStoryParameters, disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/NotesPanel/NotesPanel',
   component: NotesPanel,
-  parameters: {
-    customizableUI: true,
-  }
 };
 
 function noop() {
@@ -53,6 +54,7 @@ const initialState = {
       typeFilter: [],
       statusFilter: []
     },
+    unreadAnnotationIdSet: new Set(),
   },
   featureFlags: {
     customizableUI: true,
@@ -60,6 +62,33 @@ const initialState = {
   officeEditor: {
     editMode: 'editing'
   },
+};
+
+const createCustomStore = (customState, context) => {
+  const baseState = {
+    ...mockAppState,
+    viewer: {
+      ...mockAppState.viewer,
+      openElements: {
+        notesPanel: true,
+      },
+      activeTheme: context?.globals?.theme,
+      selectedScale: undefined,
+    },
+    featureFlags: {
+      customizableUI: true,
+    },
+  };
+  const mergedState = {
+    ...baseState,
+    ...(customState || {}),
+  };
+
+  return configureStore({
+    reducer: () => mergedState,
+    middleware: (getDefaultMiddleware) =>
+      getDefaultMiddleware({ serializableCheck: false })
+  });
 };
 
 export function Basic() {
@@ -79,23 +108,26 @@ export function BasicInGenericPanel() {
   const store = configureStore({ reducer: () => initialState });
   return (
     <Provider store={store}>
-      <Panel location={'right'} dataElement={'panel'}>
+      <Panel location={'right'} dataElement={'notesPanel'}>
         <NotesPanel isCustomPanelOpen={true} isCustomPanel={true} />
       </Panel>
     </Provider>
   );
 }
+BasicInGenericPanel.parameters = disableRtlModeParameters;
+
 export function BasicInGenericPanelOnLeft() {
   initialState.viewer.notesPanelCustomEmptyPanel = undefined;
   const store = configureStore({ reducer: () => initialState });
   return (
     <Provider store={store}>
-      <Panel location={'left'} dataElement={'panel'}>
+      <Panel location={'left'} dataElement={'notesPanel'}>
         <NotesPanel isCustomPanelOpen={true} isCustomPanel={true} />
       </Panel>
     </Provider>
   );
 }
+BasicInGenericPanelOnLeft.parameters = disableRtlModeParameters;
 
 export function EmptyWithCustomIconAndMessage() {
   initialState.viewer.notesPanelCustomEmptyPanel = {
@@ -160,12 +192,13 @@ export function EmptyWithCustomRenderCallback() {
   );
 }
 
-const NotesPanelInApp = (location, panelSize) => {
+const NotesPanelInApp = (context, location, panelSize) => {
+  const { addonRtl } = context.globals;
   const mockState = {
     ...mockAppState,
     viewer: {
       ...mockAppState.viewer,
-      activeCustomRibbon: 'insert-ribbon-item',
+      activeCustomRibbon: 'toolbarGroup-Insert',
       modularHeaders: mockHeadersNormalized,
       modularComponents: mockModularComponents,
       isInDesktopOnlyMode: false,
@@ -178,7 +211,8 @@ const NotesPanelInApp = (location, panelSize) => {
         ...initialState.viewer.openElements,
         contextMenuPopup: false,
         notesPanel: true,
-      }
+      },
+      activeTheme: context.globals.theme,
     },
     featureFlags: {
       customizableUI: true,
@@ -191,9 +225,357 @@ const NotesPanelInApp = (location, panelSize) => {
   const store = createStore(mockState);
   setItemToFlyoutStore(store);
 
-  return <MockApp initialState={mockState} />;
+  return <MockApp initialState={mockState} initialDirection={addonRtl} />;
 };
 
-export const NotesPanelInMobile = () => NotesPanelInApp('right');
+export const NotesPanelInMobile = (args, context) => NotesPanelInApp(context, 'right');
 
-NotesPanelInMobile.parameters = window.storybook?.MobileParameters;
+NotesPanelInMobile.parameters = mobileStoryParameters;
+
+const createTestAnnotations = () => {
+  const rectangle = new window.Core.Annotations.RectangleAnnotation();
+  rectangle.Listable = true;
+  rectangle.Id = '123';
+  rectangle.PageNumber = 1;
+  rectangle.ToolName = 'AnnotationCreateRectangle';
+
+  const widget1 = new window.Core.Annotations.TextWidgetAnnotation();
+  widget1.Listable = true;
+  widget1.Id = '456';
+  widget1.PageNumber = 1;
+  widget1.ToolName = 'AnnotationCreateTextWidget';
+
+  const widget2 = new window.Core.Annotations.ChoiceWidgetAnnotation();
+  widget2.Listable = false;
+  widget2.Id = '789';
+  widget2.PageNumber = 1;
+  widget2.ToolName = 'AnnotationCreateChoiceWidget';
+
+  return { rectangle, widget1, widget2 };
+};
+
+export function NotesPanelWithNotes(args, context) {
+  const { rectangle, widget1, widget2 } = createTestAnnotations();
+  const store = createCustomStore(null, context);
+
+  setupNotesPanelCoreMocks(core, [rectangle, widget1, widget2], [rectangle]);
+
+  return (
+    <Provider store={store}>
+      <RightPanel dataElement="notesPanel" onResize={noop}>
+        <NotesPanel />
+      </RightPanel>
+    </Provider>
+  );
+}
+
+NotesPanelWithNotes.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+  const listItems = await canvas.findAllByRole('listitem');
+  expect(listItems.length).toBe(1);
+};
+
+const createTestNotesWithComments = () => {
+  const replyAnnot = new window.Core.Annotations.StickyAnnotation();
+  replyAnnot.Listable = true;
+  replyAnnot.isReply = () => true;
+  replyAnnot.getContents = () => 'Reply comment test';
+  replyAnnot.getRichTextStyle = () => ({ '0': {}, '13': { 'font-weight': 'bold' }, '18': {} });
+
+  const annotationsList = window.Core.documentViewer.getAnnotationManager().getAnnotationsList();
+  const rectangle = annotationsList.find((item) => item instanceof window.Core.Annotations.RectangleAnnotation);
+  rectangle.Listable = true;
+  rectangle.getContents = () => 'Test comment https://google.ca test';
+  rectangle.getRichTextStyle = () => ({ '0': {}, '13': { 'font-weight': 'bold' }, '30': {} });
+  rectangle._replies = [replyAnnot];
+  rectangle.getReplies = () => [replyAnnot];
+  rectangle.getCustomData = (key) => {
+    const customData = {
+      'trn-annot-preview': 'Space, the final frontier. These are the voyages of the Starship Enterprise. Its five-year mission: to explore strange new worlds, to seek out new life and new civilizations, to boldly go where no one has gone before.',
+    };
+
+    return customData[key];
+  };
+
+  const line = annotationsList.find((item) => item instanceof window.Core.Annotations.LineAnnotation);
+  line.Listable = true;
+  line.getContents = () => 'We used to look up at the sky and wonder at our place in the stars.';
+  line.getRichTextStyle = () => ({ '0': {}, '22': { 'font-weight': 'bold' }, '30': {} });
+  line.getCustomData = (key) => {
+    const customData = {
+      'trn-annot-preview': '˚✩₊˚',
+    };
+
+    return customData[key];
+  };
+  line.getStatus = () => 'Accepted';
+
+  return { replyAnnot, rectangle, line };
+};
+
+const customNoteFunction = fn();
+export const NotesPanelNotesWithComments = (args, context) => {
+  const { addonRtl } = context.globals;
+  const mockState = {
+    ...mockAppState,
+    viewer: {
+      ...mockAppState.viewer,
+      openElements: {
+        notesPanel: true,
+      },
+      activeTheme: context.globals.theme,
+      colorMap: {
+        rectangle: {
+          currentStyleTab: 'StrokeColor',
+          iconColor: 'StrokeColor'
+        },
+      },
+      selectedScale: undefined,
+      customNoteFunction: customNoteFunction
+    },
+    featureFlags: {
+      customizableUI: true,
+    },
+  };
+  const store = configureStore({
+    reducer: () => mockState,
+    middleware: (getDefaultMiddleware) => getDefaultMiddleware({ serializableCheck: false })
+  });
+
+  const { replyAnnot, rectangle } = createTestNotesWithComments();
+  setupNotesPanelCoreMocks(core, [], []);
+  core.getAnnotationsList = () => [rectangle, replyAnnot];
+  core.getSelectedAnnotations = () => [rectangle];
+
+  return (
+    <MockApp initialState={mockState} store={store} initialDirection={addonRtl} />
+  );
+};
+
+NotesPanelNotesWithComments.parameters = {
+  chromatic: { delay: 500 },
+};
+
+NotesPanelNotesWithComments.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+
+  // Check that notes are editable in View Only Mode
+  window.instance.UI.enableViewOnlyMode();
+  window.instance.UI.openElement('notesPanel');
+  const note = await canvas.findByText(/Space, the final frontier./gi);
+  await userEvent.click(note);
+  const addReplyFields = await canvas.findAllByRole('generic', { name: getTranslatedText('action.reply') });
+  const statusButton = await canvas.findByRole('button', { name: getTranslatedText('option.notesOrder.status') });
+  const optionsButtons = await canvas.findAllByRole('button', { name: getTranslatedText('formField.formFieldPopup.options') });
+  expect(addReplyFields.length).toBeGreaterThan(0);
+  expect(statusButton).toBeEnabled();
+  expect(optionsButtons.length).toBeGreaterThan(0);
+  for (const optionsButton of optionsButtons) {
+    expect(optionsButton).toBeEnabled();
+  }
+  window.instance.UI.disableViewOnlyMode();
+  window.instance.UI.openElement('notesPanel');
+
+  const multiSelectButton = await canvas.findByRole('button', { name: getTranslatedText('component.multiSelectButton') });
+  expect(multiSelectButton).toBeVisible();
+
+  await waitFor(async () => {
+    await expect(canvas.getByRole('button', { name: getTranslatedText('option.notesOrder.status') })).toBeInTheDocument();
+  });
+
+  const textElement = await canvas.findByText(/Test comment/i);
+  await expect(textElement).toBeInTheDocument();
+
+  await userEvent.click(textElement);
+  await expect(customNoteFunction).toHaveBeenCalled();
+
+  const link = canvas.getByRole('link', { name: /google.ca/i });
+  await expect(link).toBeInTheDocument();
+  expect(link).toHaveAttribute('href', 'https://google.ca');
+  expect(link).toHaveAttribute('target', '_blank');
+  link.removeAttribute('target');
+  link.setAttribute('onclick', 'return false;');
+
+  await userEvent.click(link);
+
+  const preview = await canvas.findByText(/Space, the final frontier. These are the voyages of the Starship Enterprise/i);
+  expect(preview).toBeInTheDocument();
+
+  // Check computed style (text should be selectable and interactable)
+  const computedStyle = window.getComputedStyle(preview);
+  expect(computedStyle.pointerEvents).not.toBe('none');
+  expect(computedStyle.userSelect).not.toBe('none');
+
+  const replyTextElement = await canvas.findByText(/Reply comment/i);
+  await expect(replyTextElement).toBeInTheDocument();
+
+  const moreButton = await canvas.findByRole('button', { name: getTranslatedText('action.showMore') });
+  await userEvent.click(moreButton);
+  await canvas.findByText(/"Space, the final frontier. These are the voyages of the Starship Enterprise. Its five-year mission: to explore strange new worlds, to seek out new life and new civilizations, to boldly go where no one has gone before."/);
+
+  const activeElement = canvasElement.ownerDocument.activeElement;
+  if (activeElement && typeof activeElement.blur === 'function') {
+    activeElement.blur();
+  }
+};
+
+export function NotesPanelWithNotesInFormFieldMode(args, context) {
+  const [shouldRender, setShouldRender] = useState(false);
+
+  useEffect(() => {
+    const originalAnnotationManager = core.getAnnotationManager;
+    const mockFormFieldManager = {
+      isInFormFieldCreationMode: () => true,
+      addEventListener: noop,
+      removeEventListener: noop,
+    };
+
+    const mockAnnotationManager = () => {
+      const originalManager = originalAnnotationManager();
+      return {
+        ...originalManager,
+        getFormFieldCreationManager: () => mockFormFieldManager,
+      };
+    };
+
+    core.getAnnotationManager = mockAnnotationManager;
+
+    setShouldRender(true);
+
+    return () => {
+      core.getAnnotationManager = originalAnnotationManager;
+    };
+  }, []);
+
+  const store = createCustomStore(null, context);
+  const { rectangle, widget1, widget2 } = createTestAnnotations();
+
+  setupNotesPanelCoreMocks(core, [rectangle, widget1, widget2], [widget1]);
+
+  return shouldRender ? (
+    <Provider store={store}>
+      <RightPanel dataElement="notesPanel" onResize={noop}>
+        <NotesPanel />
+      </RightPanel>
+    </Provider>
+  ) : <>Loading...</>;
+}
+
+NotesPanelWithNotesInFormFieldMode.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+  const listItems = await canvas.findAllByRole('listitem');
+  expect(listItems.length).toBe(3);
+};
+
+const createTestMultiSelectAnnotations = () => {
+  const rectangle1 = new window.Core.Annotations.RectangleAnnotation();
+  rectangle1.Listable = true;
+  rectangle1.Id = '123';
+  rectangle1.PageNumber = 1;
+  rectangle1.ToolName = 'AnnotationCreateRectangle';
+
+  const rectangle2 = new window.Core.Annotations.RectangleAnnotation();
+  rectangle2.Listable = true;
+  rectangle2.Id = '456';
+  rectangle2.PageNumber = 1;
+  rectangle2.ToolName = 'AnnotationCreateRectangle';
+
+  return { rectangle1, rectangle2 };
+};
+
+export function NotesPanelMultiSelectToggle() {
+  const mockState = {
+    ...mockAppState,
+    viewer: {
+      ...mockAppState.viewer,
+      openElements: {
+        notesPanel: true,
+      },
+      isNotesPanelMultiSelectEnabled: true,
+    }
+  };
+
+  const store = configureStore({ reducer: () => mockState });
+
+  const { rectangle1, rectangle2 } = createTestMultiSelectAnnotations();
+  setupNotesPanelCoreMocks(core, [rectangle1, rectangle2], []);
+
+  return (
+    <MockApp initialState={mockState} store={store} />
+  );
+}
+
+NotesPanelMultiSelectToggle.parameters = {
+  chromatic: {
+    modes: {
+      'Light theme RTL': { disable: true },
+      'Dark theme': { disable: true },
+    },
+  },
+  test: {
+    // For issues with mocks that are unrelated to the test
+    dangerouslyIgnoreUnhandledErrors: true,
+  }
+};
+
+NotesPanelMultiSelectToggle.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+
+  const multiSelectButton = await canvas.findByRole('button', { name: getTranslatedText('component.multiSelectButton') });
+  expect(multiSelectButton).toBeVisible();
+
+  await userEvent.click(multiSelectButton);
+
+  const listItems = await canvas.findAllByRole('listitem');
+  expect(listItems.length).toBe(2);
+
+  // Checks if checkboxes are present (should be as multi select is on)
+  let checkboxes = await canvas.findAllByRole('checkbox');
+  expect(checkboxes.length).toBe(2);
+
+  await userEvent.click(checkboxes[0]);
+
+  const assertTooltipTopClass = async (button, expectedTooltipText) => {
+    await userEvent.hover(button);
+    await waitFor(() => {
+      const tooltip = canvasElement.ownerDocument.querySelector('[data-element="tooltip"]');
+      expect(tooltip).toBeInTheDocument();
+      expect(tooltip).toHaveClass('tooltip--top');
+      if (expectedTooltipText) {
+        expect(tooltip).toHaveTextContent(expectedTooltipText);
+      }
+    });
+
+    await userEvent.unhover(button);
+
+    await waitFor(() => {
+      const tooltip = canvasElement.ownerDocument.querySelector('[data-element="tooltip"]');
+      expect(tooltip).not.toBeInTheDocument();
+    });
+  };
+
+  const tooltipTextKeys = [
+    'action.style',
+    'option.notesOrder.status',
+    'action.comment',
+    'action.group',
+    'action.delete',
+  ];
+
+  for (const tooltipTextKey of tooltipTextKeys) {
+    const translatedText = getTranslatedText(tooltipTextKey);
+    const button = await canvas.findByRole('button', {
+      name: translatedText,
+    });
+    await assertTooltipTopClass(button, translatedText);
+  }
+
+  window.instance.UI.NotesPanel.disableMultiSelect();
+
+  const listItems2 = await canvas.findAllByRole('listitem');
+  expect(listItems2.length).toBe(2);
+
+  // Confirms checkboxes are not present (shouldn't be as multi select is off)
+  checkboxes = await canvas.queryByRole('checkbox');
+  expect(checkboxes).toBeNull();
+};

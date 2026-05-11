@@ -1,21 +1,20 @@
-import core from 'core';
 import getRootNode, { getInstanceNode } from './getRootNode';
 
 /**
  * @ignore
  * Utility function that returns a bounding box of the current view of WebViewer.
+ * @param {object} core Core object
  * @param {number} pageNumber Page number of the current page being viewed.
  * @returns {Core.Math.Rect} A {@link Core.Math.Rect} containing the two points that form a bounding box of current view.
  */
-function getCurrentViewRect(pageNumber) {
+function getCurrentViewRect(core, pageNumber) {
   const displayMode = core.getDisplayModeObject();
   const containerElement = core.getScrollViewElement();
   const documentElement = core.getViewerElement();
-  const headerElement = getRootNode().querySelector('.Header');
-  const headerItemsElements = getRootNode().querySelector('.HeaderToolsContainer');
+  const documentContainerElement = getRootNode().querySelector('[aria-label="Document Content"]');
   const isApryseWebViewerWebComponent = window.isApryseWebViewerWebComponent;
-  let innerWidth = window.innerWidth;
-  let innerHeight = window.innerHeight;
+  let innerWidth = documentContainerElement ? documentContainerElement.clientWidth : window.innerWidth;
+  let innerHeight = documentContainerElement ? documentContainerElement.clientHeight : window.innerHeight;
   let containerScrollLeft = containerElement.scrollLeft;
   let documentElementOffsetLeft = documentElement.offsetLeft;
 
@@ -23,16 +22,15 @@ function getCurrentViewRect(pageNumber) {
     const instanceRect = getInstanceNode().getBoundingClientRect();
     innerWidth = instanceRect.width;
     innerHeight = instanceRect.height;
-    containerScrollLeft = instanceRect.x + containerElement.scrollLeft;
-    documentElementOffsetLeft = instanceRect.x + documentElement.offsetLeft;
+    containerScrollLeft = containerElement.scrollLeft;
+    documentElementOffsetLeft = documentElement.offsetLeft;
   }
 
   const coordinates = [];
-  const headerHeight = (headerElement?.clientHeight + headerItemsElements?.clientHeight) || 0;
 
   coordinates[0] = displayMode.windowToPageNoRotate({
     x: Math.max(containerScrollLeft, documentElementOffsetLeft),
-    y: Math.max(containerElement.scrollTop + headerHeight, 0)
+    y: Math.max(containerElement.scrollTop, 0)
   }, pageNumber);
 
   coordinates[1] = displayMode.windowToPageNoRotate({

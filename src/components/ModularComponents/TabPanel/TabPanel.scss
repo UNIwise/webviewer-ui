@@ -23,21 +23,21 @@
       height: 28px;
       min-width: min-content;
       border: 1px solid var(--border);
-      margin-left: -1px;
+      margin-inline-start: -1px;
       border-radius: 0px;
       padding: 0 6px;
       gap: 4px;
 
       &:first-child {
-        border-bottom-left-radius: 4px;
-        border-top-left-radius: 4px;
+        border-start-start-radius: 4px;
+        border-end-start-radius: 4px;
       }
 
       &:last-child,
       &.lastButton {
-        border-bottom-right-radius: 4px;
-        border-top-right-radius: 4px;
-        border-right: 1px solid var(--border);
+        border-start-end-radius: 4px;
+        border-end-end-radius: 4px;
+        border-inline-end: 1px solid var(--border);
       }
 
       &:hover {
@@ -47,17 +47,19 @@
         box-shadow: none;
       }
 
-      &.active {
-        border: 1px solid var(--blue-5);
-        background: var(--popup-button-active);
+      &.active,
+      &:hover.active {
+        border: 1px solid var(--tab-color-selected);
+        background: var(--tab-color-selected) !important;
         z-index: 1;
         box-shadow: none;
+        cursor: default;
 
         .Icon,
-        .Icon svg path:not([class="no-fill"]),
-        &[aria-label="Layers"] .Icon svg path {
-          color: var(--view-header-icon-active-fill);
-          fill: var(--view-header-icon-active-fill);
+        .Icon svg path:not([class='no-fill']),
+        &[aria-label='Layers'] .Icon svg path {
+          color: var(--tab-text-color-selected);
+          fill: var(--tab-text-color-selected);
         }
       }
 
@@ -75,7 +77,6 @@
       }
 
       &.tabPanelButton {
-
         // icon only
         &.hasIcon {
           min-width: 52px;
@@ -91,7 +92,7 @@
           min-width: 98px;
         }
 
-        &[aria-label="Layers"]:not(.active) .Icon {
+        &[aria-label='Layers']:not(.active) .Icon {
           svg path {
             fill: var(--icon-color);
           }
@@ -103,7 +104,7 @@
       padding: 0;
       max-width: 48px;
       min-width: 48px;
-      border-left: none;
+      border-inline-start: none;
 
       &.hidden {
         display: none;
@@ -114,8 +115,8 @@
         width: 100%;
 
         .Button {
-          border-bottom-left-radius: 0px;
-          border-top-left-radius: 0px;
+          border-start-start-radius: 0px;
+          border-end-start-radius: 0px;
         }
       }
     }
@@ -132,7 +133,7 @@
     display: flex;
     flex-direction: row-reverse;
     margin: 0px 16px 8px 16px;
-  
+
     .tabPanelCloseButton {
       align-self: end;
       z-index: 3;

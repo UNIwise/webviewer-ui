@@ -1,8 +1,6 @@
-import { useDispatch } from 'react-redux';
-import actions from 'actions';
+import FocusStackManager from 'helpers/focusStackManager';
 
 const useFocusHandler = (handler) => {
-  const dispatch = useDispatch();
 
   return (e) => {
     // If no event is passed, call the handler and return
@@ -13,17 +11,23 @@ const useFocusHandler = (handler) => {
     }
 
     const { nativeEvent } = e;
+    // We store in a stack the dataElement of the button we want to focus when transferring focus back
+    const dataElement = e.currentTarget.getAttribute('data-element');
+    if (!dataElement) {
+      console.warn('You used the useFocusHandler hook on an element without a data-element attribute. Please add a dataElement for the focus transfer to work correctly.');
+      handler(e);
+      return;
+    }
 
     if (nativeEvent.pointerType === 'mouse' || nativeEvent.detail > 0) {
-      dispatch(actions.setFocusedElementsStack([]));
-      dispatch(actions.setKeyboardOpen(false));
+      FocusStackManager.clear();
     } else if (nativeEvent.pointerType === '' || nativeEvent.pointerType === undefined) {
-      dispatch(actions.pushFocusedElement(e.currentTarget));
-      dispatch(actions.setKeyboardOpen(true));
+      FocusStackManager.push(dataElement);
     }
 
     handler(e);
   };
 };
+
 
 export default useFocusHandler;

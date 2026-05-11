@@ -3,6 +3,57 @@ import { isIOS } from 'helpers/device';
 import getNumberOfPagesToNavigate from 'helpers/getNumberOfPagesToNavigate';
 import { getDataWithKey, mapToolNameToKey } from 'constants/map';
 import { getMinZoomLevel, getMaxZoomLevel } from 'constants/zoomFactors';
+import localStorageManager from './localStorageManager';
+
+// Determines swipe direction based on horizontal and vertical distances
+// The final swipe direction is determined by the greater distance (horizontal or vertical)
+export const determineSwipeDirection = ({
+  horizontalDistance,
+  verticalDistance,
+  reachedLeft,
+  reachedRight,
+  reachedTop,
+  reachedBottom,
+  threshold,
+}) => {
+  let swipedToRight = false;
+  let swipedToLeft = false;
+  let swipedToBottom = false;
+  let swipedToTop = false;
+
+  if (Math.abs(horizontalDistance) >= Math.abs(verticalDistance)) {
+    // Horizontal swipe
+    swipedToRight = reachedRight && horizontalDistance > threshold;
+    swipedToLeft = reachedLeft && horizontalDistance < -threshold;
+  } else {
+    // Vertical swipe
+    swipedToBottom = reachedBottom && verticalDistance > threshold;
+    swipedToTop = reachedTop && verticalDistance < -threshold;
+  }
+
+  return {
+    swipedToRight,
+    swipedToLeft,
+    swipedToBottom,
+    swipedToTop,
+  };
+};
+
+export const simulatePenDownInStylusMode = (toolInstance, touchObject) => {
+  if (toolInstance.annotation) {
+    return;
+  }
+  const { clientX, clientY, screenX, screenY, pageX, pageY } = touchObject;
+  toolInstance.pointerType = 'pen';
+  const mouseEvent = new MouseEvent('mousedown', {
+    bubbles: true,
+    cancelable: true,
+    clientX, clientY, screenX, screenY, pageX, pageY,
+    button: 0,
+    buttons: 1
+  });
+  toolInstance.mouseLeftDown(mouseEvent);
+};
 
 const touchType = {
   TAP: 'tap',
@@ -13,9 +64,10 @@ const touchType = {
 };
 
 const TouchEventManager = {
-  initialize(document, container) {
+  initialize(document, container, documentViewerKey = 1) {
     this.document = document;
     this.container = container;
+    this.documentViewerKey = documentViewerKey;
     this.allowSwipe = true;
     this.allowHorizontalSwipe = true;
     this.allowVerticalSwipe = false;
@@ -28,7 +80,7 @@ const TouchEventManager = {
     this.startingScrollTop = null;
     this._useNativeScroll = false;
     try {
-      const val = localStorage.getItem('useNativeScroll');
+      const val = localStorageManager.getItemSynchronous('webviewer-useNativeScroll');
       if (val) {
         this._useNativeScroll = JSON.parse(val);
       }
@@ -61,10 +113,18 @@ const TouchEventManager = {
     this.container.removeEventListener('touchcancel', this.handleTouchCancel);
   },
   handleTouchStart(e) {
-    if (core.getToolMode().name === 'Pan' &&
-      core.getDocumentViewer().isStylusModeEnabled() &&
-      e.touches[0].touchType === 'stylus') {
-      core.setToolMode(core.getTool('Pan')['previouslyUsedTool']['name']);
+    const isUsingStylusInPanMode = (
+      core.getToolMode(this.documentViewerKey).name === 'Pan' &&
+      core.getDocumentViewer(this.documentViewerKey).isStylusModeEnabled() &&
+      e.touches[0].touchType === 'stylus'
+    );
+    if (isUsingStylusInPanMode) {
+      core.setToolMode(core.getTool('Pan', this.documentViewerKey)['previouslyUsedTool']['name']);
+      // When the pen touches down, because of the switching logic, the mouseLeftDown method
+      // was called on the Pan tool instance, not FreeHand tool. So the subsequent mouseMove calls
+      // on the FreeHand tool are executed without an annotation created from the mouseLeftDown
+      // of the FreeHand tool. So we need to simulate that manually here.
+      simulatePenDownInStylusMode(core.getToolMode(this.documentViewerKey), e.touches[0]);
       return;
     }
     switch (e.touches.length) {
@@ -78,7 +138,7 @@ const TouchEventManager = {
           clientY: touch.clientY,
           distance: 0,
           scale: scrollWidth / viewerWidth,
-          zoom: core.getZoom(),
+          zoom: core.getZoom(this.documentViewerKey),
           type: isDoubleTap ? touchType.DOUBLE_TAP : touchType.TAP,
           touchStartTimeStamp: Date.now(),
           stopMomentumScroll: true,
@@ -110,7 +170,7 @@ const TouchEventManager = {
           docY,
           distance: this.getDistance(t1, t2),
           scale: 1,
-          zoom: core.getZoom(),
+          zoom: core.getZoom(this.documentViewerKey),
           touchStartTimeStamp: Date.now(),
           stopMomentumScroll: true,
           touchMoveCount: 0,
@@ -189,7 +249,7 @@ const TouchEventManager = {
       case 2: {
         const t1 = e.touches[0];
         const t2 = e.touches[1];
-        const panTool = core.getTool('Pan');
+        const panTool = core.getTool('Pan', this.documentViewerKey);
         const isPanning = panTool.isPanning();
         const isPinching = panTool.isPinching();
 
@@ -252,7 +312,7 @@ const TouchEventManager = {
         break;
       }
       case touchType.SWIPE: {
-        const docViewer = core.getDocumentViewer();
+        const docViewer = core.getDocumentViewer(this.documentViewerKey);
         const isStylusModeDisabled = !docViewer.isStylusModeEnabled();
         const isUsingAnnotationToolsAndStylusIsDisabled = this.isUsingAnnotationTools() && isStylusModeDisabled;
         const isUsingPenAndStylusEnabled = this.isUsingPen() && !isStylusModeDisabled;
@@ -262,8 +322,8 @@ const TouchEventManager = {
           !this.allowSwipe ||
           isUsingAnnotationToolsAndStylusIsDisabled ||
           isUsingPenAndStylusEnabled ||
-          core.getSelectedText().length ||
-          core.getSelectedAnnotations().length
+          core.getSelectedText(this.documentViewerKey).length ||
+          core.getSelectedAnnotations(this.documentViewerKey).length
         ) {
           this.horziontalLock = false;
           this.verticalLock = false;
@@ -272,26 +332,32 @@ const TouchEventManager = {
 
         const { reachedLeft, reachedTop, reachedRight, reachedBottom } = this.reachedBoundary();
         const threshold = 0.1 * this.container.clientWidth;
-        const swipedToBottom = reachedBottom && this.touch.verticalDistance > threshold;
-        const swipedToTop = reachedTop && this.touch.verticalDistance < -threshold;
-        const swipedToRight = reachedRight && this.touch.horizontalDistance > threshold;
-        const swipedToLeft = reachedLeft && this.touch.horizontalDistance < -threshold;
 
-        const currentPage = core.getCurrentPage();
-        const totalPages = core.getTotalPages();
+        const { swipedToRight, swipedToLeft, swipedToBottom, swipedToTop } = determineSwipeDirection({
+          horizontalDistance: this.touch.horizontalDistance,
+          verticalDistance: this.touch.verticalDistance,
+          reachedLeft,
+          reachedRight,
+          reachedTop,
+          reachedBottom,
+          threshold,
+        });
+
+        const currentPage = core.getCurrentPage(this.documentViewerKey);
+        const totalPages = core.getTotalPages(this.documentViewerKey);
         const numberOfPagesToNavigate = getNumberOfPagesToNavigate();
 
         const isFirstPage = currentPage === 1;
         const isLastPage = currentPage === totalPages;
-        const isSingleDisplayMode = !core.isContinuousDisplayMode();
+        const isSingleDisplayMode = !core.isContinuousDisplayMode(this.documentViewerKey);
         const doesPagesFitOnScreen = doc.clientWidth < container.clientWidth || doc.clientHeight < container.clientHeight;
         const shouldGoToPrevPage = isSingleDisplayMode && !isFirstPage && ((swipedToLeft && this.allowHorizontalSwipe) || (swipedToTop && this.allowVerticalSwipe)) && doesPagesFitOnScreen;
         const shouldGoToNextPage = isSingleDisplayMode && !isLastPage && ((swipedToRight && this.allowHorizontalSwipe) || (swipedToBottom && this.allowVerticalSwipe)) && doesPagesFitOnScreen;
 
         if (shouldGoToPrevPage) {
-          core.setCurrentPage(Math.max(1, currentPage - numberOfPagesToNavigate));
+          core.setCurrentPage(Math.max(1, currentPage - numberOfPagesToNavigate), this.documentViewerKey);
         } else if (shouldGoToNextPage) {
-          core.setCurrentPage(Math.min(totalPages, currentPage + numberOfPagesToNavigate));
+          core.setCurrentPage(Math.min(totalPages, currentPage + numberOfPagesToNavigate), this.documentViewerKey);
         } else if (!this.useNativeScroll) {
           const millisecondsToSeconds = 1000;
           const touchDuration = (Date.now() - this.touch.touchStartTimeStamp) / millisecondsToSeconds;
@@ -307,12 +373,12 @@ const TouchEventManager = {
         break;
       }
       case touchType.DOUBLE_TAP: {
-        const annotationUnderMouse = core.getAnnotationByMouseEvent(e);
+        const annotationUnderMouse = core.getAnnotationByMouseEvent(e, this.documentViewerKey);
         const isFreeTextUnderMouse = annotationUnderMouse && annotationUnderMouse instanceof window.Core.Annotations.FreeTextAnnotation;
 
         if (this.isUsingAnnotationTools()) {
-          const tool = core.getToolMode();
-          tool.finish && tool.finish();
+          const tool = core.getToolMode(this.documentViewerKey);
+          tool.finish?.();
         } else if (!isFreeTextUnderMouse) {
           if (this.oldZoom) {
             this.touch.scale = Math.max(this.oldZoom / this.touch.zoom, getMinZoomLevel() / this.touch.zoom);
@@ -321,14 +387,14 @@ const TouchEventManager = {
             this.touch.scale = Math.min(3, getMaxZoomLevel() / this.touch.zoom);
             this.oldZoom = this.touch.zoom;
           }
-          const zoom = core.getZoom() * this.touch.scale;
+          const zoom = core.getZoom(this.documentViewerKey) * this.touch.scale;
           const { x, y } = this.getPointAfterScale();
-          core.zoomTo(zoom, x, y);
+          core.zoomTo(zoom, x, y, this.documentViewerKey);
         }
 
         if (isFreeTextUnderMouse) {
           core
-            .getAnnotationManager()
+            .getAnnotationManager(this.documentViewerKey)
             .trigger('annotationDoubleClicked', annotationUnderMouse);
         }
 
@@ -350,9 +416,9 @@ const TouchEventManager = {
         } else {
           this.document.style.transform = 'none';
         }
-        const zoom = core.getZoom() * this.touch.scale;
+        const zoom = core.getZoom(this.documentViewerKey) * this.touch.scale;
         const { x, y } = this.getPointAfterScale();
-        core.zoomTo(zoom, x, y);
+        core.zoomTo(zoom, x, y, this.documentViewerKey);
         break;
       }
     }
@@ -436,12 +502,12 @@ const TouchEventManager = {
     return { x, y };
   },
   isUsingAnnotationTools() {
-    const tool = core.getToolMode();
+    const tool = core.getToolMode(this.documentViewerKey);
 
     return getDataWithKey(mapToolNameToKey(tool.name)).annotationCheck;
   },
   isUsingPen() {
-    return core.getToolMode().pointerType && core.getToolMode().pointerType === 'pen';
+    return core.getToolMode(this.documentViewerKey)?.pointerType === 'pen';
   },
   get useNativeScroll() {
     return this._useNativeScroll;
@@ -449,11 +515,14 @@ const TouchEventManager = {
   set useNativeScroll(val) {
     this._useNativeScroll = val;
     try {
-      localStorage.setItem('useNativeScroll', JSON.stringify(this._useNativeScroll));
+      localStorageManager.setItemSynchronous('webviewer-useNativeScroll', JSON.stringify(this._useNativeScroll));
     } catch (err) {
       console.warn(`localStorage could not be accessed. ${err.message}`);
     }
   }
 };
+
+// Factory function to create a new instance of TouchEventManager for MultiViewer
+export const createTouchEventManager = () => Object.create(TouchEventManager);
 
 export default Object.create(TouchEventManager);

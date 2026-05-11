@@ -3,11 +3,21 @@ import React from 'react';
 import { configureStore } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
 import { render, screen } from '@testing-library/react';
-import { Basic } from './NotesPanel.stories';
+import NotesPanel from './NotesPanel';
 import NotesPanelContainer from './NotesPanelContainer';
 import core from 'core';
+import selectors from 'selectors';
+import userEvent from '@testing-library/user-event';
 
-const BasicStory = withI18n(Basic);
+jest.mock('components/MultiSelectControls', () => {
+  const MockMultiSelectControls = () => <div data-testid="multi-select-controls" />;
+  MockMultiSelectControls.displayName = 'MockMultiSelectControls';
+  return {
+    __esModule: true,
+    default: MockMultiSelectControls,
+  };
+});
+
 
 function noop() {
   // Comment needed to suppress SonarCloud code smell.
@@ -27,6 +37,14 @@ const initialState = {
     panelWidths: {
       notesPanel: DEFAULT_NOTES_PANEL_WIDTH
     },
+    pageLabels: {
+      1: [],
+      2: ['1'],
+    },
+    flyoutMap: {
+      'noteStateFlyout': {}
+    },
+    colorMap: {},
     sortStrategy: 'position',
     annotationFilters: {
       isDocumentFilterActive: false,
@@ -35,13 +53,30 @@ const initialState = {
       colorFilter: [],
       typeFilter: [],
       statusFilter: []
-    },
+    }
   },
   officeEditor: {},
   featureFlags: {},
 };
 
 const store = configureStore({ reducer: () => initialState });
+
+jest.mock('dayjs', () => {
+  const actual = jest.requireActual('dayjs');
+  const formatMock = jest.fn().mockReturnValue('MOCK_DATE');
+  const localeMock = jest.fn().mockReturnThis();
+  const chainInstance = { locale: localeMock, format: formatMock };
+
+  const callable = (..._arg) => chainInstance;
+
+  Object.assign(callable, actual);
+
+  return {
+    __esModule: true,
+    default: callable,
+  };
+});
+
 
 describe('NotesPanel', () => {
   beforeEach(() => {
@@ -51,6 +86,10 @@ describe('NotesPanel', () => {
       getAnnotationHistoryManager: noop,
       getMeasurementManager: noop,
       getContentEditManager: noop,
+      getAccessibleReadingOrderManager: noop,
+      getSpreadsheetEditorManager: noop,
+      getDocument: noop,
+      getPageCount: () => 2,
       getAnnotationManager: () => {
         return {
           getEditBoxManager: noop,
@@ -58,21 +97,61 @@ describe('NotesPanel', () => {
           addEventListener: noop,
           getSelectedAnnotations: () => [],
           getAnnotationsList: () => [],
-          removeEventListener: noop
+          removeEventListener: noop,
+          canModifyContents: noop,
+          getGroupAnnotations: () => [],
+          getDisplayAuthor: () => 'Guest',
+          getNumberOfGroups: () => 0,
         };
       },
+      getDisplayModeManager: () => {
+        return {
+          getDisplayMode: () => {
+            return {
+              getVisiblePages: () => [],
+              isContinuous: () => true,
+            };
+          },
+        };
+      }
     });
+    core.getIsReadOnly = () => false;
   });
 
-  describe('Storybook Component', () => {
-    it('Basic story should not throw any errors', () => {
-      expect(() => {
-        render(<BasicStory />);
-      }).not.toThrow();
-    });
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('UI Tests', () => {
+    const renderNotesPanel = ({
+      isReadOnly = false,
+      isMultiSelectMode = true,
+    } = {}) => {
+      const store = configureStore({
+        reducer: () => ({
+          ...initialState,
+          viewer: {
+            ...initialState.viewer,
+            isReadOnly,
+          },
+        }),
+      });
+
+      return render(
+        <Provider store={store}>
+          <NotesPanel
+            notes={[]}
+            selectedNoteIds={{}}
+            setSelectedNoteIds={jest.fn()}
+            isMultiSelectMode={isMultiSelectMode}
+            setMultiSelectMode={jest.fn()}
+            multiSelectedMap={{}}
+            setMultiSelectedMap={jest.fn()}
+          />
+        </Provider>
+      );
+    };
+
     it('NotesPanel should render default header and empty content', () => {
       render(
         <Provider store={store}>
@@ -82,9 +161,9 @@ describe('NotesPanel', () => {
 
       const defaultEmptyContentMessage = 'Start making annotations to leave a comment.';
 
-      screen.getByPlaceholderText('Search annotations'); // WISEflow term change
+      screen.getByPlaceholderText('Search comments'); // WISEflow term change
       screen.getByText('Sort:');
-      screen.getByText('Annotations'); // WISEflow term change
+      screen.getByText('Comments (0)');
       screen.getByText(defaultEmptyContentMessage);
     });
 
@@ -103,9 +182,9 @@ describe('NotesPanel', () => {
         </Provider>
       );
 
-      screen.getByPlaceholderText('Search annotations'); // WISEflow term change
+      screen.getByPlaceholderText('Search comments'); // WISEflow term change
       screen.getByText('Sort:');
-      screen.getByText('Annotations'); // WISEflow term change
+      screen.getByText('Comments (0)');
       screen.getByText(message);
     });
 
@@ -127,9 +206,9 @@ describe('NotesPanel', () => {
         </Provider>
       );
 
-      screen.getByPlaceholderText('Search annotations'); // WISEflow term change
+      screen.getByPlaceholderText('Search comments'); // WISEflow term change
       screen.getByText('Sort:');
-      screen.getByText('Annotations'); // WISEflow term change
+      screen.getByText('Comments (0)');
       screen.getByText(message);
     });
 
@@ -156,6 +235,58 @@ describe('NotesPanel', () => {
 
       screen.getByText(thisMessageShouldRender);
       expect(screen.queryByText(thisMessageShouldNotRender)).toBeNull();
+    });
+
+    it('NotesPanel MultiSelect should select annotations with current viewer key', async () => {
+
+      const newStore = configureStore({ reducer: () => initialState });
+      const mockAnnot = new window.Core.Annotations.StickyAnnotation();
+      const mockSelectAnnotations = jest.fn();
+      core.selectAnnotations = mockSelectAnnotations;
+      core.getGroupAnnotations = () => [mockAnnot];
+      jest.spyOn(selectors, 'getUnreadAnnotationIdSet').mockReturnValue(new Set());
+
+      render(
+        <Provider store={newStore}>
+          <NotesPanel
+            notes={[mockAnnot]}
+            selectedNoteIds={{}}
+            setSelectedNoteIds={jest.fn()}
+            isMultiSelectMode={true}
+            searchInput={''}
+            setMultiSelectMode={jest.fn()}
+            multiSelectedMap={{}}
+            setMultiSelectedMap={jest.fn()}
+          />
+        </Provider>
+      );
+
+      const checkbox = screen.getByRole('checkbox');
+      await userEvent.click(checkbox);
+
+      expect(mockSelectAnnotations).toHaveBeenCalledWith([mockAnnot], initialState.viewer.activeDocumentViewerKey);
+    });
+
+    describe('multi-select footer', () => {
+      it('should show controls and placeholder when multi-select is enabled and document is editable', () => {
+        const { container } = renderNotesPanel({
+          isReadOnly: false,
+          isMultiSelectMode: true,
+        });
+
+        expect(container.querySelector('.multi-select-place-holder')).toBeInTheDocument();
+        expect(screen.getByTestId('multi-select-controls')).toBeInTheDocument();
+      });
+
+      it('should hide controls and placeholder when document is read-only', () => {
+        const { container } = renderNotesPanel({
+          isReadOnly: true,
+          isMultiSelectMode: true,
+        });
+
+        expect(container.querySelector('.multi-select-place-holder')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('multi-select-controls')).not.toBeInTheDocument();
+      });
     });
   });
 });

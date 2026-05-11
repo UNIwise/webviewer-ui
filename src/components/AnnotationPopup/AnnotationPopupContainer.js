@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
-import { useSelector, useDispatch, shallowEqual } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import PropTypes from 'prop-types';
 import debounce from 'lodash/debounce';
+import { saveAs } from 'file-saver';
 
-import core from 'core';
+import useCore from 'hooks/useCore';
 import { getAnnotationPopupPositionBasedOn } from 'helpers/getPopupPosition';
 import applyRedactions from 'helpers/applyRedactions';
 import { isMobile, isIE } from 'helpers/device';
@@ -15,12 +16,13 @@ import useOnClickOutside from 'hooks/useOnClickOutside';
 import actions from 'actions';
 import selectors from 'selectors';
 import DataElements from 'constants/dataElement';
-import { PRIORITY_THREE } from 'constants/actionPriority';
+import { PRIORITY_TWO, PRIORITY_THREE } from 'constants/actionPriority';
 import getRootNode from 'helpers/getRootNode';
-
+import { ITEM_RENDER_PREFIXES } from 'constants/customizationVariables';
 import AnnotationPopup from './AnnotationPopup';
 
 import './AnnotationPopup.scss';
+import { isAnnotationRenderedInDisplayMode } from 'src/helpers/isAnnotationRenderedInDisplayMode';
 
 const { ToolNames } = window.Core.Tools;
 const { Annotations } = window.Core;
@@ -41,6 +43,7 @@ const propTypes = {
   stylePopupRepositionFlag: PropTypes.bool,
   setStylePopupRepositionFlag: PropTypes.func,
   closePopup: PropTypes.func,
+  widgetThatOpenedPopupRef: PropTypes.object,
 };
 
 const AnnotationPopupContainer = ({
@@ -59,78 +62,61 @@ const AnnotationPopupContainer = ({
   stylePopupRepositionFlag,
   setStylePopupRepositionFlag,
   closePopup,
+  widgetThatOpenedPopupRef,
 }) => {
-  const [
-    isDisabled,
-    isOpen,
-    isContextMenuPopupOpen,
-    isRightClickAnnotationPopupEnabled,
-    isNotesPanelDisabled,
-    isAnnotationStylePopupDisabled,
-    isInlineCommentingDisabled,
-    isNotesPanelOpen,
-    isLinkModalOpen,
-    isWarningModalOpen,
-    isRichTextPopupOpen,
-    isMultiTab,
-    tabManager,
-    tabs,
-    notesInLeftPanel,
-    leftPanelOpen,
-    activeLeftPanel,
-    activeDocumentViewerKey,
-    isAnyCustomPanelOpen,
-    featureFlags,
-    isStylePanelOpen,
-    isStylePanelDisabled,
-  ] = useSelector(
-    (state) => [
-      selectors.isElementDisabled(state, DataElements.ANNOTATION_POPUP),
-      selectors.isElementOpen(state, DataElements.ANNOTATION_POPUP),
-      selectors.isElementOpen(state, DataElements.CONTEXT_MENU_POPUP),
-      selectors.isRightClickAnnotationPopupEnabled(state),
-      selectors.isElementDisabled(state, DataElements.NOTES_PANEL),
-      selectors.isElementDisabled(state, DataElements.ANNOTATION_STYLE_POPUP),
-      selectors.isElementDisabled(state, DataElements.INLINE_COMMENT_POPUP),
-      selectors.isElementOpen(state, DataElements.NOTES_PANEL),
-      selectors.isElementOpen(state, DataElements.LINK_MODAL),
-      selectors.isElementOpen(state, DataElements.WARNING_MODAL),
-      selectors.isElementOpen(state, 'richTextPopup'),
-      selectors.getIsMultiTab(state),
-      selectors.getTabManager(state),
-      selectors.getTabs(state),
-      selectors.getNotesInLeftPanel(state),
-      selectors.isElementOpen(state, DataElements.LEFT_PANEL),
-      selectors.getActiveLeftPanel(state),
-      selectors.getActiveDocumentViewerKey(state),
-      selectors.isAnyCustomPanelOpen(state),
-      selectors.getFeatureFlags(state),
-      selectors.isElementOpen(state, DataElements.STYLE_PANEL),
-      selectors.isElementDisabled(state, DataElements.STYLE_PANEL),
-    ],
-    shallowEqual,
-  );
+  const { core } = useCore();
+  const isDisabled = useSelector((state) => selectors.isElementDisabled(state, DataElements.ANNOTATION_POPUP));
+  const isOpen = useSelector((state) => selectors.isElementOpen(state, DataElements.ANNOTATION_POPUP));
+  const isContextMenuPopupOpen = useSelector((state) => selectors.isElementOpen(state, DataElements.CONTEXT_MENU_POPUP));
+  const isRightClickAnnotationPopupEnabled = useSelector(selectors.isRightClickAnnotationPopupEnabled);
+  const isNotesPanelDisabled = useSelector((state) => selectors.isElementDisabled(state, DataElements.NOTES_PANEL));
+  const isAnnotationStylePopupDisabled = useSelector((state) => selectors.isElementDisabled(state, DataElements.ANNOTATION_STYLE_POPUP));
+  const isInlineCommentingDisabled = useSelector((state) => selectors.isElementDisabled(state, DataElements.INLINE_COMMENT_POPUP));
+  const isNotesPanelOpen = useSelector((state) => selectors.isElementOpen(state, DataElements.NOTES_PANEL));
+  const isLinkModalOpen = useSelector((state) => selectors.isElementOpen(state, DataElements.LINK_MODAL));
+  const isWarningModalOpen = useSelector((state) => selectors.isElementOpen(state, DataElements.WARNING_MODAL));
+  const isRichTextPopupOpen = useSelector((state) => selectors.isElementOpen(state, 'richTextPopup'));
+  const isMultiTab = useSelector(selectors.getIsMultiTab);
+  const tabManager = useSelector(selectors.getTabManager);
+  const tabs = useSelector(selectors.getTabs);
+  const notesInLeftPanel = useSelector(selectors.getNotesInLeftPanel);
+  const leftPanelOpen = useSelector((state) => selectors.isElementOpen(state, DataElements.LEFT_PANEL));
+  const activeLeftPanel = useSelector(selectors.getActiveLeftPanel);
+  const activeDocumentViewerKey = useSelector(selectors.getActiveDocumentViewerKey);
+  const isAnyCustomPanelOpen = useSelector(selectors.isAnyCustomPanelOpen);
+  const featureFlags = useSelector(selectors.getFeatureFlags);
+  const isStylePanelOpen = useSelector((state) => selectors.isElementOpen(state, DataElements.STYLE_PANEL));
+  const isStylePanelDisabled = useSelector((state) => selectors.isElementDisabled(state, DataElements.STYLE_PANEL));
+  const stylePanelInFlyout = useSelector((state) => selectors.getIsPanelInFlyout(state, ITEM_RENDER_PREFIXES.STYLE_PANEL, [DataElements.MULTI_SELECT_STYLE_PANEL_FLYOUT]));
+  const isStylePanelFlyoutOpen = useSelector((state) => selectors.isElementOpen(state, stylePanelInFlyout?.dataElement));
   const [t] = useTranslation();
   const dispatch = useDispatch();
   const [position, setPosition] = useState({ left: 0, top: 0 });
+  const [isVisible, setIsVisible] = useState(false);
   const [isCalibrationPopupOpen, setCalibrationPopupOpen] = useState(false);
   const popupRef = useRef();
 
   const isFocusedAnnotationSelected = isRightClickAnnotationPopupEnabled ? core.isAnnotationSelected(focusedAnnotation, activeDocumentViewerKey) : true;
   const annotManager = core.getAnnotationManager(activeDocumentViewerKey);
-  const isNotesPanelOpenOrActive = isNotesPanelOpen
-    || (notesInLeftPanel && leftPanelOpen && activeLeftPanel === 'notesPanel')
-    || isAnyCustomPanelOpen;
   const sixtyFramesPerSecondIncrement = 16;
   // on tablet, the behaviour will be like on desktop, including being draggable
 
   const { customizableUI } = featureFlags;
 
-  const openStylePanel = () => {
-    if (!isStylePanelOpen && !isStylePanelDisabled) {
+  const toggleStylePanel = () => {
+    if (!isStylePanelOpen && !isStylePanelDisabled && !stylePanelInFlyout) {
       dispatch(actions.openElement(DataElements.STYLE_PANEL));
     }
-    closePopup();
+    if (stylePanelInFlyout) {
+      if (isStylePanelFlyoutOpen) {
+        dispatch(actions.closeElement(stylePanelInFlyout.dataElement));
+      } else {
+        dispatch(actions.openFlyout(stylePanelInFlyout.dataElement, 'annotationStyleEditButton'));
+      }
+    }
+    if (!stylePanelInFlyout) {
+      closePopup();
+    }
   };
 
   useOnClickOutside(
@@ -139,6 +125,8 @@ const AnnotationPopupContainer = ({
       const notesPanel = getRootNode().querySelector(`[data-element="${DataElements.NOTES_PANEL}"]`);
       const clickedInNotesPanel = notesPanel?.contains(e.target);
       const clickedInLinkModal = getRootNode().querySelector('.LinkModal.open')?.contains(e.target);
+      const stylePanelFlyout = getRootNode().querySelector(`[data-element=${stylePanelInFlyout?.dataElement}]`);
+      const clickedInStylePanelFlyout = stylePanelFlyout?.contains(e.target);
       const datePicker = getDatePicker();
       const warningModal = getOpenedWarningModal();
       const colorPicker = getOpenedColorPicker();
@@ -147,7 +135,8 @@ const AnnotationPopupContainer = ({
       // we don't want this handler to run when clicked in the notes panel otherwise the opening/closing states may mess up
       // for example: click on a note will call core.selectAnnotation which triggers the annotationSelected event
       // and opens this component. If we don't exclude the notes panel this handler will run and close it after
-      if (!clickedInNotesPanel && !clickedInLinkModal && !warningModal && !colorPicker && !datePicker) {
+      // Similarly, we don't want the popup to close when clicking on the style panel flyout or the flyout loses its anchor.
+      if (!clickedInNotesPanel && !clickedInLinkModal && !clickedInStylePanelFlyout && !warningModal && !colorPicker && !datePicker) {
         if (isRightClickAnnotationPopupEnabled) {
           closePopup();
         } else {
@@ -158,8 +147,16 @@ const AnnotationPopupContainer = ({
   );
 
   const setPopupPosition = () => {
-    if (popupRef.current) {
+    const visiblePages = core.getDisplayModeObject().getVisiblePages();
+    const isFocusableInCurrentDisplayMode = isAnnotationRenderedInDisplayMode(core, focusedAnnotation);
+    if (popupRef.current && isFocusableInCurrentDisplayMode && focusedAnnotation) {
       setPosition(getAnnotationPopupPositionBasedOn(focusedAnnotation, popupRef, activeDocumentViewerKey));
+    } else if (!isNotesPanelDisabled && !isFocusableInCurrentDisplayMode) {
+      const annotations = core.getSelectedAnnotations();
+      const annotationInPage = annotations.find(
+        (annotation) => visiblePages.includes(annotation.PageNumber)
+      );
+      setPosition(getAnnotationPopupPositionBasedOn(annotationInPage, popupRef, activeDocumentViewerKey));
     }
   };
 
@@ -168,6 +165,12 @@ const AnnotationPopupContainer = ({
       setPopupPosition();
     }
   }, sixtyFramesPerSecondIncrement, { 'trailing': true, 'leading': false });
+
+  const handleVisibility = debounce(() => {
+    if (AnnotationPopupContainer) {
+      setIsVisible(isFocusedAnnotationSelected);
+    }
+  }, sixtyFramesPerSecondIncrement * 2, { 'trailing': true, 'leading': false });
 
   useEffect(() => {
     window.addEventListener('resize', handleResize);
@@ -181,6 +184,8 @@ const AnnotationPopupContainer = ({
   useLayoutEffect(() => {
     if (focusedAnnotation || isStylePopupOpen || isDatePickerMount) {
       handleResize();
+      setIsVisible(false);
+      handleVisibility();
     }
     // canModify is needed here because the effect from useOnAnnotationPopupOpen hook will run again and determine which button to show, which in turn change the popup size and will need to recalculate position
   }, [focusedAnnotation, isStylePopupOpen, isDatePickerMount, canModify, activeDocumentViewerKey]);
@@ -221,6 +226,39 @@ const AnnotationPopupContainer = ({
     });
   }, [tabManager, focusedAnnotation, tabs, isMultiTab]);
 
+  useEffect(() => {
+    const popup = popupRef.current;
+    if (!popup) {
+      return;
+    }
+    if (widgetThatOpenedPopupRef?.current) {
+      const associatedSignatureAnnotation = widgetThatOpenedPopupRef.current.getAssociatedSignatureAnnotation();
+      const handleKeyDown = (event) => {
+        if (event.key === 'Escape' && isOpen) {
+          event.preventDefault();
+          event.stopPropagation();
+          if (associatedSignatureAnnotation === focusedAnnotation) {
+            annotManager.deselectAnnotation(focusedAnnotation, activeDocumentViewerKey);
+          }
+          closePopup();
+        }
+        if (canModify && (event.key === 'Delete' || event.key === 'Backspace') && isOpen) {
+          event.preventDefault();
+          event.stopPropagation();
+          if (widgetThatOpenedPopupRef?.current?.isSignedByAppearance()) {
+            widgetThatOpenedPopupRef.current.clearSignature(annotManager);
+          } else if (associatedSignatureAnnotation) {
+            annotManager.deleteAnnotation(associatedSignatureAnnotation, activeDocumentViewerKey);
+          }
+          closePopup();
+        }
+      };
+
+      popup.addEventListener('keydown', handleKeyDown, true);
+      return () => popup.removeEventListener('keydown', handleKeyDown, true);
+    }
+  }, [popupRef,isOpen, widgetThatOpenedPopupRef, focusedAnnotation, closePopup, annotManager, activeDocumentViewerKey]);
+
   /* ALL REACT HOOKS NEED TO BE BEFORE RENDERING */
   if (isDisabled || !focusedAnnotation) {
     return null;
@@ -246,7 +284,6 @@ const AnnotationPopupContainer = ({
     && focusedAnnotation.ToolName !== ToolNames.CROP
     && !includesFormFieldAnnotation
     && !focusedAnnotation.isContentEditPlaceholder()
-    && !focusedAnnotation.isUncommittedContentEditPlaceholder()
     && !isAppearanceSignature
   );
 
@@ -276,6 +313,13 @@ const AnnotationPopupContainer = ({
     }
   };
 
+  /* ALIGN */
+  const showAlignButton = (
+    canModify
+    && multipleAnnotationsSelected
+    && !isMobile()
+  );
+
   const onOpenAlignmentModal = () => {
     dispatch(actions.openElement(DataElements.ANNOTATION_ALIGNMENT_POPUP));
     closePopup();
@@ -295,8 +339,6 @@ const AnnotationPopupContainer = ({
 
   const toolsWithNoStyling = [
     ToolNames.CROP,
-    ToolNames.RADIO_FORM_FIELD,
-    ToolNames.CHECK_BOX_FIELD,
     ToolNames.VIDEO_REDACTION,
     ToolNames.VIDEO_AND_AUDIO_REDACTION,
     ToolNames.AUDIO_REDACTION,
@@ -310,8 +352,8 @@ const AnnotationPopupContainer = ({
     && !toolsWithNoStyling.includes(focusedAnnotation.ToolName)
     && !(focusedAnnotation instanceof Annotations.Model3DAnnotation)
     && !focusedAnnotation.isContentEditPlaceholder()
-    && !focusedAnnotation.isUncommittedContentEditPlaceholder()
     && !isAppearanceSignature
+    && !(focusedAnnotation instanceof Annotations.PushButtonWidgetAnnotation)
   );
 
   const hideSnapModeCheckbox = focusedAnnotation instanceof Annotations.EllipseAnnotation || !core.isFullPDFEnabled();
@@ -331,10 +373,9 @@ const AnnotationPopupContainer = ({
     dispatch(actions.closeElement(DataElements.ANNOTATION_POPUP));
   };
 
-  /* CLEAR APPEARANCE SIGNATURE */
   const onClearAppearanceSignature = () => {
     focusedAnnotation.clearSignature(annotManager);
-    dispatch(actions.closeElement(DataElements.ANNOTATION_POPUP));
+    closePopup();
   };
 
   /* REDACTION */
@@ -368,18 +409,28 @@ const AnnotationPopupContainer = ({
   /* FORM FIELD */
   const formFieldCreationManager = core.getFormFieldCreationManager(activeDocumentViewerKey);
   const isInFormFieldCreationMode = formFieldCreationManager.isInFormFieldCreationMode();
-  const showFormFieldButton = includesFormFieldAnnotation && isInFormFieldCreationMode;
+  const showFormFieldButton = includesFormFieldAnnotation
+    && isInFormFieldCreationMode
+    && !(focusedAnnotation instanceof Annotations.PushButtonWidgetAnnotation);
 
   const onOpenFormField = () => {
     closePopup();
     // We disable it while the form field popup is open to prevent having both open
     // at the same time. We re-enable it when the form field popup is closed.
-    dispatch(actions.disableElement(DataElements.ANNOTATION_POPUP, PRIORITY_THREE));
+    if (customizableUI) {
+      dispatch(actions.disableElement(PRIORITY_THREE));
+      dispatch(actions.closeElement(DataElements.FORM_FIELD_EDIT_POPUP));
+    } else {
+      dispatch(actions.disableElement(DataElements.ANNOTATION_POPUP, PRIORITY_TWO));
+    }
     dispatch(actions.openElement(DataElements.FORM_FIELD_EDIT_POPUP));
+    dispatch(actions.openElement(DataElements.FORM_FIELD_PANEL));
   };
 
+  /* CLEAR APPEARANCE SIGNATURE */
+  const showClearSignatureButton = canModify && isAppearanceSignature && !showFormFieldButton;
   /* DELETE ANNOTATION */
-  const showDeleteButton = canModify;
+  const showDeleteButton = canModify && !showClearSignatureButton;
 
   const openContentEditDeleteWarningModal = () => {
     const message = t('option.contentEdit.deletionModal.message');
@@ -419,12 +470,12 @@ const AnnotationPopupContainer = ({
   ];
 
   const showLinkButton = (
-    !toolsThatCantHaveLinks.includes(focusedAnnotation.ToolName)
+    canModify
+    && !toolsThatCantHaveLinks.includes(focusedAnnotation.ToolName)
     && !includesFormFieldAnnotation
     && !focusedAnnotation.isContentEditPlaceholder()
     // TODO(Adam): Update this once SoundAnnotation tool is created.
     && !(focusedAnnotation instanceof Annotations.SoundAnnotation)
-    && !focusedAnnotation.isUncommittedContentEditPlaceholder()
     && !isAppearanceSignature
   );
 
@@ -461,10 +512,10 @@ const AnnotationPopupContainer = ({
   /* DOWNLOAD FILE ATTACHMENT */
   const showFileDownloadButton = focusedAnnotation instanceof Annotations.FileAttachmentAnnotation;
 
-  const downloadFileAttachment = (annot) => {
+  const downloadFileAttachment = async (annot) => {
     // no need to check that annot is of type file annot as the check is done in the JSX
-    // trigger the annotationDoubleClicked event so that it will download the file
-    annotManager.trigger('annotationDoubleClicked', annot);
+    const { fileData, fileName } = await annot.getFullFileMetadata();
+    saveAs(fileData, fileName);
   };
 
   /* AUDIO ANNOTATION */
@@ -474,6 +525,11 @@ const AnnotationPopupContainer = ({
     focusedAnnotation instanceof Annotations.SoundAnnotation &&
     focusedAnnotation.hasAudioData()
   );
+
+  const isNotesPanelOpenOrActive = isNotesPanelOpen
+    || (notesInLeftPanel && leftPanelOpen && activeLeftPanel === 'notesPanel')
+    || isAnyCustomPanelOpen
+    || isInFormFieldCreationMode;
 
   const handlePlaySound = (annotation) => {
     dispatch(actions.setActiveSoundAnnotation(annotation));
@@ -492,6 +548,7 @@ const AnnotationPopupContainer = ({
       isLinkModalOpen={isLinkModalOpen}
       isWarningModalOpen={isWarningModalOpen}
       isContextMenuPopupOpen={isContextMenuPopupOpen}
+      isVisible={isVisible}
 
       popupRef={popupRef}
       position={position}
@@ -521,7 +578,7 @@ const AnnotationPopupContainer = ({
       onEditContent={onEditContent}
       openContentEditDeleteWarningModal={openContentEditDeleteWarningModal}
 
-      isAppearanceSignature={isAppearanceSignature}
+      showClearSignatureButton={showClearSignatureButton}
       onClearAppearanceSignature={onClearAppearanceSignature}
 
       showRedactionButton={showRedactionButton}
@@ -552,10 +609,11 @@ const AnnotationPopupContainer = ({
       onOpenCalibration={onOpenCalibration}
 
       customizableUI={customizableUI}
-      openStylePanel={openStylePanel}
+      toggleStylePanel={toggleStylePanel}
       isStylePanelOpen={isStylePanelOpen}
       isInReadOnlyMode={isInReadOnlyMode}
 
+      showAlignButton={showAlignButton}
       onOpenAlignmentModal={onOpenAlignmentModal}
     />
   );

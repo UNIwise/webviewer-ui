@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import actions from 'actions';
 import selectors from 'selectors';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import SnippingToolPopup from './SnippingToolPopup';
 import './SnippingToolPopup.scss';
 import Draggable from 'react-draggable';
@@ -10,19 +10,19 @@ import useOnSnippingAnnotationChangedOrSelected from '../../hooks/useOnSnippingA
 import { isMobileSize } from 'helpers/getDeviceSize';
 import getRootNode from 'helpers/getRootNode';
 import DataElements from 'constants/dataElement';
+import { focusActiveIcon } from 'components/DocumentCropPopup/DocumentCropPopupContainer';
+import useDraggablePosition from '../../hooks/useDraggablePosition';
 
 function SnippingToolPopupContainer() {
+  const { core } = useCore();
   const snippingToolName = window.Core.Tools.ToolNames['SNIPPING'];
   const snippingCreateTool = core.getTool(snippingToolName);
-  const [
-    isOpen,
-    isInDesktopOnlyMode,
-    shouldShowApplySnippingWarning,
-  ] = useSelector((state) => [
-    selectors.getActiveToolName(state) === snippingToolName && selectors.isElementOpen(state, DataElements.SNIPPING_TOOL_POPUP),
-    selectors.isInDesktopOnlyMode(state),
-    selectors.shouldShowApplySnippingWarning(state),
-  ]);
+  const activeToolName = useSelector(selectors.getActiveToolName);
+  const isSnippingPopupOpen = useSelector((state) => selectors.isElementOpen(state, DataElements.SNIPPING_TOOL_POPUP));
+  const isInDesktopOnlyMode = useSelector(selectors.isInDesktopOnlyMode);
+  const shouldShowApplySnippingWarning = useSelector(selectors.shouldShowApplySnippingWarning);
+
+  const isOpen = activeToolName === snippingToolName && isSnippingPopupOpen;
   const dispatch = useDispatch();
   const [isSnipping, setIsSnipping] = useState(snippingCreateTool.getIsSnipping());
 
@@ -43,7 +43,7 @@ function SnippingToolPopupContainer() {
         newTool.addEventListener(window.Core.Tools.SnippingCreateTool.Events['SNIPPING_CANCELLED'], handleSnippingCancellation);
         openSnippingPopup();
       } else if (oldTool instanceof Core.Tools.SnippingCreateTool) { // eslint-disable-line no-undef
-        newTool.removeEventListener(window.Core.Tools.SnippingCreateTool.Events['SNIPPING_CANCELLED'], handleSnippingCancellation);
+        oldTool.removeEventListener(window.Core.Tools.SnippingCreateTool.Events['SNIPPING_CANCELLED'], handleSnippingCancellation);
         setIsSnipping(false);
         snippingCreateTool.reset();
         reenableHeader();
@@ -99,9 +99,10 @@ function SnippingToolPopupContainer() {
   const [snippingMode, setSnippingMode] = useState(null);
 
   useEffect(() => {
-    snippingCreateTool.setSnippingMode('CLIPBOARD');
-    setSnippingMode('CLIPBOARD');
-  }, []);
+    const modeToSet = snippingMode || 'CLIPBOARD';
+    snippingCreateTool.setSnippingMode(modeToSet);
+    setSnippingMode(modeToSet);
+  }, [snippingCreateTool]);
 
   const onSnippingModeChange = (option) => {
     snippingCreateTool.setSnippingMode(option);
@@ -109,34 +110,7 @@ function SnippingToolPopupContainer() {
   };
 
   const snippingPopupRef = useRef();
-  const DEFAULT_POPUP_WIDTH = 250;
-  const DEFAULT_POPUP_HEIGHT = 200;
-  const documentContainerElement = core.getScrollViewElement();
-  const popupWidth = snippingPopupRef.current?.getBoundingClientRect().width || DEFAULT_POPUP_WIDTH;
-  const popupHeight = snippingPopupRef.current?.getBoundingClientRect().height || DEFAULT_POPUP_HEIGHT;
-  const docContainer = getRootNode().querySelector('.DocumentContainer');
-  const xOffset = docContainer?.getBoundingClientRect().width || 0;
-
-  const getSnippingPopupOffset = () => {
-    const offset = {
-      x: xOffset - popupWidth - 20,
-      y: documentContainerElement?.offsetTop + 10,
-    };
-    if (snippingAnnotation && snippingPopupRef?.current) {
-      offset.x = Math.min(offset.x, documentContainerElement.offsetWidth - popupWidth);
-    }
-    return offset;
-  };
-
-  const getSnippingPopupBounds = () => {
-    const bounds = {
-      top: 0,
-      bottom: documentContainerElement.offsetHeight - popupHeight,
-      left: 0 - getSnippingPopupOffset()['x'],
-      right: documentContainerElement.offsetWidth - getSnippingPopupOffset()['x'] - popupWidth,
-    };
-    return bounds;
-  };
+  const { position, handleDrag, handleStop, containerRef, setOverlayRef, initialOffset, dragBounds } = useDraggablePosition('top-right');
 
   const closeAndReset = () => {
     snippingCreateTool.reset();
@@ -145,20 +119,24 @@ function SnippingToolPopupContainer() {
     core.setToolMode(window.Core.Tools.ToolNames.SNIPPING);
   };
 
-  const closeSnippingPopup = useCallback(() => {
+  const closeSnippingPopup = useCallback((e) => {
     closeAndReset();
-  }, []);
+    focusActiveIcon(e);
+  }, [core, snippingCreateTool, dispatch, closeAndReset, focusActiveIcon]);
 
   // disable/enable the 'apply' button when snipping
   useEffect(() => {
     setIsSnipping(snippingCreateTool.getIsSnipping());
   }, [snippingAnnotation]);
 
-  const applySnipping = async () => {
+  const applySnipping = async (e) => {
     await snippingCreateTool.applySnipping();
     snippingCreateTool.reset();
     reenableHeader();
+    focusActiveIcon(e);
   };
+
+  const isMobile = isMobileSize();
 
   const props = {
     snippingMode,
@@ -168,9 +146,8 @@ function SnippingToolPopupContainer() {
     isSnipping,
     isInDesktopOnlyMode,
     shouldShowApplySnippingWarning,
+    isMobile,
   };
-
-  const isMobile = isMobileSize();
 
   if (isOpen && core.getDocument()) {
     if (isMobile && !isInDesktopOnlyMode) {
@@ -184,10 +161,20 @@ function SnippingToolPopupContainer() {
     return (
       <Draggable
         cancel={'input, button, .collapsible-menu, .ui__choice__label'}
-        positionOffset={getSnippingPopupOffset()}
-        bounds={getSnippingPopupBounds()}
+        position={position}
+        bounds={dragBounds}
+        onDrag={handleDrag}
+        onStop={handleStop}
       >
-        <div className="SnippingPopupContainer" ref={snippingPopupRef}>
+        <div
+          className="SnippingPopupContainer"
+          ref={(el) => {
+            snippingPopupRef.current = el;
+            containerRef.current = el;
+            setOverlayRef(el);
+          }}
+          style={initialOffset}
+        >
           <SnippingToolPopup {...props} />
         </div>
       </Draggable>

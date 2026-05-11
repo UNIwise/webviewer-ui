@@ -9,20 +9,24 @@ import Note from 'components/Note';
 import Icon from 'components/Icon';
 import NoteContext from 'components/Note/Context';
 import ListSeparator from 'components/ListSeparator';
-import MultiSelectControls from 'components/NotesPanel/MultiSelectControls';
+import MultiSelectControls from 'components/MultiSelectControls';
 import CustomElement from 'components/CustomElement';
 import NotesPanelHeader from 'components/NotesPanelHeader';
 import Choice from 'components/Choice';
-
+import TextButton from 'components/TextButton';
+/* eslint-disable custom/use-core-hook-in-components */
 import core from 'core';
 import DataElements from 'constants/dataElement';
-import { getSortStrategies } from 'constants/sortStrategies';
-import { OFFICE_EDITOR_EDIT_MODE } from 'constants/officeEditor';
+import getNotesPanelSortStrategy from 'helpers/getNotesPanelSortStrategy';
+import { EditingStreamType, OfficeEditorEditMode } from 'constants/officeEditor';
+import { mapAnnotationToKey, annotationMapKeys } from 'constants/map';
+import getNotesPanelConfig from 'helpers/getNotesPanelConfig';
 import actions from 'actions';
 import selectors from 'selectors';
 import { isMobileSize } from 'helpers/getDeviceSize';
 import { isIE } from 'helpers/device';
 import ReplyAttachmentPicker from './ReplyAttachmentPicker';
+import PropTypes from 'prop-types';
 
 import fireEvent from 'helpers/fireEvent';
 import { debounce } from 'lodash';
@@ -30,29 +34,30 @@ import './NotesPanel.scss';
 import getAnnotationReference from 'helpers/getAnnotationReference';
 
 const NotesPanel = ({
-  currentLeftPanelWidth,
+  parentDataElement,
+  dataElement = DataElements.NOTES_PANEL,
   notes,
   selectedNoteIds,
   setSelectedNoteIds,
+  scrollToSelectedAnnot,
+  setScrollToSelectedAnnot,
   searchInput,
   setSearchInput,
   isMultiSelectMode,
   setMultiSelectMode,
-  isMultiSelectedMap,
-  setIsMultiSelectedMap,
-  scrollToSelectedAnnot,
-  setScrollToSelectedAnnot,
+  multiSelectedMap,
+  setMultiSelectedMap,
   isCustomPanel,
   isCustomPanelOpen,
   isLeftSide,
-  parentDataElement,
+  currentLeftPanelWidth,
 }) => {
-
   const sortStrategy = useSelector(selectors.getSortStrategy);
   const isOpen = useSelector((state) => selectors.isElementOpen(state, DataElements.NOTES_PANEL));
   const isDisabled = useSelector((state) => selectors.isElementDisabled(state, DataElements.NOTES_PANEL));
   const pageLabels = useSelector(selectors.getPageLabels, shallowEqual);
   const customNoteFilter = useSelector(selectors.getCustomNoteFilter, shallowEqual);
+  const internalNoteFilter = useSelector(selectors.getInternalNoteFilter, shallowEqual);
   const currentNotesPanelWidth = useSelector((state) => parentDataElement ? selectors.getPanelWidth(state, parentDataElement) : selectors.getNotesPanelWidth(state), shallowEqual);
   const notesInLeftPanel = useSelector(selectors.getNotesInLeftPanel);
   const isDocumentReadOnly = useSelector(selectors.isDocumentReadOnly);
@@ -63,6 +68,9 @@ const NotesPanel = ({
   const isNotesPanelMultiSelectEnabled = useSelector(selectors.getIsNotesPanelMultiSelectEnabled);
   const activeDocumentViewerKey = useSelector(selectors.getActiveDocumentViewerKey);
   const isOfficeEditorMode = useSelector(selectors.getIsOfficeEditorMode);
+  const officeEditorEditMode = useSelector(selectors.getOfficeEditorEditMode);
+  const activeStream = useSelector(selectors.getOfficeEditorActiveStream);
+  const notesPanelConfig = getNotesPanelConfig(dataElement);
 
   const dispatch = useDispatch();
   const [t] = useTranslation();
@@ -82,7 +90,7 @@ const NotesPanel = ({
   // this will result in losing the scroll position and we will use this ref to recover
   const scrollTopRef = useRef(0);
   const VIRTUALIZATION_THRESHOLD = enableNotesPanelVirtualizedList ? (isIE ? 25 : 100) : Infinity;
-    
+
   useEffect(() => {
     const onAnnotationNumberingUpdated = (isEnabled) => {
       dispatch(actions.setAnnotationNumbering(isEnabled));
@@ -135,6 +143,10 @@ const NotesPanel = ({
       shouldRender = shouldRender && customNoteFilter(note);
     }
 
+    if (internalNoteFilter) {
+      shouldRender = shouldRender && internalNoteFilter(note);
+    }
+
     if (searchInput) {
       const replies = note.getReplies();
       // reply is also a kind of annotation
@@ -146,7 +158,8 @@ const NotesPanel = ({
     return shouldRender;
   };
 
-  const notesToRender = getSortStrategies()[sortStrategy].getSortedNotes(notes).filter(filterNote);
+  const activeSortStrategy = getNotesPanelSortStrategy(sortStrategy);
+  const notesToRender = activeSortStrategy.getSortedNotes(notes).filter(filterNote);
 
   useEffect(() => {
     if (Object.keys(selectedNoteIds).length && singleSelectedNoteIndex !== -1) {
@@ -215,6 +228,12 @@ const NotesPanel = ({
     [setPendingReplyMap],
   );
 
+  const handleAddNewOfficeEditorComment = useCallback(() => {
+    void core.getOfficeEditor().getCommentManager().addCommentThreadAtCurrentRange('').catch((error) => {
+      console.warn('Failed to add comment thread', error);
+    });
+  }, []);
+
   const [pendingAttachmentMap, setPendingAttachmentMap] = useState({});
   const addAttachments = (annotationID, attachments) => {
     setPendingAttachmentMap((map) => ({
@@ -243,8 +262,12 @@ const NotesPanel = ({
   };
 
   useEffect(() => {
-    setMultiSelectedAnnotations(Object.values(isMultiSelectedMap));
-  }, [isMultiSelectedMap]);
+    setMultiSelectedAnnotations(Object.values(multiSelectedMap));
+    if (curAnnotId === undefined) {
+      const ids = Object.keys(multiSelectedMap);
+      setCurAnnotId(ids[0]);
+    }
+  }, [multiSelectedMap]);
 
   const toggleMultiSelectMode = () => {
     if (isMultiSelectMode) {
@@ -264,7 +287,7 @@ const NotesPanel = ({
     resize = () => {},
   ) => {
     let listSeparator = null;
-    const { shouldRenderSeparator, getSeparatorContent } = getSortStrategies()[sortStrategy];
+    const { shouldRenderSeparator, getSeparatorContent } = activeSortStrategy;
     const prevNote = index === 0 ? null : notes[index - 1];
     const currNote = notes[index];
 
@@ -290,6 +313,7 @@ const NotesPanel = ({
       resize,
       isSelected: selectedNoteIds[currNote.Id],
       isContentEditable: core.canModifyContents(currNote, activeDocumentViewerKey),
+      isOfficeEditorCommentAnnotation: mapAnnotationToKey(currNote) === annotationMapKeys.OFFICE_EDITOR_COMMENT,
       pendingEditTextMap,
       setPendingEditText,
       pendingReplyMap,
@@ -327,27 +351,27 @@ const NotesPanel = ({
             isCustomPanelOpen={isCustomPanelOpen}
             shouldHideConnectorLine={isLeftSide}
             annotation={currNote}
-            isMultiSelected={!!isMultiSelectedMap[currNote.Id]}
+            isMultiSelected={!!multiSelectedMap[currNote.Id]}
             isMultiSelectMode={isMultiSelectMode}
             isMultiSelectEnabled={isNotesPanelMultiSelectEnabled}
             isInNotesPanel
             handleMultiSelect={(checked) => {
               if (checked) {
-                const _isMultiSelectedMap = { ...isMultiSelectedMap };
+                const _multiSelectedMap = { ...multiSelectedMap };
                 const groupAnnots = core.getGroupAnnotations(currNote, activeDocumentViewerKey);
                 groupAnnots.forEach((groupAnnot) => {
-                  _isMultiSelectedMap[groupAnnot.Id] = groupAnnot;
+                  _multiSelectedMap[groupAnnot.Id] = groupAnnot;
                 });
-                setIsMultiSelectedMap(_isMultiSelectedMap);
-                core.selectAnnotations(groupAnnots);
+                setMultiSelectedMap(_multiSelectedMap);
+                core.selectAnnotations(groupAnnots, activeDocumentViewerKey);
               } else {
-                const _isMultiSelectedMap = { ...isMultiSelectedMap };
+                const _multiSelectedMap = { ...multiSelectedMap };
                 const groupAnnots = core.getGroupAnnotations(currNote, activeDocumentViewerKey);
                 groupAnnots.forEach((groupAnnot) => {
-                  delete _isMultiSelectedMap[groupAnnot.Id];
+                  delete _multiSelectedMap[groupAnnot.Id];
                 });
-                setIsMultiSelectedMap(_isMultiSelectedMap);
-                core.deselectAnnotations([currNote, ...groupAnnots]);
+                setMultiSelectedMap(_multiSelectedMap);
+                core.deselectAnnotations([currNote, ...groupAnnots], activeDocumentViewerKey);
               }
             }}
           />
@@ -361,16 +385,25 @@ const NotesPanel = ({
       <div>
         <Icon className="empty-icon" glyph="illustration - empty state - outlines" />
       </div>
-      <p aria-live="assertive" className="msg no-margin">{t('message.noResults')}</p>
+      <p className="msg no-margin">{t('message.noResults')}</p>
     </div>
   );
 
+  const ariaLiveResultsContainer = () => {
+    const message = t(notesPanelConfig.title);
+    return (
+      <p aria-live="assertive" style={{ position: 'absolute', left: '-9999px' }}>
+        {notesToRender.length > 0 ? `${message} ${notesToRender.length}` : t('message.noResults')}
+      </p>
+    );
+  };
+
   const NoAnnotationsGlyph = customEmptyPanel?.icon ?
     customEmptyPanel.icon :
-    (isOfficeEditorMode ? 'ic-edit-page' : 'illustration - empty state - outlines');
+    notesPanelConfig.icon;
   const NoAnnotationsMessage = customEmptyPanel?.message ?
     customEmptyPanel.message :
-    (isOfficeEditorMode ? t('message.noRevisions') : t('message.noAnnotations'));
+    t(notesPanelConfig.noAnnotation);
   const NoAnnotationsReadOnlyMessage =
     customEmptyPanel && customEmptyPanel.readOnlyMessage
       ? customEmptyPanel.readOnlyMessage
@@ -420,9 +453,29 @@ const NotesPanel = ({
   }
 
   const showNotePanel = !isDisabled && (isOpen || notesInLeftPanel || isCustomPanel);
+  const showPlaceHolder = isMultiSelectMode && !isDocumentReadOnly;
+  const placeHolder = showMultiReply ? MultiReplyPlaceHolder : MultiSelectPlaceHolder;
+  const showMultiSelectControls = isMultiSelectMode && !isDocumentReadOnly;
+
+  const showOfficeEditorFooter = isOfficeEditorMode && !isMultiSelectMode;
+  const showReviewPanelFooter =
+    showOfficeEditorFooter
+    && dataElement === DataElements.OFFICE_EDITOR_REVIEW_PANEL
+    && notesToRender.length > 0;
+  const isOfficeEditorViewOnly = officeEditorEditMode === OfficeEditorEditMode.VIEW_ONLY || officeEditorEditMode === OfficeEditorEditMode.PREVIEW;
+  const showCommentPanelFooter =
+    showOfficeEditorFooter
+    && !core.getIsReadOnly(activeDocumentViewerKey)
+    && !isOfficeEditorViewOnly
+    && dataElement === DataElements.OFFICE_EDITOR_COMMENT_PANEL;
 
   return !showNotePanel ? null : (
-    <div className="notes-panel-container">
+    <div
+      className={classNames({
+        'notes-panel-container': true,
+        'office-editor': isOfficeEditorMode,
+      })}
+    >
       <div
         className={classNames({
           Panel: true,
@@ -446,6 +499,7 @@ const NotesPanel = ({
         )}
         <>
           <NotesPanelHeader
+            parentDataElement={dataElement}
             notes={notesToRender}
             disableFilterAnnotation={notes.length === 0}
             setSearchInputHandler={setSearchInput}
@@ -483,20 +537,35 @@ const NotesPanel = ({
           {/* These two placeholders need to exist so that MultiSelectControls can
           be overlayed with position absolute and extend into the right panel while
           still being able to not have any notes cut off */}
-          {isMultiSelectMode ? (showMultiReply ? MultiReplyPlaceHolder : MultiSelectPlaceHolder) : null}
-          {isOfficeEditorMode && !isMultiSelectMode && (notesToRender.length > 0) && (
-            <div className="preview-all-changes">
-              <div className="divider" />
+          {showPlaceHolder ? placeHolder : null}
+          {showReviewPanelFooter && (
+            <div className='office-editor-footer'>
+              <div className='divider' />
               <Choice
                 isSwitch
+                checked={officeEditorEditMode === OfficeEditorEditMode.PREVIEW}
                 label={t('officeEditor.previewAllChanges')}
-                onChange={(e) => core.getOfficeEditor().setEditMode(e.target.checked ? OFFICE_EDITOR_EDIT_MODE.PREVIEW : OFFICE_EDITOR_EDIT_MODE.REVIEWING)}
+                onChange={(e) => core.getOfficeEditor().setEditMode(e.target.checked ? OfficeEditorEditMode.PREVIEW : OfficeEditorEditMode.REVIEWING)}
+              />
+            </div>
+          )}
+          {showCommentPanelFooter && (
+            <div className='office-editor-footer'>
+              <div className='divider' />
+              <TextButton
+                className='add-new-button'
+                img='icon-menu-add'
+                dataElement={DataElements.OFFICE_EDITOR_COMMENT_ADD_NEW_BUTTON}
+                disabled={activeStream !== EditingStreamType.BODY}
+                label={`${t('action.add')} ${t('action.comment')}`}
+                ariaLabel={`${t('action.add')} ${t('action.comment')}`}
+                onClick={handleAddNewOfficeEditorComment}
               />
             </div>
           )}
         </>
       </div>
-      {isMultiSelectMode && (
+      {showMultiSelectControls && (
         <MultiSelectControls
           showMultiReply={showMultiReply}
           setShowMultiReply={setShowMultiReply}
@@ -505,14 +574,35 @@ const NotesPanel = ({
           showMultiStyle={showMultiStyle}
           setShowMultiStyle={setShowMultiStyle}
           setMultiSelectMode={setMultiSelectMode}
-          isMultiSelectedMap={isMultiSelectedMap}
-          setIsMultiSelectedMap={setIsMultiSelectedMap}
+          multiSelectedMap={multiSelectedMap}
+          setMultiSelectedMap={setMultiSelectedMap}
           multiSelectedAnnotations={multiSelectedAnnotations}
         />
       )}
       <ReplyAttachmentPicker annotationId={curAnnotId} addAttachments={addAttachments} />
+      {ariaLiveResultsContainer()}
     </div>
   );
+};
+
+NotesPanel.propTypes = {
+  parentDataElement: PropTypes.string,
+  dataElement: PropTypes.string,
+  notes: PropTypes.array,
+  selectedNoteIds: PropTypes.object,
+  setSelectedNoteIds: PropTypes.func,
+  scrollToSelectedAnnot: PropTypes.bool,
+  setScrollToSelectedAnnot: PropTypes.func,
+  searchInput: PropTypes.string,
+  setSearchInput: PropTypes.func,
+  isMultiSelectMode: PropTypes.bool,
+  setMultiSelectMode: PropTypes.func,
+  multiSelectedMap: PropTypes.object,
+  setMultiSelectedMap: PropTypes.func,
+  isCustomPanel: PropTypes.bool,
+  isCustomPanelOpen: PropTypes.bool,
+  isLeftSide: PropTypes.bool,
+  currentLeftPanelWidth: PropTypes.number,
 };
 
 export default NotesPanel;

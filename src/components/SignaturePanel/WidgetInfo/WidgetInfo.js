@@ -5,13 +5,13 @@ import { useTranslation } from 'react-i18next';
 
 import actions from 'actions';
 import classNames from 'classnames';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import selectors from 'selectors';
 
-import SignatureIcon from 'components/SignaturePanel/SignatureIcon';
-import Icon from 'components/Icon';
 import WidgetLocator from '../WidgetLocator';
 import useFocusHandler from 'hooks/useFocusHandler';
+import PanelListItem from 'src/components/PanelListItem';
+import Button from 'src/components/Button';
 
 import './WidgetInfo.scss';
 
@@ -20,57 +20,43 @@ export const renderPermissionStatus = ({
   ModificationPermissionsStatus,
   permissionStatus,
   translate,
+  digestStatus,
+  DigestStatusErrorCodes
 }) => {
-  let content;
 
-  switch (permissionStatus) {
-    case ModificationPermissionsStatus.e_invalidated_by_disallowed_changes:
-      content = translate(
-        'digitalSignatureVerification.permissionStatus.invalidatedByDisallowedChanges'
-      );
-      break;
-    case ModificationPermissionsStatus.e_has_allowed_changes:
-      content = translate(
-        'digitalSignatureVerification.permissionStatus.hasAllowedChanges'
-      );
-      break;
-    case ModificationPermissionsStatus.e_unmodified:
-      content = `${translate('digitalSignatureVerification.permissionStatus.unmodified')
-      } ${isCertification
-        ? translate('digitalSignatureVerification.certified')
-        : translate('digitalSignatureVerification.signed')
-      }.`;
-      break;
-    case ModificationPermissionsStatus.e_permissions_verification_disabled:
-      content = translate(
-        'digitalSignatureVerification.permissionStatus.permissionsVerificationDisabled'
-      );
-      break;
-    case ModificationPermissionsStatus.e_no_permissions_status:
-      content = translate(
-        'digitalSignatureVerification.permissionStatus.noPermissionsStatus'
-      );
-      break;
+  if (digestStatus === DigestStatusErrorCodes.e_digest_invalid) {
+    return <p>{translate('digitalSignatureVerification.digestStatus.documentHasBeenAltered')}</p>;
   }
 
-  return <p>{content}</p>;
+  const permissionMessages = {
+    [ModificationPermissionsStatus.e_invalidated_by_disallowed_changes]: 'digitalSignatureVerification.permissionStatus.invalidatedByDisallowedChanges',
+    [ModificationPermissionsStatus.e_has_allowed_changes]: 'digitalSignatureVerification.permissionStatus.hasAllowedChanges',
+    [ModificationPermissionsStatus.e_unmodified]: isCertification
+      ? `${translate('digitalSignatureVerification.permissionStatus.unmodified')} ${translate('digitalSignatureVerification.certified')}.`
+      : `${translate('digitalSignatureVerification.permissionStatus.unmodified')} ${translate('digitalSignatureVerification.signed')}.`,
+    [ModificationPermissionsStatus.e_permissions_verification_disabled]: 'digitalSignatureVerification.permissionStatus.permissionsVerificationDisabled',
+    [ModificationPermissionsStatus.e_no_permissions_status]: 'digitalSignatureVerification.permissionStatus.noPermissionsStatus',
+    [ModificationPermissionsStatus.e_unsupported_permissions_features]: 'digitalSignatureVerification.permissionStatus.unsupportedPermissionsFeatures'
+  };
+
+  return <p>{translate(permissionMessages[permissionStatus] || '')}</p>;
 };
 
 const propTypes = {
   name: PropTypes.string.isRequired,
-  collapsible: PropTypes.bool.isRequired,
   onClick: PropTypes.func,
   field: PropTypes.instanceOf(window.Core.Annotations.Forms.Field),
 };
 
-const WidgetInfo = ({ name, collapsible, field }) => {
-  const verificationResult = useSelector((state) => selectors.getVerificationResult(state, name));
-  const [isExpanded, setIsExpanded] = useState(true);
+const WidgetInfo = ({ name, field }) => {
+  const { core } = useCore();
+  const activeDocumentViewerKey = useSelector(selectors.getActiveDocumentViewerKey);
+  const verificationResult = useSelector((state) => selectors.getVerificationResult(state, name, activeDocumentViewerKey));
   const [locatorRect, setLocatorRect] = useState(null);
   const [signatureDetailsExpanded, setSignatureDetailsExpanded] = useState(false);
   const { VerificationResult, VerificationOptions } = window.Core.PDFNet;
   const { TimeMode } = VerificationOptions;
-  const { ModificationPermissionsStatus } = VerificationResult;
+  const { ModificationPermissionsStatus, DigestStatus: DigestStatusErrorCodes } = VerificationResult;
   const [translate] = useTranslation();
 
   const {
@@ -88,14 +74,10 @@ const WidgetInfo = ({ name, collapsible, field }) => {
     location,
     reason,
     signerName,
+    digestStatus,
   } = verificationResult;
 
   const dispatch = useDispatch();
-
-  const handleArrowClick = (e) => {
-    e.stopPropagation();
-    setIsExpanded(!isExpanded);
-  };
 
   /**
    * Side-effect function that highlights the SignatureWidgetAnnotation
@@ -139,39 +121,6 @@ const WidgetInfo = ({ name, collapsible, field }) => {
     jumpToWidget(field);
   };
 
-  const renderTitle = () => {
-    let content = isCertification
-      ? translate('digitalSignatureVerification.Certified')
-      : translate('digitalSignatureVerification.Signed');
-    content += ` ${translate('digitalSignatureVerification.by')} ${signerName || translate('digitalSignatureModal.unknown')}`;
-    if (signTime) {
-      content += ` ${translate('digitalSignatureVerification.on')} ${signTime}`;
-    }
-    return (
-      <div
-        className="title collapsible"
-        onClick={titleInteraction}
-        onKeyDown={titleInteraction}
-        tabIndex={0}
-      >
-        {collapsible && (
-          <button
-            className={classNames({
-              arrow: true,
-              expanded: isExpanded,
-            })}
-            onClick={handleArrowClick}
-            tabIndex={0}
-          >
-            <Icon glyph="ic_chevron_right_black_24px" />
-          </button>
-        )}
-        <SignatureIcon badge={badgeIcon} size="small" />
-        <p>{content}</p>
-      </div>
-    );
-  };
-
   const renderVerificationStatus = () => {
     const verificationType = isCertification
       ? translate('digitalSignatureVerification.Certification')
@@ -189,52 +138,18 @@ const WidgetInfo = ({ name, collapsible, field }) => {
     );
   };
 
-  const renderPermissionStatus = () => {
-    let content;
-
-    switch (permissionStatus) {
-      case ModificationPermissionsStatus.e_invalidated_by_disallowed_changes:
-        content = translate(
-          'digitalSignatureVerification.permissionStatus.invalidatedByDisallowedChanges'
-        );
-        break;
-      case ModificationPermissionsStatus.e_has_allowed_changes:
-        content = translate(
-          'digitalSignatureVerification.permissionStatus.hasAllowedChanges'
-        );
-        break;
-      case ModificationPermissionsStatus.e_unmodified:
-        content = `${translate('digitalSignatureVerification.permissionStatus.unmodified')
-        } ${isCertification
-          ? translate('digitalSignatureVerification.certified')
-          : translate('digitalSignatureVerification.signed')
-        }.`;
-        break;
-      case ModificationPermissionsStatus.e_permissions_verification_disabled:
-        content = translate(
-          'digitalSignatureVerification.permissionStatus.permissionsVerificationDisabled'
-        );
-        break;
-      case ModificationPermissionsStatus.e_no_permissions_status:
-        content = translate(
-          'digitalSignatureVerification.permissionStatus.noPermissionsStatus'
-        );
-        break;
-    }
-
-    return <p>{content}</p>;
-  };
-
   const renderDisallowedChanges = () => {
     return disallowedChanges.map(({ objnum, type }) => (
-      <p key={objnum}>
-        {
-          translate(
-            'digitalSignatureVerification.disallowedChange',
-            { type, objnum }
-          )
-        }
-      </p>
+      <li key={objnum}>
+        <p>
+          {
+            translate(
+              'digitalSignatureVerification.disallowedChange',
+              { type, objnum }
+            )
+          }
+        </p>
+      </li>
     ));
   };
 
@@ -262,16 +177,18 @@ const WidgetInfo = ({ name, collapsible, field }) => {
         );
     }
     return (
-      <div className="trust-verification-result">
-        <p>
-          {
-            translate(
-              trustVerificationResultBoolean
-                ? 'digitalSignatureVerification.trustVerification.verifiedTrust'
-                : 'digitalSignatureVerification.trustVerification.noTrustVerification'
-            )
-          }
-        </p>
+      <>
+        <li>
+          <p>
+            {
+              translate(
+                trustVerificationResultBoolean
+                  ? 'digitalSignatureVerification.trustVerification.verifiedTrust'
+                  : 'digitalSignatureVerification.trustVerification.noTrustVerification'
+              )
+            }
+          </p>
+        </li>
         {
           /**
            * @todo Chat with @rastko when he is available to determine what
@@ -295,9 +212,17 @@ const WidgetInfo = ({ name, collapsible, field }) => {
            * </div>
            */
         }
-        <p>{trustVerificationTime}</p>
-        <p>{verificationTimeMessage}</p>
-      </div>
+        <li>
+          <p>
+            {trustVerificationTime}
+          </p>
+        </li>
+        <li>
+          <p>
+            {verificationTimeMessage}
+          </p>
+        </li>
+      </>
     );
   };
 
@@ -309,22 +234,22 @@ const WidgetInfo = ({ name, collapsible, field }) => {
     return (
       <div
         className='signatureDetails'
-        onClick={() => jumpToWidget(field)}
         tabIndex={-1}
       >
         <div className="title collapsible">
-          <button
+          <Button
+            img="icon-chevron-right"
             className={classNames({
               arrow: true,
               expanded: signatureDetailsExpanded,
             })}
+            ariaExpanded={signatureDetailsExpanded}
+            isActive={signatureDetailsExpanded}
+            ariaLabel={translate('digitalSignatureVerification.signatureDetails.signatureDetails')}
             onClick={
               () => setSignatureDetailsExpanded(!signatureDetailsExpanded)
             }
-            tabIndex={0}
-          >
-            <Icon glyph="ic_chevron_right_black_24px" />
-          </button>
+          />
           <p>
             {
               translate(
@@ -336,8 +261,8 @@ const WidgetInfo = ({ name, collapsible, field }) => {
         {
           signatureDetailsExpanded
           && (
-            <div className="body">
-              <div>
+            <ul className="body">
+              <li>
                 <p className="bold">
                   {
                     `${translate('digitalSignatureVerification.signatureDetails.contactInformation')}:`
@@ -349,8 +274,8 @@ const WidgetInfo = ({ name, collapsible, field }) => {
                     || translate('digitalSignatureVerification.signatureDetails.noContactInformation')
                   }
                 </p>
-              </div>
-              <div>
+              </li>
+              <li>
                 <p className="bold">
                   {
                     `${translate('digitalSignatureVerification.signatureDetails.location')}:`
@@ -362,8 +287,8 @@ const WidgetInfo = ({ name, collapsible, field }) => {
                     || translate('digitalSignatureVerification.signatureDetails.noLocation')
                   }
                 </p>
-              </div>
-              <div>
+              </li>
+              <li>
                 <p className="bold">
                   {
                     `${translate('digitalSignatureVerification.signatureDetails.reason')}:`
@@ -375,10 +300,10 @@ const WidgetInfo = ({ name, collapsible, field }) => {
                     || translate('digitalSignatureVerification.signatureDetails.noReason')
                   }
                 </p>
-              </div>
+              </li>
               {
                 signTime && (
-                  <div>
+                  <li>
                     <p className="bold">
                       {
                         `${translate('digitalSignatureVerification.signatureDetails.signingTime')}:`
@@ -390,10 +315,10 @@ const WidgetInfo = ({ name, collapsible, field }) => {
                         || translate('digitalSignatureVerification.signatureDetails.noSigningTime')
                       }
                     </p>
-                  </div>
+                  </li>
                 )
               }
-            </div>
+            </ul>
           )
         }
       </div>
@@ -412,26 +337,46 @@ const WidgetInfo = ({ name, collapsible, field }) => {
    */
   const renderSignaturePropertiesButton = () => {
     return (
-      <button
-        onClick={openSignatureModalWithFocus}
-        tabIndex={0}
-        className="signatureProperties link"
-      >
-        <p className="bold underline">{translate('digitalSignatureVerification.signatureProperties')}</p>
-      </button>
+      <li>
+        <button
+          data-element={`signatureProperties-${name}`}
+          onClick={openSignatureModalWithFocus}
+          tabIndex={0}
+          className="signatureProperties link"
+          aria-label='Open signature properties modal'
+        >
+          <p className="bold underline">
+            {translate('digitalSignatureVerification.signatureProperties')}
+          </p>
+        </button>
+      </li>
     );
+  };
+
+  const getRenderTitle = () => {
+    let content = isCertification
+      ? translate('digitalSignatureVerification.Certified')
+      : translate('digitalSignatureVerification.Signed');
+    content += ` ${translate('digitalSignatureVerification.by')} ${signerName || translate('digitalSignatureModal.unknown')}`;
+    if (signTime) {
+      content += ` ${translate('digitalSignatureVerification.on')} ${signTime}`;
+    }
+    return content;
   };
 
   return (
     <div className="signature-widget-info" tabIndex='0'>
       {signed ? (
         <React.Fragment>
-          {renderTitle()}
-          {isExpanded && (
+          <PanelListItem
+            labelHeader={getRenderTitle()}
+            iconGlyph={badgeIcon}
+            useI18String={false}
+            onClick={titleInteraction}
+            onKeyDown={titleInteraction}
+          >
             <div
               className='verificationDetails'
-              onClick={() => jumpToWidget(field)}
-              onKeyPress={() => jumpToWidget(field)}
               tabIndex={-1}
             >
               <div className="header">
@@ -441,43 +386,38 @@ const WidgetInfo = ({ name, collapsible, field }) => {
                     verificationStatus,
                   })
                 }
-                <div className="body">
-                  {
-                    renderPermissionStatus({
-                      isCertification,
-                      ModificationPermissionsStatus,
-                      permissionStatus,
-                      translate,
-                    })
-                  }
+                <ul className="body">
+                  <li>
+                    {
+                      renderPermissionStatus({
+                        isCertification,
+                        ModificationPermissionsStatus,
+                        permissionStatus,
+                        translate,
+                        digestStatus,
+                        DigestStatusErrorCodes,
+                      })
+                    }
+                  </li>
                   {renderDisallowedChanges()}
                   {renderTrustVerification()}
                   {renderSignaturePropertiesButton()}
-                </div>
-              </div>
-              <div className="header header-with-arrow">
-                {renderSignatureDetails()}
+                </ul>
               </div>
             </div>
-          )}
+            <div className="header header-with-arrow">
+              {renderSignatureDetails()}
+            </div>
+          </PanelListItem>
         </React.Fragment>
       ) : (
-        <React.Fragment>
-          <div
-            className="title link"
-            tabIndex={0}
-            onClick={() => jumpToWidget(field)}
-            onKeyPress={() => jumpToWidget(field)}
-          >
-            <div
-              className={classNames({
-                arrow: true,
-                hidden: true
-              })}
-            ></div>
-            <p>{translate('digitalSignatureVerification.unsignedSignatureField', { fieldName: field.name })}</p>
-          </div>
-        </React.Fragment>
+        <PanelListItem
+          labelHeader={translate('digitalSignatureVerification.unsignedSignatureField', { fieldName: field.name })}
+          iconGlyph='digital_signature_empty'
+          useI18String={false}
+          onClick={titleInteraction}
+          onKeyDown={titleInteraction}
+        />
       )}
       <WidgetLocator rect={locatorRect} />
     </div>

@@ -5,21 +5,20 @@ import SignatureListPanel from './SignatureListPanel';
 import { mockSavedSignatures, mockSavedInitials } from '../SignatureStylePopup/mockedSignatures';
 import { setItemToFlyoutStore } from 'helpers/itemToFlyoutHelper';
 import { MockApp, createStore } from 'helpers/storybookHelper';
+import { mobileStoryParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'ModularComponents/SignatureListPanel',
   component: SignatureListPanel,
-  parameters: {
-    customizableUI: true,
-  },
 };
 
-const SignatureListPanelInApp = (location, signatures = [], initials = []) => {
+const SignatureListPanelInApp = (context, location, signatures = [], initials = []) => {
+  const { addonRtl } = context.globals;
   const mockState = {
     ...initialState,
     viewer: {
       ...initialState.viewer,
-      activeCustomRibbon: 'insert-ribbon-item',
+      activeCustomRibbon: 'toolbarGroup-Insert',
       modularHeaders: mockHeadersNormalized,
       modularComponents: mockModularComponents,
       isInDesktopOnlyMode: false,
@@ -36,20 +35,13 @@ const SignatureListPanelInApp = (location, signatures = [], initials = []) => {
       savedSignatures: [...signatures],
       savedInitials: [...initials],
       isInitialsModeEnabled: initials.length > 0,
-      lastPickedToolForGroupedItems: {
-        'insertGroupedItems': 'AnnotationCreateSignature',
-        'insertToolsGroupedItems': 'AnnotationCreateSignature',
-      },
       activeGroupedItems: [
         'insertGroupedItems',
         'insertToolsGroupedItems',
         'defaultAnnotationUtilities'
       ],
-      lastPickedToolAndGroup: {
-        tool: 'AnnotationCreateSignature',
-        group: ['insertGroupedItems', 'insertToolsGroupedItems'],
-      },
       activeToolName: 'AnnotationCreateSignature',
+      activeTheme: context.globals.theme,
     },
     featureFlags: {
       customizableUI: true,
@@ -59,17 +51,17 @@ const SignatureListPanelInApp = (location, signatures = [], initials = []) => {
   const store = createStore(mockState);
   setItemToFlyoutStore(store);
 
-  return <MockApp initialState={mockState} />;
+  return <MockApp initialState={mockState} initialDirection={addonRtl} />;
 };
 
-export const EmptySignatureListPanelInAppLeft = () => SignatureListPanelInApp('left');
-export const EmptySignatureListPanelInAppRight = () => SignatureListPanelInApp('right');
-export const EmptySignatureListPanelInMobile = () => SignatureListPanelInApp('right');
-export const SignatureListPanelWithSignaturesInAppLeft = () => SignatureListPanelInApp('left', mockSavedSignatures);
-export const SignatureListPanelWithSignaturesInAppRight = () => SignatureListPanelInApp('right', mockSavedSignatures);
-export const SignatureListPanelWithSignaturesAndInitials = () => SignatureListPanelInApp('left', mockSavedSignatures, mockSavedInitials);
-export const SignatureListPanelWithSignaturesAndInitialsInAppRight = () => SignatureListPanelInApp('right', mockSavedSignatures, mockSavedInitials);
-export const SignatureListPanelInMobile = () => SignatureListPanelInApp('right', mockSavedSignatures, mockSavedInitials);
+export const EmptySignatureListPanelInAppLeft = (args, context) => SignatureListPanelInApp(context, 'left');
+export const EmptySignatureListPanelInAppRight = (args, context) => SignatureListPanelInApp(context, 'right');
+export const EmptySignatureListPanelInMobile = (args, context) => SignatureListPanelInApp(context, 'right');
+export const SignatureListPanelWithSignaturesInAppLeft = (args, context) => SignatureListPanelInApp(context, 'left', mockSavedSignatures);
+export const SignatureListPanelWithSignaturesInAppRight = (args, context) => SignatureListPanelInApp(context, 'right', mockSavedSignatures);
+export const SignatureListPanelWithSignaturesAndInitials = (args, context) => SignatureListPanelInApp(context, 'left', mockSavedSignatures, mockSavedInitials);
+export const SignatureListPanelWithSignaturesAndInitialsInAppRight = (args, context) => SignatureListPanelInApp(context, 'right', mockSavedSignatures, mockSavedInitials);
+export const SignatureListPanelInMobile = (args, context) => SignatureListPanelInApp(context, 'right', mockSavedSignatures, mockSavedInitials);
 
 
 EmptySignatureListPanelInAppLeft.parameters = {
@@ -90,6 +82,6 @@ SignatureListPanelWithSignaturesAndInitials.parameters = {
 SignatureListPanelWithSignaturesAndInitialsInAppRight.parameters = {
   layout: 'fullscreen',
 };
-SignatureListPanelInMobile.parameters = window.storybook.MobileParameters;
+SignatureListPanelInMobile.parameters = mobileStoryParameters;
 
-EmptySignatureListPanelInMobile.parameters = window.storybook.MobileParameters;
+EmptySignatureListPanelInMobile.parameters = mobileStoryParameters;

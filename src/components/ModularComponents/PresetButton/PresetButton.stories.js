@@ -1,25 +1,35 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import initialState from 'src/redux/initialState';
 import PresetButton from './PresetButton';
-import { PRESET_BUTTON_TYPES } from 'src/constants/customizationVariables';
+import { PRESET_BUTTON_TYPES, CELL_ADJUSTMENT_BUTTONS } from 'src/constants/customizationVariables';
+import { expect, within } from 'storybook/test';
+import core from 'core';
+import { getTranslatedText } from 'src/helpers/testTranslationHelper';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'ModularComponents/PresetButton',
   component: PresetButton,
-  parameters: {
-    customizableUI: true,
-  }
 };
 
-initialState.viewer.activeDocumentViewerKey = 1;
-const store = configureStore({ reducer: () => initialState });
 
-const prepareButtonStory = (buttonType) => {
+const prepareButtonStory = (buttonType, className, style) => {
   const props = {
     buttonType: buttonType,
+    className: className,
+    style: style,
   };
+
+  const mockInitialState = {
+    ...initialState,
+    viewer: {
+      ...initialState.viewer,
+      activeDocumentViewerKey: 1,
+    },
+  };
+  const store = configureStore({ reducer: () => mockInitialState });
 
   return (
     <Provider store={store}>
@@ -28,50 +38,261 @@ const prepareButtonStory = (buttonType) => {
   );
 };
 
-export function UndoButton() {
-  return prepareButtonStory(PRESET_BUTTON_TYPES.UNDO);
-}
+export const ModularUIPresetButtons = () => {
+  const mockInitialState = {
+    ...initialState,
+    viewer: {
+      ...initialState.viewer,
+      activeDocumentViewerKey: 1,
+      isMultiViewerModeAvailable: true,
+      isAccessibleMode: true,
+    },
+  };
+  const store = configureStore({ reducer: () => mockInitialState });
+  return (
+    <Provider store={store}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+        {Object.values(PRESET_BUTTON_TYPES).map((buttonType) => (
+          <PresetButton key={buttonType} buttonType={buttonType} />
+        ))}
+      </div>
 
-export function RedoButton() {
-  return prepareButtonStory(PRESET_BUTTON_TYPES.REDO);
-}
+    </Provider>
+  );
+};
 
-export function NewDocumentButton() {
-  return prepareButtonStory(PRESET_BUTTON_TYPES.NEW_DOCUMENT);
-}
+ModularUIPresetButtons.parameters = disableRtlModeParameters;
 
-export function FilePickerButton() {
-  return prepareButtonStory(PRESET_BUTTON_TYPES.FILE_PICKER);
-}
+export const ModularUIPresetButtonsWithStyle = () => {
+  const mockInitialState = {
+    ...initialState,
+    viewer: {
+      ...initialState.viewer,
+      activeDocumentViewerKey: 1,
+    },
+  };
+  const store = configureStore({ reducer: () => mockInitialState });
 
-export function DownloadButton() {
-  return prepareButtonStory(PRESET_BUTTON_TYPES.DOWNLOAD);
-}
+  return (
+    <Provider store={store}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', padding: '10px' }}>
+        {Object.values(PRESET_BUTTON_TYPES).map((buttonType) => (
+          <PresetButton
+            key={buttonType}
+            buttonType={buttonType}
+            className={`${buttonType}-button-class`}
+            style={{ borderRadius: '15px', border: '2px solid black' }}
+          />
+        ))}
+      </div>
+    </Provider>
+  );
+};
 
-export function FullscreenButton() {
-  return prepareButtonStory(PRESET_BUTTON_TYPES.FULLSCREEN);
-}
+ModularUIPresetButtonsWithStyle.parameters = disableRtlModeParameters;
 
-export function SaveAsButton() {
-  return prepareButtonStory(PRESET_BUTTON_TYPES.SAVE_AS);
-}
+let eventList = [];
+let inMode = true;
+let resolver;
+let promise = new Promise((resolve) => resolver = resolve);
 
-export function PrintButton() {
-  return prepareButtonStory(PRESET_BUTTON_TYPES.PRINT);
-}
-
-export function CreatePortfolioButton() {
-  return prepareButtonStory(PRESET_BUTTON_TYPES.CREATE_PORTFOLIO);
-}
-
-export function SettingsButton() {
-  return prepareButtonStory(PRESET_BUTTON_TYPES.SETTINGS);
-}
-
-export function FormFieldEditButton() {
+export function FormFieldEditToggle() {
+  eventList = [];
+  inMode = true;
+  resolver = null;
+  promise = new Promise((resolve) => resolver = resolve);
+  const originalFunc = core.getFormFieldCreationManager;
+  const addToEvents = (func) => {
+    eventList.push(func);
+    if (eventList.length > 1) {
+      resolver();
+    }
+  };
+  core.getFormFieldCreationManager = () => ({
+    addEventListener: (_, func) => addToEvents(func),
+    removeEventListener: (_, func) => eventList.splice(eventList.indexOf(func), 1),
+    isInFormFieldCreationMode: () => inMode,
+  });
+  useEffect(() => {
+    return () => core.getFormFieldCreationManager = originalFunc;
+  }, []);
   return prepareButtonStory(PRESET_BUTTON_TYPES.FORM_FIELD_EDIT);
 }
 
-export function ContentEditButton() {
+FormFieldEditToggle.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+  const button = canvas.getByRole('button', { name: getTranslatedText('action.formFieldEditMode') });
+  await expect(button.ariaPressed).toBe('true');
+  // Ensure it updates states from the event
+  inMode = false;
+  await promise;
+  eventList[0]();
+  await expect(button.ariaPressed).toBe('false');
+};
+
+FormFieldEditToggle.parameters = disableRtlModeParameters;
+
+
+export function ContentEditToggle() {
+  eventList = [];
+  inMode = true;
+  resolver = null;
+  promise = new Promise((resolve) => resolver = resolve);
+  const originalFunc = core.getContentEditManager;
+  const addToEvents = (func) => {
+    eventList.push(func);
+    if (eventList.length > 1) {
+      resolver();
+    }
+  };
+  core.getContentEditManager = () => ({
+    addEventListener: (_, func) => addToEvents(func),
+    removeEventListener: (_, func) => eventList.splice(eventList.indexOf(func), 1),
+    isInContentEditMode: () => inMode,
+  });
+  useEffect(() => {
+    return () => core.getContentEditManager = originalFunc;
+  }, []);
   return prepareButtonStory(PRESET_BUTTON_TYPES.CONTENT_EDIT);
 }
+
+ContentEditToggle.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+  const button = canvas.getByRole('button', { name: /Edit Content/i });
+  await expect(button.ariaPressed).toBe('true');
+  // Ensure it updates states from the event
+  inMode = false;
+  await promise;
+  eventList[0]();
+  await expect(button.ariaPressed).toBe('false');
+};
+
+ContentEditToggle.parameters = disableRtlModeParameters;
+
+export function CellAdjustmentButtons() {
+  const mockInitialState = {
+    ...initialState,
+    viewer: {
+      ...initialState.viewer,
+      activeDocumentViewerKey: 1,
+    },
+  };
+  const store = configureStore({ reducer: () => mockInitialState });
+  return (
+    <Provider store={store}>
+      {Object.values(CELL_ADJUSTMENT_BUTTONS).map((buttonType) =>
+        <PresetButton buttonType={buttonType}
+          key={buttonType} />)}
+    </Provider>
+  );
+}
+
+CellAdjustmentButtons.parameters = disableRtlModeParameters;
+
+let startDiffCalled;
+const setupCompareCoreMock = () => {
+  startDiffCalled = false;
+  const originalGet = core.getDocumentViewers;
+  core.getDocumentViewers = () => ([{
+    startSemanticDiff: () => {
+      startDiffCalled = true;
+    },
+  }, {}]);
+  return () => {
+    startDiffCalled = false;
+    core.getDocumentViewers = originalGet;
+  };
+};
+
+const useCompareTestMock = () => {
+  const cleanupRef = useRef(null);
+  if (!cleanupRef.current) {
+    cleanupRef.current = setupCompareCoreMock();
+  }
+  useEffect(() => () => cleanupRef.current?.(), []);
+};
+
+export function CompareButtonNotStarted() {
+  const mockInitialState = {
+    ...initialState,
+    viewer: {
+      ...initialState.viewer,
+      isMultiViewerReady: true,
+      isMultiViewerMode: true,
+      isCompareStarted: false,
+      disabledElements: {},
+    },
+  };
+  useCompareTestMock();
+  const store = configureStore({ reducer: () => mockInitialState });
+  return (
+    <Provider store={store}>
+      <PresetButton buttonType={PRESET_BUTTON_TYPES.COMPARE}/>
+    </Provider>
+  );
+}
+CompareButtonNotStarted.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+  const button = await canvas.findByRole('button', { name: /Compare/i });
+  await button.click();
+  // Should start diff when not started
+  await expect(startDiffCalled).toBe(true);
+};
+CompareButtonNotStarted.parameters = disableRtlModeParameters;
+
+export function CompareButtonAlreadyStarted() {
+  const mockInitialState = {
+    ...initialState,
+    viewer: {
+      ...initialState.viewer,
+      isMultiViewerReady: true,
+      isMultiViewerMode: true,
+      isCompareStarted: true,
+      disabledElements: {},
+    },
+  };
+  useCompareTestMock();
+  const store = configureStore({ reducer: () => mockInitialState });
+  return (
+    <Provider store={store}>
+      <PresetButton buttonType={PRESET_BUTTON_TYPES.COMPARE}/>
+    </Provider>
+  );
+}
+CompareButtonAlreadyStarted.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+  const button = await canvas.findByRole('button', { name: /Compare/i });
+  await button.click();
+  // Should not start diff again
+  await expect(startDiffCalled).toBe(false);
+};
+CompareButtonAlreadyStarted.parameters = disableRtlModeParameters;
+
+export function HiddenPresetButtons() {
+  const BUTTONS_THAT_HIDE = [
+    PRESET_BUTTON_TYPES.TOGGLE_ACCESSIBILITY_MODE,
+    PRESET_BUTTON_TYPES.TOGGLE_MULTI_VIEWER_MODE,
+  ];
+
+  const mockInitialState = {
+    ...initialState,
+    viewer: {
+      ...initialState.viewer,
+      activeDocumentViewerKey: 1,
+      isAccessibleMode: false, // to hide accessibility mode toggle button
+      isMultiViewerReady: false, // to hide multiViewerButton
+    },
+  };
+  const store = configureStore({ reducer: () => mockInitialState });
+  return (
+    <Provider store={store}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+        {Object.values(BUTTONS_THAT_HIDE).map((buttonType) => (
+          <PresetButton key={buttonType} buttonType={buttonType} />
+        ))}
+        <PresetButton buttonType={PRESET_BUTTON_TYPES.SETTINGS} />
+      </div>
+    </Provider>
+  );
+}
+

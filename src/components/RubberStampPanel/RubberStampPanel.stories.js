@@ -3,16 +3,15 @@ import initialState from 'src/redux/initialState';
 import RubberStampPanel from './RubberStampPanel';
 import { setItemToFlyoutStore } from 'helpers/itemToFlyoutHelper';
 import { MockApp, createStore } from 'helpers/storybookHelper';
+import { mobileStoryParameters, disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'ModularComponents/RubberStampPanel',
   component: RubberStampPanel,
-  parameters: {
-    customizableUI: true,
-  },
 };
 
-const RubberStampPanelInApp = (location,) => {
+const RubberStampPanelInApp = (context, location) => {
+  const { addonRtl } = context.globals;
   const mockState = {
     ...initialState,
     viewer: {
@@ -28,16 +27,10 @@ const RubberStampPanelInApp = (location,) => {
         contextMenuPopup: false,
         rubberStampPanel: true,
       },
-      lastPickedToolForGroupedItems: {
-        'insertGroupedItems': 'AnnotationCreateRubberStamp'
-      },
       activeGroupedItems: ['insertGroupedItems'],
       activeCustomRibbon: 'toolbarGroup-Insert',
-      lastPickedToolAndGroup: {
-        tool: 'AnnotationCreateRubberStamp',
-        group: ['insertGroupedItems', 'insertToolsGroupedItems'],
-      },
-      activeToolName: 'AnnotationCreateRubberStamp'
+      activeToolName: 'AnnotationCreateRubberStamp',
+      activeTheme: context.globals.theme,
     },
     featureFlags: {
       customizableUI: true,
@@ -46,12 +39,14 @@ const RubberStampPanelInApp = (location,) => {
   const store = createStore(mockState);
   setItemToFlyoutStore(store);
 
-  return <MockApp initialState={mockState} />;
+  return <MockApp initialState={mockState} initialDirection={addonRtl} />;
 };
 
-export const RubberStampPanelInleft = () => RubberStampPanelInApp('left');
-export const RubberStampPanelInRight = () => RubberStampPanelInApp('right');
-export const RubberStampPanelInMobile = () => RubberStampPanelInApp();
+export const RubberStampPanelInleft = (args, context) => RubberStampPanelInApp(context, 'left');
+export const RubberStampPanelInRight = (args, context) => RubberStampPanelInApp(context, 'right');
+RubberStampPanelInRight.parameters = disableRtlModeParameters;
+
+export const RubberStampPanelInMobile = (args, context) => RubberStampPanelInApp(context, );
 
 RubberStampPanelInleft.parameters = {
   layout: 'fullscreen',
@@ -59,4 +54,4 @@ RubberStampPanelInleft.parameters = {
 RubberStampPanelInRight.parameters = {
   layout: 'fullscreen',
 };
-RubberStampPanelInMobile.parameters = window.storybook.MobileParameters;
+RubberStampPanelInMobile.parameters = mobileStoryParameters;

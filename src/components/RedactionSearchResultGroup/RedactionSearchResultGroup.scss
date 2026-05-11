@@ -5,7 +5,7 @@
 
   .redaction-search-results-page-number-checkbox {
     position: absolute;
-    left: 24px;
+    inset-inline-start: 24px;
   }
 
   .collapsible-page-group-header {
@@ -13,8 +13,17 @@
       font-size: 13px;
       font-weight: normal;
       color: var(--faded-text);
-      margin: 0 0 0 32px;
+      margin-inline-start: 32px;
       width: calc(100% - 32px);
+    }
+  }
+
+  .redaction-search-results {
+    padding: 0;
+    margin: 0;
+
+    .Icon {
+      padding: 2px;
     }
   }
 }

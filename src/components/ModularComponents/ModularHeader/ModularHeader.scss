@@ -10,4 +10,19 @@
   background: var(--gray-0);
   z-index: $headers-z-index;
   touch-action: none;
+  outline: 2px solid transparent;
+  position: relative;
+
+  &:has(:focus-visible) {
+    outline-color: var(--focus-visible-outline) !important;
+    outline-offset: -2px;
+  }
+
+  &:has(.tab-body.input-mode) {
+    outline-color: transparent !important;
+  }
+
+  &:has(.ModularHeaderItems.empty-header) {
+    display: none;
+  }
 }

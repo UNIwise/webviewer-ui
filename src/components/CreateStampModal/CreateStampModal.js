@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import classNames from 'classnames';
 import { useSelector, useDispatch, useStore } from 'react-redux';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import actions from 'actions';
 import selectors from 'selectors';
 import { useTranslation } from 'react-i18next';
@@ -9,6 +9,7 @@ import CustomStampForums from './CustomStampForums';
 import Button from 'components/Button';
 import DataElements from 'constants/dataElement';
 import ModalWrapper from 'components/ModalWrapper';
+import useFocusOnClose from 'hooks/useFocusOnClose';
 
 import './CreateStampModal.scss';
 
@@ -16,11 +17,14 @@ const TOOL_NAME = 'AnnotationCreateRubberStamp';
 const fillColors = window.Core.Tools.RubberStampCreateTool['FILL_COLORS'];
 
 const CustomStampModal = () => {
+  const { core } = useCore();
   const [state, setState] = useState({ font: 'Helvetica', bold: true, color: fillColors[0] });
   const stampToolArray = core.getToolsFromAllDocumentViewers(TOOL_NAME);
   const [t] = useTranslation();
   const store = useStore();
   const [emptyInput, setEmptyInput] = useState(false);
+  const customStampModalOverlayRef = useRef(null);
+  const modalWrapperRef = useRef(null);
   const [isOpen, fonts, dateTimeFormats, userName] = useSelector((state) => [
     selectors.isElementOpen(state, DataElements.CUSTOM_STAMP_MODAL),
     selectors.getFonts(state),
@@ -29,15 +33,49 @@ const CustomStampModal = () => {
   ]);
   const dispatch = useDispatch();
 
+  const updateOverflow = () => {
+    const currentModalOverlayElement = customStampModalOverlayRef.current;
+    if (!currentModalOverlayElement) {
+      return;
+    }
+
+    const modalElementContainer = modalWrapperRef.current;
+    if (!modalElementContainer) {
+      return;
+    }
+
+    const customStampModalRect = currentModalOverlayElement.getBoundingClientRect();
+    const modalContainerRect = modalElementContainer.getBoundingClientRect();
+    const enableScrollBar = customStampModalRect.height > 0 && modalContainerRect.height >= customStampModalRect.height;
+
+    if (enableScrollBar) {
+      modalElementContainer.style.overflow = 'auto';
+    } else {
+      modalElementContainer.style.overflow = 'visible';
+    }
+  };
+
+  useLayoutEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    updateOverflow();
+    window.addEventListener('resize', updateOverflow);
+
+    return () => {
+      window.removeEventListener('resize', updateOverflow);
+    };
+  }, [isOpen]);
+
   useEffect(() => {
     if (isOpen) {
       core.deselectAllAnnotations();
     }
   }, [isOpen]);
 
-  const closeModal = () => {
+  const closeModal = useFocusOnClose(() => {
     dispatch(actions.closeElement(DataElements.CUSTOM_STAMP_MODAL));
-  };
+  });
 
   const openColorPicker = () => {
     dispatch(actions.openElement('ColorPickerModal'));
@@ -84,20 +122,22 @@ const CustomStampModal = () => {
     dispatch(actions.setSelectedStampIndex(standardStampCount + customStampCount - 1));
   };
 
-  const onCreateCustomStampClick = () => {
+  const onCreateCustomStampClick = useFocusOnClose(() => {
     if (emptyInput) {
       return;
     }
     createCustomStamp();
-  };
+  });
 
   return (
     isOpen ?
       <div
         className={modalClass}
         data-element={DataElements.CUSTOM_STAMP_MODAL}
+        ref={customStampModalOverlayRef}
       >
         <ModalWrapper
+          ref={modalWrapperRef}
           title={t('option.customStampModal.modalName')}
           closeHandler={closeModal}
           onCloseClick={closeModal}

@@ -1,10 +1,14 @@
 import React from 'react';
 import CreatableMultiSelect from './CreatableMultiSelect';
 import { components } from 'react-select';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/CreatableMultiSelect',
   component: CreatableMultiSelect,
+  parameters: {
+    legacyUI: true
+  }
 };
 
 const colourOptions = [
@@ -58,6 +62,8 @@ export function Basic() {
     />);
 }
 
+Basic.parameters = disableRtlModeParameters;
+
 export function WithCustomStyles() {
   return (
     <CreatableMultiSelect
@@ -83,6 +89,8 @@ export function WithCustomStyles() {
       }}
     />);
 }
+
+WithCustomStyles.parameters = disableRtlModeParameters;
 
 export function WithCustomComponents() {
   const MultiValueLabel = ({ data }) => {
@@ -112,6 +120,8 @@ export function WithCustomComponents() {
     />);
 }
 
+WithCustomComponents.parameters = disableRtlModeParameters;
+
 export function MultiSelectGroups() {
   return (
     <CreatableMultiSelect
@@ -120,3 +130,5 @@ export function MultiSelectGroups() {
       menuIsOpen
     />);
 }
+
+MultiSelectGroups.parameters = disableRtlModeParameters;

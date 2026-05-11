@@ -9,27 +9,20 @@ import { isMac } from 'helpers/device';
 import getGroupedLinkAnnotations from 'helpers/getGroupedLinkAnnotations';
 import getAnnotationStyles from 'helpers/getAnnotationStyles';
 import DataElements from 'constants/dataElement';
+import getRootNode from 'helpers/getRootNode';
+import FocusStackManager from 'helpers/focusStackManager';
+import useFocusOnClose from 'hooks/useFocusOnClose';
 
 const { ToolNames } = window.Core.Tools;
 const { Annotations } = window.Core;
 
 export default function useOnAnnotationPopupOpen() {
-  const [
-    popupItems,
-    isRightClickAnnotationPopupEnabled,
-    isNotesPanelOpen,
-    isScaleOverlayContainerOpen,
-    activeDocumentViewerKey,
-  ] = useSelector(
-    (state) => [
-      selectors.getPopupItems(state, DataElements.ANNOTATION_POPUP),
-      selectors.isRightClickAnnotationPopupEnabled(state),
-      selectors.isElementOpen(state, DataElements.NOTES_PANEL),
-      selectors.isElementOpen(state, DataElements.SCALE_OVERLAY_CONTAINER),
-      selectors.getActiveDocumentViewerKey(state),
-    ],
-    shallowEqual,
-  );
+  const popupItems = useSelector((state) => selectors.getPopupItems(state, DataElements.ANNOTATION_POPUP), shallowEqual);
+  const isRightClickAnnotationPopupEnabled = useSelector(selectors.isRightClickAnnotationPopupEnabled);
+  const isNotesPanelOpen = useSelector((state) => selectors.isElementOpen(state, DataElements.NOTES_PANEL));
+  const isScaleOverlayContainerOpen = useSelector((state) => selectors.isElementOpen(state, DataElements.SCALE_OVERLAY_CONTAINER));
+  const isOfficeEditorMode = useSelector(selectors.getIsOfficeEditorMode);
+  const activeDocumentViewerKey = useSelector(selectors.getActiveDocumentViewerKey);
 
   const dispatch = useDispatch();
 
@@ -45,6 +38,8 @@ export default function useOnAnnotationPopupOpen() {
   const [includesFormFieldAnnotation, setIncludesFormFieldAnnotation] = useState(false);
   const [stylePopupRepositionFlag, setStylePopupRepositionFlag] = useState(false);
 
+  const widgetThatOpenedPopupRef = useRef(null);
+
   // calling this function will always rerender this component
   // because the position state always has a new object reference
   const openPopup = () => {
@@ -53,7 +48,7 @@ export default function useOnAnnotationPopupOpen() {
     }
   };
 
-  const closePopup = () => {
+  const closePopup = useFocusOnClose(() => {
     dispatch(actions.closeElement(DataElements.ANNOTATION_POPUP));
     setFocusedAnnotation(null);
     setSelectedMultipleAnnotations(false);
@@ -63,12 +58,10 @@ export default function useOnAnnotationPopupOpen() {
     setDatePickerMount(false);
     setHasAssociatedLink(false);
     setIncludesFormFieldAnnotation(false);
-  };
-
-  const canAnnotationBeModified = (annotation) => {
-    const isSignedByAppearance = annotation instanceof Annotations.SignatureWidgetAnnotation && annotation.isSignedByAppearance();
-    return core.canModify(annotation) && !isSignedByAppearance;
-  };
+    if (widgetThatOpenedPopupRef.current) {
+      widgetThatOpenedPopupRef.current = null;
+    }
+  });
 
   const groupedLinkAnnotations = (annotation) => getGroupedLinkAnnotations(annotation);
 
@@ -102,6 +95,57 @@ export default function useOnAnnotationPopupOpen() {
     isRightClickAnnotationPopupEnabledRef.current = isRightClickAnnotationPopupEnabled;
   }, [isRightClickAnnotationPopupEnabled]);
 
+  const isSignatureWidget = (annotation) => {
+    return annotation instanceof Annotations.SignatureWidgetAnnotation;
+  };
+
+  const isAssociatedSignatureAnnotation = (annotation) => {
+    return (
+      annotation instanceof Annotations.FreeHandAnnotation ||
+      annotation instanceof Annotations.StampAnnotation) &&
+      annotation.Subject === 'Signature';
+  };
+
+  const handleSignatureWidget = async (annotation) => {
+    const signatureWidget = isSignatureWidget(annotation);
+    const annotationSignature = isAssociatedSignatureAnnotation(annotation);
+
+    if (signatureWidget && (annotation.getAssociatedSignatureAnnotation() || annotation.isSignedByAppearance())) {
+      widgetThatOpenedPopupRef.current = annotation;
+      const innerElement = annotation.getInnerElement().dataset.element;
+      if (innerElement) {
+        FocusStackManager.push(innerElement);
+      }
+      await autoFocusFirstButton();
+    } else if (annotationSignature) {
+      const allAnnotations = core.getAnnotationsList();
+      const associatedWidget = allAnnotations.find(
+        (a) => a instanceof Annotations.SignatureWidgetAnnotation && a.getAssociatedSignatureAnnotation() === annotation
+      );
+      if (associatedWidget) {
+        widgetThatOpenedPopupRef.current = associatedWidget;
+        const innerElement = associatedWidget.getInnerElement().dataset.element;
+        if (innerElement) {
+          FocusStackManager.push(innerElement);
+        }
+      }
+      await autoFocusFirstButton();
+    }
+  };
+
+  const POPUP_RENDER_TIME = 100;
+
+  const autoFocusFirstButton = async () => {
+    await new Promise((resolve) => setTimeout(resolve, POPUP_RENDER_TIME));
+    const popup = getRootNode().querySelector(`[data-element=${DataElements.ANNOTATION_POPUP}]`);
+    if (popup) {
+      const firstButton = popup.querySelector('button:not([disabled])');
+      if (firstButton) {
+        firstButton.focus();
+      }
+    }
+  };
+
   useEffect(() => {
     const onAnnotationSelected = (annotations, action) => {
       if (annotations.length === 0 || annotations[0].ToolName === ToolNames.CROP || annotations[0].ToolName === ToolNames.SNIPPING) {
@@ -109,13 +153,22 @@ export default function useOnAnnotationPopupOpen() {
       }
 
       if (action === 'selected') {
+        if (isOfficeEditorMode) {
+          // In Office Editor, we don't always want opened comment to steal focus from document
+          dispatch(actions.finishNoteEditing());
+        }
         if (!isRightClickAnnotationPopupEnabledRef.current) {
           setFocusedAnnotation(annotations[0]);
         }
 
-        setSelectedMultipleAnnotations(annotations.length > 1);
-        setIncludesFormFieldAnnotation(annotations.some((annotation) => annotation.isFormFieldPlaceholder()));
-        setCanModify(canAnnotationBeModified(annotations[0]));
+        const selectedAnnotations = core.getSelectedAnnotations();
+        setSelectedMultipleAnnotations(selectedAnnotations.length > 1);
+
+        const canModifyAll = selectedAnnotations.every((annotation) => core.canModify(annotation));
+        setCanModify(canModifyAll);
+
+        const hasFormFieldAnnotation = selectedAnnotations.some((annotation) => annotation instanceof Annotations.WidgetAnnotation);
+        setIncludesFormFieldAnnotation(hasFormFieldAnnotation);
 
         if (isNotesPanelOpen) {
           setTimeout(() => dispatch(actions.openElement(DataElements.ANNOTATION_NOTE_CONNECTOR_LINE)), 300);
@@ -124,6 +177,10 @@ export default function useOnAnnotationPopupOpen() {
         const isAnnotationSelectedWithDatePickerOpen = annotations[0] === focusedAnnotation && isDatePickerOpen;
         if (isAnnotationSelectedWithDatePickerOpen) {
           closePopup();
+        }
+
+        if (isSignatureWidget(annotations[0]) || isAssociatedSignatureAnnotation(annotations[0])) {
+          handleSignatureWidget(annotations[0]);
         }
       }
 
@@ -137,8 +194,8 @@ export default function useOnAnnotationPopupOpen() {
     core.addEventListener('documentUnloaded', closePopup, null, activeDocumentViewerKey);
 
     return () => {
-      core.removeEventListener('annotationSelected', onAnnotationSelected, null, activeDocumentViewerKey);
-      core.removeEventListener('documentUnloaded', closePopup, null, activeDocumentViewerKey);
+      core.removeEventListener('annotationSelected', onAnnotationSelected, activeDocumentViewerKey);
+      core.removeEventListener('documentUnloaded', closePopup, activeDocumentViewerKey);
     };
   }, [focusedAnnotation, isNotesPanelOpen, isDatePickerOpen, activeDocumentViewerKey]);
 
@@ -169,7 +226,7 @@ export default function useOnAnnotationPopupOpen() {
 
     const onUpdateAnnotationPermission = () => {
       if (focusedAnnotation) {
-        setCanModify(canAnnotationBeModified(focusedAnnotation));
+        setCanModify(core.canModify(focusedAnnotation));
       }
     };
 
@@ -177,8 +234,8 @@ export default function useOnAnnotationPopupOpen() {
     core.addEventListener('updateAnnotationPermission', onUpdateAnnotationPermission, null, activeDocumentViewerKey);
 
     return () => {
-      core.removeEventListener('annotationChanged', onAnnotationChanged, null, activeDocumentViewerKey);
-      core.removeEventListener('updateAnnotationPermission', onUpdateAnnotationPermission, null, activeDocumentViewerKey);
+      core.removeEventListener('annotationChanged', onAnnotationChanged, activeDocumentViewerKey);
+      core.removeEventListener('updateAnnotationPermission', onUpdateAnnotationPermission, activeDocumentViewerKey);
     };
   }, [canModify, focusedAnnotation, isScaleOverlayContainerOpen, activeDocumentViewerKey]);
 
@@ -206,7 +263,7 @@ export default function useOnAnnotationPopupOpen() {
     };
 
     core.addEventListener('mouseLeftUp', onMouseLeftUp, null, activeDocumentViewerKey);
-    return () => core.removeEventListener('mouseLeftUp', onMouseLeftUp, null, activeDocumentViewerKey);
+    return () => core.removeEventListener('mouseLeftUp', onMouseLeftUp, activeDocumentViewerKey);
   }, [focusedAnnotation, isStylePopupOpen, activeDocumentViewerKey]);
 
   useEffect(() => {
@@ -263,5 +320,6 @@ export default function useOnAnnotationPopupOpen() {
     stylePopupRepositionFlag,
     setStylePopupRepositionFlag,
     closePopup,
+    widgetThatOpenedPopupRef,
   };
 }

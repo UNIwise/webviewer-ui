@@ -1,4 +1,4 @@
-@import "../../../constants/styles";
+@import '../../../constants/styles';
 
 .ToggleElementButton {
   .Button {
@@ -16,7 +16,11 @@
       cursor: default;
 
       .Icon {
-        color: var(--view-header-icon-active-fill)
+        color: var(--view-header-icon-active-fill);
+
+        svg path:not(.no-fill) {
+          fill: var(--view-header-icon-active-fill);
+        }
       }
     }
   }
@@ -27,6 +31,16 @@
         border: none;
         box-shadow: none;
         background-color: var(--blue-1);
+      }
+    }
+  }
+
+  &.is-mobile {
+    .Button.modular-ui.icon-only {
+      &:hover:not(:disabled):not(.active) {
+        background-color: initial;
+        color: initial;
+        box-shadow: none;
       }
     }
   }

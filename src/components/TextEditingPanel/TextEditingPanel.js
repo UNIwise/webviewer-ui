@@ -12,6 +12,7 @@ import HorizontalDivider from 'components/HorizontalDivider';
 const TextEditingPanel = ({
   addActiveColor,
   contentSelectMode,
+  imageSelectMode,
   disableLinkButton,
   fonts,
   format,
@@ -62,7 +63,7 @@ const TextEditingPanel = ({
   const textStylesSection = (
     <div className="text-editing-panel-section">
       <div className="top-panel text-editing-panel-menu-items">
-        <span className="text-editing-panel-heading" >{i18next.t('stylePanel.headings.textStyles')}</span>
+        <h2 className="text-editing-panel-heading" >{i18next.t('stylePanel.headings.textStyles')}</h2>
         <div className={`text-editing-panel-text-style-picker ${contentSelectMode ? '' : 'inactive'}`}>
           <TextStylePicker
             fonts={fonts}
@@ -93,7 +94,7 @@ const TextEditingPanel = ({
 
   const colorPaletteSection = textPanelSectionWrapper(
     <div className="color-palette-section">
-      <span className="text-editing-panel-heading">{i18next.t('stylePanel.headings.currentColor')}</span>
+      <h2 className="text-editing-panel-heading">{i18next.t('stylePanel.headings.currentColor')}</h2>
       <div className="text-editing-row">
         <ColorPalette
           colorMapKey="freeText"
@@ -101,6 +102,7 @@ const TextEditingPanel = ({
           property={currentPalette}
           onStyleChange={handleColorChange}
           overridePalette2={[rgbColor?.toHexString()]}
+          disabled={imageSelectMode}
         />
         <Button
           img="ic-copy-color"
@@ -108,11 +110,11 @@ const TextEditingPanel = ({
           title={i18next.t('stylePanel.addColorToCustom')}
           dataElement={'addColorToCustom'}
           className={isCustomUI ? '' : 'addToCustomButton'}
-          disabled={isCopyBtnDisabled}
+          disabled={imageSelectMode || isCopyBtnDisabled}
         />
       </div>
       <div className="custom-colors-section">
-        <span className="text-editing-panel-heading">{i18next.t('stylePanel.headings.customColors')}</span>
+        <h2 className="text-editing-panel-heading">{i18next.t('stylePanel.headings.customColors')}</h2>
         <div className="text-editing-row custom-colors-pallete">
           <ColorPalettePicker
             color={rgbColor}
@@ -121,6 +123,7 @@ const TextEditingPanel = ({
             disableTitle
             enableEdit
             getHexColor={(color) => color?.toHexString()}
+            disabled={imageSelectMode}
           />
         </div>
       </div>
@@ -166,6 +169,7 @@ const TextEditingPanel = ({
 TextEditingPanel.propTypes = {
   addActiveColor: PropTypes.func,
   contentSelectMode: PropTypes.bool,
+  imageSelectMode: PropTypes.bool,
   disableLinkButton: PropTypes.bool,
   fonts: PropTypes.arrayOf(PropTypes.string),
   format: PropTypes.object,

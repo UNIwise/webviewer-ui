@@ -6,43 +6,25 @@ import actions from 'actions';
 import selectors from 'selectors';
 import { useTranslation } from 'react-i18next';
 import DataElementWrapper from 'components/DataElementWrapper';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import Measure from 'react-measure';
 import { DISABLED_TOOL_GROUPS } from 'constants/multiViewerContants';
 import DataElements from 'constants/dataElement';
 import { isOfficeEditorMode } from 'helpers/officeEditor';
+import useOnDocumentFileNameEdit from 'hooks/useOnDocumentFileNameEdit';
 
 import './Ribbons.scss';
 
 const FileName = () => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [extension, setExtension] = useState('');
-  const [fileNameWithoutExtension, setFileNameWithoutExtension] = useState('');
-
-  const onClicked = () => {
-    const name = core.getDocument()?.getFilename();
-    const nameArray = name?.split('.');
-    const extension = `.${nameArray[nameArray.length - 1]}`;
-    setFileNameWithoutExtension(name.slice(0, -extension.length) || name);
-    setExtension(extension);
-    setIsEditing(true);
-  };
-
-  const finishEditing = () => {
-    if (fileNameWithoutExtension) {
-      core.getDocument()?.setFilename(`${fileNameWithoutExtension}${extension}`);
-    }
-    setIsEditing(false);
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      finishEditing();
-    }
-    if (e.key === 'Escape') {
-      setIsEditing(false);
-    }
-  };
+  const { core } = useCore();
+  const {
+    isEditing,
+    fileNameWithoutExtension,
+    setFileNameWithoutExtension,
+    startEditing: onClicked,
+    finishEditing,
+    handleKeyDown,
+  } = useOnDocumentFileNameEdit();
 
   return (
     <DataElementWrapper dataElement={DataElements.OFFICE_EDITOR_FILE_NAME}>
@@ -62,6 +44,7 @@ const FileName = () => {
 };
 
 const Ribbons = () => {
+  const { core } = useCore();
   const [
     toolbarGroups,
     currentToolbarGroup,
@@ -90,13 +73,17 @@ const Ribbons = () => {
   const shouldPickTool = (toolbarGroup) => toolbarGroup !== 'toolbarGroup-Edit' && toolbarGroup !== 'toolbarGroup-EditText';
 
   const toggleFormFieldCreationMode = (toolGroup) => {
-    const formFieldCreationManager = core.getFormFieldCreationManager();
+    const formFieldCreationManagers = core.getDocumentViewers().map((viewer) => viewer.getAnnotationManager().getFormFieldCreationManager());
     if (toolGroup === 'toolbarGroup-Forms') {
-      if (!formFieldCreationManager.isInFormFieldCreationMode()) {
-        formFieldCreationManager.startFormFieldCreationMode();
+      const shouldStart = formFieldCreationManagers.some((manager) => !manager.isInFormFieldCreationMode());
+      if (shouldStart) {
+        formFieldCreationManagers.forEach((manager) => manager.startFormFieldCreationMode());
       }
-    } else if (formFieldCreationManager.isInFormFieldCreationMode()) {
-      formFieldCreationManager.endFormFieldCreationMode();
+    } else {
+      const shouldEnd = formFieldCreationManagers.some((manager) => manager.isInFormFieldCreationMode());
+      if (shouldEnd) {
+        formFieldCreationManagers.forEach((manager) => manager.endFormFieldCreationMode());
+      }
     }
   };
 
@@ -221,6 +208,7 @@ const Ribbons = () => {
             })}
           >
             <Dropdown
+              id="ribbonsDropdown"
               dataElement="ribbonsDropdown"
               items={filteredToolBarGroup}
               getTranslationLabel={getToolbarTranslationString}

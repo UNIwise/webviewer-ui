@@ -1,5 +1,6 @@
 import React from 'react';
 import CreatableDropdown from './CreatableDropdown';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 
 export default {
@@ -56,3 +57,5 @@ export function Basic() {
     </div>
   );
 }
+
+Basic.parameters = disableRtlModeParameters;

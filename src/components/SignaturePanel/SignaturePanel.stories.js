@@ -3,13 +3,11 @@ import { configureStore } from '@reduxjs/toolkit';
 import Panel from 'components/Panel';
 import React from 'react';
 import SignaturePanelComponent from './SignaturePanel';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'ModularComponents/SignaturePanel',
   component: SignaturePanelComponent,
-  parameters: {
-    customizableUI: true,
-  },
 };
 
 const initialState = {
@@ -27,7 +25,7 @@ const initialState = {
     validationModalWidgetName: '',
     verificationResult: {},
     certificates: [],
-    trustLists: [],
+    trustListKey: null,
     isRevocationCheckingEnabled: false,
     revocationProxyPrefix: null,
   },
@@ -42,3 +40,5 @@ export function SignaturePanelEmpty() {
     </Provider>
   );
 }
+
+SignaturePanelEmpty.parameters = disableRtlModeParameters;

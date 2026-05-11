@@ -9,9 +9,10 @@ import { getMaxZoomLevel, getMinZoomLevel } from 'constants/zoomFactors';
 import _setCurrentPage from 'helpers/setCurrentPage';
 import { getStep } from 'helpers/zoom';
 import throttle from 'lodash/throttle';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import getNumberOfPagesToNavigate from 'helpers/getNumberOfPagesToNavigate';
 import getRootNode from 'helpers/getRootNode';
+import { createTouchEventManager } from 'helpers/TouchEventManager';
 
 import './DocumentContainer.scss';
 
@@ -19,7 +20,6 @@ const propTypes = {
   documentViewerKey: PropTypes.number.isRequired,
   activeDocumentViewerKey: PropTypes.number.isRequired,
   container: PropTypes.object.isRequired,
-  onReady: PropTypes.func,
 };
 
 // TODO compare: check display mode scrolling
@@ -27,12 +27,13 @@ const DocumentContainer = ({
   documentViewerKey,
   activeDocumentViewerKey,
   container,
-  onReady,
   docLoaded,
 }) => {
-  const documentViewer = core.getDocumentViewer(documentViewerKey);
+  const { core } = useCore(documentViewerKey);
+  const documentViewer = core.getDocumentViewer();
   const dispatch = useDispatch();
   const document = useRef();
+  const touchManagerRef = useRef(null);
   const [
     isMouseWheelZoomEnabled,
   ] = useSelector((state) => [
@@ -40,19 +41,26 @@ const DocumentContainer = ({
   ]);
 
   useEffect(() => {
+    if (!touchManagerRef.current) {
+      touchManagerRef.current = createTouchEventManager();
+    }
+    const touchManager = touchManagerRef.current;
     const removeListeners = () => {
       if (container?.current) {
         container.current.removeEventListener('dragover', preventDefault);
         container.current.removeEventListener('drop', onDrop);
         container.current.removeEventListener('wheel', onWheel, { passive: false });
       }
+      if (touchManager) {
+        touchManager.terminate();
+      }
     };
     documentViewer.setScrollViewElement(container.current);
     documentViewer.setViewerElement(document.current);
+    touchManager.initialize(document.current, container.current, documentViewerKey);
     container.current.addEventListener('dragover', preventDefault);
     container.current.addEventListener('drop', onDrop);
     container.current.addEventListener('wheel', onWheel, { passive: false });
-    onReady(documentViewerKey);
     return removeListeners;
   }, []);
 
@@ -76,7 +84,7 @@ const DocumentContainer = ({
     const displayMode = documentViewer.getDisplayModeManager().getDisplayMode();
     if (isMouseWheelZoomEnabled && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
-      wheelToZoom(e, core.getZoom(documentViewerKey));
+      wheelToZoom(e, core.getZoom());
     } else if (!displayMode?.isContinuous() && displayMode?.IsScrollable()) {
       wheelToNavigatePages(e);
       dispatch(actions.closeElements([
@@ -105,7 +113,7 @@ const DocumentContainer = ({
     documentViewer.zoomToMouse(newZoomFactor, xOffset, yOffset, e);
   }, 30, { trailing: false });
   const wheelToNavigatePages = (e) => {
-    const currentPage = core.getCurrentPage(documentViewerKey);
+    const currentPage = core.getCurrentPage();
     const totalPages = documentViewer.getPageCount();
     const { scrollTop, scrollHeight, clientHeight } = container.current;
     const reachedTop = scrollTop === 0;
@@ -120,7 +128,7 @@ const DocumentContainer = ({
     }
   };
   const pageUp = () => {
-    const currentPage = core.getCurrentPage(documentViewerKey);
+    const currentPage = core.getCurrentPage();
     const pagesToNavigate = getNumberOfPagesToNavigate();
     const _container = container.current;
     const { scrollHeight, clientHeight } = _container;
@@ -128,7 +136,7 @@ const DocumentContainer = ({
     _container.scrollTop = scrollHeight - clientHeight;
   };
   const pageDown = () => {
-    const currentPage = core.getCurrentPage(documentViewerKey);
+    const currentPage = core.getCurrentPage();
     const pagesToNavigate = getNumberOfPagesToNavigate();
     _setCurrentPage(currentPage + pagesToNavigate, documentViewerKey);
   };
@@ -142,6 +150,7 @@ const DocumentContainer = ({
       id={`DocumentContainer${documentViewerKey}`}
       onScroll={handleScroll}
       style={style}
+      tabIndex="-1"
     >
       <div className={'document'} ref={document} id={`Document${documentViewerKey}`} />
     </div>

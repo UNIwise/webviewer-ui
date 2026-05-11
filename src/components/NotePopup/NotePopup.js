@@ -1,30 +1,37 @@
-import React from 'react';
+import React, { useLayoutEffect } from 'react';
 import PropTypes from 'prop-types';
-import useOnClickOutside from 'hooks/useOnClickOutside';
-import useOnFocusOutside from 'hooks/useOnFocusOutside';
-import useOverflowContainer from 'hooks/useOverflowContainer';
-import DataElementWrapper from 'components/DataElementWrapper';
 import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
 import selectors from 'selectors';
-import Icon from 'components/Icon';
-import Tooltip from 'components/Tooltip';
-
+import DataElements from 'src/constants/dataElement';
+import actions from 'actions';
 import './NotePopup.scss';
-import Button from '../Button';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import ToggleElementButton from 'components/ModularComponents/ToggleElementButton';
+
+const createFlyoutItem = (option, icon, dataElement) => ({
+  icon,
+  label: `action.${option.toLowerCase()}`,
+  title: `action.${option.toLowerCase()}`,
+  option,
+  dataElement,
+});
+
+export const notePopupFlyoutItems = [
+  createFlyoutItem('Edit', '', 'notePopupEdit'),
+  createFlyoutItem('Copy', '', 'notePopupCopy'),
+  createFlyoutItem('Delete', '', 'notePopupDelete'),
+];
 
 const propTypes = {
   handleEdit: PropTypes.func,
   handleDelete: PropTypes.func,
   handleCopy: PropTypes.func,
-  closePopup: PropTypes.func,
-  openPopup: PropTypes.func,
+  isCopyable: PropTypes.bool,
   isEditable: PropTypes.bool,
   isDeletable: PropTypes.bool,
-  isCopyable: PropTypes.bool,
-  isOpen: PropTypes.bool,
   isReply: PropTypes.bool,
+  noteId: PropTypes.string,
 };
 
 function noop() {}
@@ -34,134 +41,115 @@ function NotePopup(props) {
     handleEdit = noop,
     handleDelete = noop,
     handleCopy = noop,
-    closePopup = noop,
-    openPopup = noop,
+    isCopyable,
     isEditable,
     isDeletable,
-    isCopyable,
-    isOpen,
     isReply,
+    noteId,
   } = props;
 
+  const customizableUI = useSelector((state) => selectors.getFeatureFlags(state)?.customizableUI);
+  const flyoutSelector = `${DataElements.NOTE_POPUP_FLYOUT}-${noteId}`;
   const [t] = useTranslation();
-  const popupRef = React.useRef();
-  const customizableUI = useSelector(state => selectors.getFeatureFlags(state)?.customizableUI);
-  const isEditDisabled = useSelector(state => selectors.isElementDisabled(state, 'notePopupEdit'));
-  const isCopyDisabled = useSelector(state => selectors.isElementDisabled(state, 'notePopupCopy'));
-  const isDeleteDisabled = useSelector(state => selectors.isElementDisabled(state, 'notePopupDelete'));
+  const isEditDisabled = useSelector((state) => selectors.isElementDisabled(state, 'notePopupEdit'));
+  const isCopyDisabled = useSelector((state) => selectors.isElementDisabled(state, 'notePopupCopy'));
+  const isDeleteDisabled = useSelector((state) => selectors.isElementDisabled(state, 'notePopupDelete'));
 
   const hasEditOption = isEditable && !isEditDisabled;
   const hasCopyOption = isCopyable && !isCopyDisabled;
   const hasDeleteOption = isDeletable && !isDeleteDisabled;
 
-  const { popupMenuRef, location } = useOverflowContainer(isOpen, { container: '.normal-notes-container' });
-
-  useOnClickOutside(popupRef, () => {
-    closePopup();
-  });
-
-  useOnFocusOutside(popupRef, () => {
-    closePopup();
-  });
-
-  const togglePopup = e => {
-    e.stopPropagation();
-    if (isOpen) {
-      closePopup();
-    } else {
-      openPopup();
+  const handleClick = (selection) => {
+    if (selection === 'Edit') {
+      handleEdit();
+    } else if (selection === 'Delete') {
+      handleDelete();
+    } else if (selection === 'Copy') {
+      handleCopy();
     }
   };
-
-  function onEditButtonClick(e) {
-    e.stopPropagation();
-    closePopup();
-    handleEdit();
-  }
-
-  function onDeleteButtonClick() {
-    closePopup();
-    handleDelete();
-  }
-
-  function onCopyButtonClick(e) {
-    e.stopPropagation();
-    closePopup();
-    handleCopy();
-  }
 
   if (!hasEditOption && !hasCopyOption && !hasDeleteOption) {
     return null;
   }
 
-  const notePopupButtonClass = classNames('overflow note-popup-toggle-trigger', { active: isOpen });
-  const optionsClass = classNames('options note-popup-options', {
-    'options-reply': isReply,
-    'modular-ui': customizableUI,
-  });
+  const notePopupButtonClass = classNames('overflow note-popup-toggle-trigger');
+  const optionsClass = classNames('NotePopup options note-popup-options', { 'options-reply': isReply, 'modular-ui': customizableUI });
   return (
-    <DataElementWrapper className="NotePopup" dataElement="notePopup" ref={popupRef}>
-      <Button
-        title={t('formField.formFieldPopup.options')}
-        dataElement="notePopupButtonClass"
+    <div className={optionsClass}>
+      <ToggleElementButton
+        dataElement={`notePopup-${noteId}`}
         className={notePopupButtonClass}
-        onClick={togglePopup}
         img="icon-tools-more"
-        isActive={isOpen}
+        title={t('formField.formFieldPopup.options')}
+        toggleElement={flyoutSelector}
+        disabled={false}
       />
-      {isOpen && (
-        <div className={`${optionsClass} ${location}`} ref={popupMenuRef}>
-          {hasEditOption && (
-            <DataElementWrapper
-              tabIndex={0}
-              type="button"
-              role="button"
-              className="option note-popup-option"
-              dataElement="notePopupEdit"
-              onClick={onEditButtonClick}
-              // Needed because safari otherwise loses focus on the button
-              // and the useOnFocusOutside hook triggers
-              onMouseDown={e => e.preventDefault()}
-              onMouseUp={e => e.preventDefault()}
-            >
-              {t('action.edit')}
-            </DataElementWrapper>
-          )}
-          {hasCopyOption && (
-            <DataElementWrapper
-              tabIndex={0}
-              type="button"
-              role="button"
-              className="option note-popup-option"
-              dataElement="notePopupCopy"
-              onClick={onCopyButtonClick}
-              onMouseDown={e => e.preventDefault()}
-              onMouseUp={e => e.preventDefault()}
-            >
-              {t('action.copy')}
-            </DataElementWrapper>
-          )}
-          {hasDeleteOption && (
-            <DataElementWrapper
-              tabIndex={0}
-              type="button"
-              role="button"
-              className="option note-popup-option"
-              dataElement="notePopupDelete"
-              onClick={onDeleteButtonClick}
-              // Needed because safari otherwise loses focus on the button
-              // and the useOnFocusOutside hook triggers
-              onMouseDown={e => e.preventDefault()}
-              onMouseUp={e => e.preventDefault()}
-            >
-              {t('action.delete')}
-            </DataElementWrapper>
-          )}
-        </div>
-      )}
-    </DataElementWrapper>
+      <NotePopupFlyout
+        flyoutSelector={flyoutSelector}
+        handleClick={handleClick}
+        isEditable={hasEditOption}
+        isDeletable={hasDeleteOption}
+        isCopyable={hasCopyOption}
+      />
+    </div>
   );
 }
+
+
+const NotePopupFlyout = ({
+  flyoutSelector,
+  handleClick,
+  isEditable,
+  isDeletable,
+  isCopyable = true,
+}) => {
+  const dispatch = useDispatch();
+  const currentFlyout = useSelector((state) => selectors.getFlyout(state, flyoutSelector));
+  const [t] = useTranslation();
+
+  useLayoutEffect(() => {
+    let items = notePopupFlyoutItems;
+    if (!isEditable) {
+      items = items.filter((item) => item.option !== 'Edit' && item.option !== 'Copy');
+    }
+    if (!isDeletable) {
+      items = items.filter((item) => item.option !== 'Delete');
+    }
+    if (!isCopyable) {
+      items = items.filter((item) => item.option !== 'Copy');
+    }
+
+    const notePopupFlyout = {
+      dataElement: flyoutSelector,
+      className: 'NotePopupFlyout',
+      items: items.map((item) => {
+        return {
+          ...item,
+          label: t(item.label),
+          title: t(item.title),
+          onClick: () => handleClick(item.option),
+        };
+      }),
+    };
+
+    if (!currentFlyout) {
+      dispatch(actions.addFlyout(notePopupFlyout));
+    } else {
+      dispatch(actions.updateFlyout(notePopupFlyout.dataElement, notePopupFlyout));
+    }
+  }, [isEditable, isDeletable]);
+
+  return null;
+};
+
+NotePopupFlyout.propTypes = {
+  flyoutSelector: PropTypes.string,
+  handleClick: PropTypes.func,
+  isEditable: PropTypes.bool,
+  isDeletable: PropTypes.bool,
+  isCopyable: PropTypes.bool,
+};
 
 NotePopup.propTypes = propTypes;
 

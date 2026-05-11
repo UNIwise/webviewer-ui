@@ -5,10 +5,17 @@ import SignatureListPanel from './SignatureListPanel';
 
 const SignatureListPanelWithRedux = withProviders(SignatureListPanel);
 
-describe.only('SignatureListPanel component', () => {
+describe('SignatureListPanel component', () => {
   it('renders the component correctly', () => {
     render(<SignatureListPanelWithRedux />);
     screen.getByText(/New Signature/);
+  });
+
+  it('Should have h2 on header', () => {
+    render(<SignatureListPanelWithRedux />);
+
+    const element = screen.getByText('Signature List');
+    expect(element.tagName.toLocaleLowerCase()).toEqual('h2');
   });
 
   // this test is skipped as there is an issue with JSDOM to be investigated

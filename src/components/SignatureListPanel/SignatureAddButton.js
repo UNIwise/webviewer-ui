@@ -32,6 +32,7 @@ const SignatureAddButton = ({ isDisabled }) => {
         { disabled: isDisabled },
       )}
       label={t(buttonLabel)}
+      dataElement={DataElements.SIGNATURE_ADD_BUTTON}
       onClick={openSignatureModalWithFocus} />
   );
 };

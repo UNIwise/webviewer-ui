@@ -3,7 +3,7 @@ import { legacy_createStore as createStore } from 'redux';
 import { Provider as ReduxProvider } from 'react-redux';
 import OutlineContent from './OutlineContent';
 import OutlineContext from '../Outline/Context';
-import { menuItems } from '../MoreOptionsContextMenuFlyout/MoreOptionsContextMenuFlyout';
+import { menuItems } from 'helpers/outlineFlyoutHelper';
 import '../LeftPanel/LeftPanel.scss';
 
 const NOOP = () => { };
@@ -42,30 +42,42 @@ const reducer = () => {
   };
 };
 
+const changingDestReducer = () => {
+  return {
+    ...reducer(),
+    viewer: {
+      ...reducer().viewer,
+      outlinesStateMap: {
+        1: {
+          '0': { isChangingDest: true },
+        },
+      },
+    },
+  };
+};
+
 export const Basic = () => {
   return (
-    <ReduxProvider store={createStore(reducer)}>
+    <ReduxProvider store={createStore(changingDestReducer)}>
       <div className='Panel LeftPanel' style={{ width: '330px', minWidth: '330px' }}>
         <div className='left-panel-container' style={{ minWidth: '330px' }}>
           <div className='bookmark-outline-single-container default'>
             <OutlineContext.Provider
               value={{
-                setEditingOutlines: NOOP,
-                editingOutlines: {},
                 isMultiSelectMode: false,
                 isOutlineEditable: true,
                 addNewOutline: NOOP,
                 renameOutline: NOOP,
                 removeOutlines: NOOP,
+                outlineScrollParentRef: { current: null },
               }}
             >
               <OutlineContent
                 outlinePath='0'
                 text='A test outline'
-                // isAdding={true}
                 setIsHovered={NOOP}
-                isOutlineChangingDest={true}
                 onCancel={NOOP}
+                isChangingDest={true}
               />
             </OutlineContext.Provider>
           </div>
@@ -85,13 +97,12 @@ export const Adding = () => {
               value={{
                 currentDestPage: 1,
                 currentDestText: 'Full Page',
-                setEditingOutlines: NOOP,
-                editingOutlines: {},
                 isMultiSelectMode: false,
                 isOutlineEditable: true,
                 addNewOutline: NOOP,
                 renameOutline: NOOP,
                 removeOutlines: NOOP,
+                outlineScrollParentRef: { current: null },
               }}
             >
               <OutlineContent
@@ -99,7 +110,7 @@ export const Adding = () => {
                 text=''
                 isAdding={true}
                 setIsHovered={NOOP}
-                isOutlineRenaming={false}
+                isRenaming={false}
                 onCancel={NOOP}
               />
             </OutlineContext.Provider>
@@ -118,20 +129,19 @@ export const Renaming = () => {
           <div className='bookmark-outline-single-container editing'>
             <OutlineContext.Provider
               value={{
-                setEditingOutlines: NOOP,
-                editingOutlines: {},
                 isMultiSelectMode: false,
                 isOutlineEditable: true,
                 addNewOutline: NOOP,
                 renameOutline: NOOP,
                 removeOutlines: NOOP,
+                outlineScrollParentRef: { current: null },
               }}
             >
               <OutlineContent
                 outlinePath='0'
                 text='A test outline'
                 setIsHovered={NOOP}
-                isOutlineRenaming={true}
+                isRenaming={true}
                 onCancel={NOOP}
               />
             </OutlineContext.Provider>
@@ -144,14 +154,12 @@ export const Renaming = () => {
 
 export const ChangingDestination = () => {
   return (
-    <ReduxProvider store={createStore(reducer)}>
+    <ReduxProvider store={createStore(changingDestReducer)}>
       <div className='Panel LeftPanel' style={{ width: '330px', minWidth: '330px' }}>
         <div className='left-panel-container' style={{ minWidth: '330px' }}>
           <div className='bookmark-outline-single-container editing'>
             <OutlineContext.Provider
               value={{
-                setEditingOutlines: NOOP,
-                editingOutlines: {},
                 isMultiSelectMode: false,
                 isOutlineEditable: true,
                 addNewOutline: NOOP,
@@ -159,14 +167,15 @@ export const ChangingDestination = () => {
                 removeOutlines: NOOP,
                 currentDestPage: 1,
                 currentDestText: 'Area Selection',
+                outlineScrollParentRef: { current: null },
               }}
             >
               <OutlineContent
                 outlinePath='0'
                 text='A test outline'
                 setIsHovered={NOOP}
-                isOutlineChangingDest={true}
                 onCancel={NOOP}
+                isChangingDest={true}
               />
             </OutlineContext.Provider>
           </div>
@@ -178,27 +187,26 @@ export const ChangingDestination = () => {
 
 export const ColoredOutline = () => {
   return (
-    <ReduxProvider store={createStore(reducer)}>
+    <ReduxProvider store={createStore(changingDestReducer)}>
       <div className='Panel LeftPanel' style={{ width: '330px', minWidth: '330px' }}>
         <div className='left-panel-container' style={{ minWidth: '330px' }}>
           <div className='bookmark-outline-single-container default'>
             <OutlineContext.Provider
               value={{
-                setEditingOutlines: NOOP,
-                editingOutlines: {},
                 isMultiSelectMode: false,
                 isOutlineEditable: true,
                 addNewOutline: NOOP,
                 renameOutline: NOOP,
                 removeOutlines: NOOP,
+                outlineScrollParentRef: { current: null },
               }}
             >
               <OutlineContent
                 outlinePath='0'
                 text='A colored outline'
+                isChangingDest={true}
                 setIsHovered={NOOP}
                 textColor="rgb(213, 42, 42)"
-                isOutlineChangingDest={true}
                 onCancel={NOOP}
               />
             </OutlineContext.Provider>

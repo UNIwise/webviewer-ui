@@ -19,23 +19,26 @@ jobs:
           always-auth: true
           scope: '@uniwise'
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Install Dependencies
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Run tests
         run: |
-          yarn cp-webviewer-core
-          yarn jest
+          pnpm cp-webviewer-core
+          pnpm jest --maxWorkers=2 --forceExit
 
 
       - name: Build
-        run: yarn build
+        run: pnpm build
         
       - name: Version
-        run: yarn version --new-version "${GITHUB_REF:11}" --no-git-tag-version
+        run: pnpm version "${GITHUB_REF:11}" --no-git-tag-version
 
       - name: Publish
-        run: yarn publish
+        run: pnpm publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

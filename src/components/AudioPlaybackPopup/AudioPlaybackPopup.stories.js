@@ -3,12 +3,13 @@ import { createStore } from 'redux';
 import { Provider } from 'react-redux';
 import AudioPlaybackPopup from './AudioPlaybackPopup';
 import { RAW_AUDIO_RECORDED_PIANO } from './test-audio/recordedPiano';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/AudioPlaybackPopup',
   component: AudioPlaybackPopup,
   parameters: {
-    customizableUI: true
+    legacyUI: true,
   }
 };
 
@@ -52,3 +53,5 @@ export const Basic = () => {
     </Provider>
   );
 };
+
+Basic.parameters = disableRtlModeParameters;

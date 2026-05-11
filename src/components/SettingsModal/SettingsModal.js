@@ -12,26 +12,19 @@ import AdvancedTab from './AdvancedTab';
 import { SearchContext } from './SearchWrapper';
 import Icon from 'components/Icon';
 import ModalWrapper from 'components/ModalWrapper';
+import { EditorModes } from 'src/helpers/hotkeysUtils';
 import './SettingsModal.scss';
 
 const TABS_ID = DataElements.SETTINGS_MODAL;
 
 const SettingsModal = () => {
-  const [
-    isDisabled,
-    isOpen,
-    selectedTab,
-    isGeneralTabDisabled,
-    isKeyboardTabDisabled,
-    isAdvancedTabDisabled
-  ] = useSelector((state) => [
-    selectors.isElementDisabled(state, DataElements.SETTINGS_MODAL),
-    selectors.isElementOpen(state, DataElements.SETTINGS_MODAL),
-    selectors.getSelectedTab(state, TABS_ID),
-    selectors.isElementDisabled(state, DataElements.SETTINGS_GENERAL_BUTTON),
-    selectors.isElementDisabled(state, DataElements.SETTINGS_KEYBOARD_BUTTON),
-    selectors.isElementDisabled(state, DataElements.SETTINGS_ADVANCED_BUTTON)
-  ]);
+  const isDisabled = useSelector((state) => selectors.isElementDisabled(state, DataElements.SETTINGS_MODAL));
+  const isOpen = useSelector((state) => selectors.isElementOpen(state, DataElements.SETTINGS_MODAL));
+  const isSpreadsheetEditorMode = useSelector(selectors.isSpreadsheetEditorModeEnabled);
+  const selectedTab = useSelector((state) => selectors.getSelectedTab(state, TABS_ID));
+  const isGeneralTabDisabled = useSelector((state) => selectors.isElementDisabled(state, DataElements.SETTINGS_GENERAL_BUTTON));
+  const isKeyboardTabDisabled = useSelector((state) => selectors.isElementDisabled(state, DataElements.SETTINGS_KEYBOARD_BUTTON));
+  const isAdvancedTabDisabled = useSelector((state) => selectors.isElementDisabled(state, DataElements.SETTINGS_ADVANCED_BUTTON));
   const [t] = useTranslation();
   const dispatch = useDispatch();
   const [searchTerm, setSearchTerm] = useState('');
@@ -41,6 +34,15 @@ const SettingsModal = () => {
     [DataElements.SETTINGS_KEYBOARD_BUTTON, t('option.settings.keyboardShortcut')],
     [DataElements.SETTINGS_ADVANCED_BUTTON, t('option.settings.advancedSetting')]
   ];
+
+  const getEditorMode = () => {
+    switch (true) {
+      case isSpreadsheetEditorMode:
+        return EditorModes.SPREADSHEET;
+      default:
+        return EditorModes.DEFAULT;
+    }
+  };
 
   useEffect(() => {
     if (
@@ -94,6 +96,7 @@ const SettingsModal = () => {
                 <input
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  aria-label={t('message.searchSettingsPlaceholder')}
                 />
               </div>
             </div>
@@ -101,21 +104,32 @@ const SettingsModal = () => {
             <div className="body">
               <div className="settings-tabs-container">
                 <div className="settings-tabs">
-                  {tabs.map(([tab, title]) => {
-                    const className = classNames('settings-tab', {
-                      selected: tab === selectedTab
-                    });
-                    return (
-                      <DataElementWrapper
-                        className={className}
-                        dataElement={tab}
-                        onClick={() => handleTabClicked(tab)}
-                        key={tab}
-                      >
-                        {title}
-                      </DataElementWrapper>
-                    );
-                  })}
+                  {tabs
+                    .filter(([tab]) => {
+                      if (isSpreadsheetEditorMode) {
+                        return tab !== DataElements.SETTINGS_ADVANCED_BUTTON;
+                      }
+                      return true;
+                    })
+                    .map(([tab, title]) => {
+                      const className = classNames('settings-tab', {
+                        selected: tab === selectedTab
+                      });
+                      return (
+                        <DataElementWrapper
+                          type="button"
+                          className={className}
+                          dataElement={tab}
+                          onClick={() => handleTabClicked(tab)}
+                          key={tab}
+                          aria-selected={tab === selectedTab}
+                          aria-current={tab === selectedTab ? 'page' : null}
+                        >
+                          {title}
+                        </DataElementWrapper>
+                      );
+                    })
+                  }
                 </div>
               </div>
               <div className={classNames('settings-content', { KeyboardShortcutTab: selectedTab === DataElements.SETTINGS_KEYBOARD_BUTTON })}>
@@ -123,7 +137,9 @@ const SettingsModal = () => {
                   <GeneralTab />
                 )}
                 {selectedTab === DataElements.SETTINGS_KEYBOARD_BUTTON && (
-                  <KeyboardShortcutTab />
+                  <KeyboardShortcutTab
+                    editorMode={getEditorMode()}
+                  />
                 )}
                 {selectedTab === DataElements.SETTINGS_ADVANCED_BUTTON && (
                   <AdvancedTab />

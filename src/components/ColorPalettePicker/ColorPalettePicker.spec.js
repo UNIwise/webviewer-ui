@@ -33,6 +33,18 @@ describe('ColorPalettePicker', () => {
     expect(container.querySelector('.colorPickerController')).toBeInTheDocument();
   });
 
+  it('Should render proper label', () => {
+    const idTest = 'color-picker-container';
+    render(
+      <>
+        <span id={idTest}>test</span>
+        <TestColorPalettePicker getHexColor={noop} findCustomColorsIndex={noop} setColorToBeDeleted={noop} ariaLabelledBy={idTest} disableTitle/>
+      </>
+    );
+    const container = screen.getByRole('group', { name: 'test' });
+    expect(container).toHaveAttribute('aria-labelledby', 'color-picker-container');
+  });
+
   it('Test add color button works', () => {
     const openColorPicker = jest.fn();
     const { container } = render(

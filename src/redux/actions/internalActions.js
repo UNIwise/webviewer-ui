@@ -1,12 +1,11 @@
 import getFilteredDataElements from 'helpers/getFilteredDataElements';
 import { getEmbeddedFileData } from 'helpers/getFileAttachments';
 import { isAndroid, isIOS } from 'helpers/device';
-import fireEvent from 'helpers/fireEvent';
-import Events from 'constants/events';
 import selectors from 'selectors';
 import core from 'core';
 import DataElements from 'constants/dataElement';
-import { setToolbarGroup } from './exposedActions';
+import { setToolbarGroup, openElement } from './exposedActions';
+import { panelNames } from 'constants/panel';
 
 // viewer
 /**
@@ -23,8 +22,8 @@ export const disableElement = (dataElement, priority) => (
   dispatch,
   getState,
 ) => {
-  if (dataElement === 'leftPanel') {
-    dispatch(disableElements(['leftPanel', 'leftPanelButton'], priority));
+  if (dataElement === DataElements.LEFT_PANEL) {
+    dispatch(disableElements([DataElements.LEFT_PANEL, DataElements.LEFT_PANEL_BUTTON], priority));
   } else if (dataElement === 'stylePopup') {
     dispatch(
       disableElements(['toolStylePopup', 'annotationStylePopup'], priority),
@@ -78,8 +77,8 @@ export const enableElement = (dataElement, priority) => (
   dispatch,
   getState,
 ) => {
-  if (dataElement === 'leftPanel') {
-    dispatch(enableElements(['leftPanel', 'leftPanelButton'], priority));
+  if (dataElement === DataElements.LEFT_PANEL) {
+    dispatch(enableElements([DataElements.LEFT_PANEL, DataElements.LEFT_PANEL_BUTTON], priority));
   } else if (dataElement === 'stylePopup') {
     dispatch(
       enableElements(['toolStylePopup', 'annotationStylePopup'], priority),
@@ -229,15 +228,55 @@ export const setActiveToolGroup = (toolGroup) => (dispatch, getState) => {
   });
 };
 
-export const setActiveCustomPanel = (tabPanel, wrapperPanel) => (dispath, getState) => {
-  const currentActivePanel = selectors.getActiveCustomPanel(getState(), wrapperPanel);
+export const setActiveTabInPanel = (tabPanel, wrapperPanel) => (dispatch, getState) => {
+  const state = getState();
+  const isDisabledViewOnly = selectors.isViewOnly(state) && selectors.isDisabledViewOnly(state, tabPanel);
+  if (isDisabledViewOnly) {
+    console.warn(`TabPanel with dataElement ${tabPanel} is disabled in view-only mode.`);
+    return;
+  }
+
+  const currentActivePanel = selectors.getActiveTabInPanel(getState(), wrapperPanel);
   if (currentActivePanel === tabPanel) {
     return;
   }
-  dispath({
-    type: 'SET_ACTIVE_CUSTOM_PANEL',
+
+  const targetPanel = selectors.getGenericPanels(state).find((panel) => panel.dataElement === wrapperPanel);
+  if (!targetPanel) {
+    console.warn(`TabPanel with dataElement ${wrapperPanel} does not exist.`);
+    return;
+  }
+
+  const containsTab = targetPanel.panelsList.some((panel) => panel.render === tabPanel);
+  if (!containsTab) {
+    console.warn(`Panel with dataElement ${tabPanel} does not exist inside ${wrapperPanel}. The tab panel contains the following panels:\n${targetPanel.panelsList.map((panel) => panel.render).join(',\n')}`);
+    return;
+  }
+
+  dispatch({
+    type: 'SET_ACTIVE_TAB_IN_PANEL',
     payload: { wrapperPanel, tabPanel },
   });
+};
+
+export const openRedactionPanel = () => (dispatch, getState) => {
+  const state = getState();
+  const featureFlags = selectors.getFeatureFlags(state);
+  const { customizableUI } = featureFlags;
+
+  if (customizableUI) {
+    // is the panel inside a tab panel or a standalone panel?
+    const tabPanels = selectors.getGenericPanels(state).filter((panel) => panel.dataElement === panelNames.TABS);
+    const tabPanelWithRedaction = tabPanels.find((panel) => panel.panelsList.some((panel) => panel.render === panelNames.REDACTION));
+    if (tabPanelWithRedaction) {
+      dispatch(setActiveTabInPanel(panelNames.REDACTION, tabPanelWithRedaction.dataElement));
+      dispatch(openElement(tabPanelWithRedaction.dataElement));
+    } else {
+      dispatch(openElement(panelNames.REDACTION));
+    }
+  } else {
+    dispatch(openElement(panelNames.REDACTION));
+  }
 };
 
 export const setSelectedScale = (selectedScale) => ({
@@ -270,9 +309,9 @@ export const setDisplayMode = (displayMode) => ({
   type: 'SET_DISPLAY_MODE',
   payload: { displayMode },
 });
-export const setCurrentPage = (currentPage) => ({
+export const setCurrentPage = (currentPage, documentViewerKey = 1) => ({
   type: 'SET_CURRENT_PAGE',
-  payload: { currentPage },
+  payload: { currentPage, documentViewerKey },
 });
 export const setFullScreen = (isFullScreen) => ({
   type: 'SET_FULL_SCREEN',
@@ -281,6 +320,10 @@ export const setFullScreen = (isFullScreen) => ({
 export const setReadOnly = (isReadOnly) => ({
   type: 'SET_READ_ONLY',
   payload: { isReadOnly },
+});
+export const setViewOnly = (isViewOnly) => ({
+  type: 'SET_VIEW_ONLY',
+  payload: { isViewOnly },
 });
 export const registerTool = (tool) => ({
   type: 'REGISTER_TOOL',
@@ -301,6 +344,14 @@ export const setHeaderItems = (header, headerItems) => ({
 export const setCustomHeadersAdditionalProperties = (customHeader, additionalProperties) => ({
   type: 'SET_CUSTOM_HEADERS_ADDITIONAL_PROPERTIES',
   payload: { customHeader, additionalProperties },
+});
+export const enableCustomPageLabels = (documentViewerKey = 1) => ({
+  type: 'ENABLE_CUSTOM_PAGE_LABELS',
+  payload: { documentViewerKey },
+});
+export const disableCustomPageLabels = (documentViewerKey = 1) => ({
+  type: 'DISABLE_CUSTOM_PAGE_LABELS',
+  payload: { documentViewerKey },
 });
 export const setPopupItems = (dataElement, items) => ({
   type: 'SET_POPUP_ITEMS',
@@ -360,18 +411,6 @@ export const setMultiPageManipulationControlsItems = (items) => ({
     items,
   },
 });
-export const setMultiPageManipulationControlsItemsSmall = (items) => ({
-  type: 'SET_MULTI_PAGE_MANIPULATION_CONTROLS_ITEMS_SMALL',
-  payload: {
-    items,
-  },
-});
-export const setMultiPageManipulationControlsItemsLarge = (items) => ({
-  type: 'SET_MULTI_PAGE_MANIPULATION_CONTROLS_ITEMS_LARGE',
-  payload: {
-    items,
-  },
-});
 export const setPageManipulationOverlayAlternativePosition = (position) => ({
   type: 'SET_PAGE_MANIPULATION_OVERLAY_ALTERNATIVE_POSITION',
   payload: { position },
@@ -401,6 +440,10 @@ export const setTabs = (tabs) => ({
 export const setActiveTab = (activeTab) => ({
   type: 'SET_ACTIVE_TAB',
   payload: { activeTab },
+});
+export const setTabNameHandler = (tabNameHandler) => ({
+  type: 'SET_TAB_NAME_HANDLER',
+  payload: { tabNameHandler },
 });
 export const setFonts = (fonts = []) => ({
   type: 'SET_FONTS',
@@ -504,13 +547,17 @@ export const setPanelWidth = (dataElement, width) => ({
 });
 
 // document
+export const setDocumentLoaded = (isDocumentLoaded, documentViewerKey = 1) => ({
+  type: 'SET_IS_DOCUMENT_LOADED',
+  payload: { isDocumentLoaded, documentViewerKey },
+});
 export const setTotalPages = (totalPages, documentViewerKey = 1) => ({
   type: 'SET_TOTAL_PAGES',
   payload: { totalPages, documentViewerKey },
 });
-export const setOutlines = (outlines) => ({
+export const setOutlines = (outlines, documentViewerKey = 1) => ({
   type: 'SET_OUTLINES',
-  payload: { outlines },
+  payload: { outlines, documentViewerKey },
 });
 export const setIsOutlineEditing = (isOutlineEditingEnabled = true) => ({
   type: 'SET_OUTLINE_EDITING',
@@ -520,50 +567,29 @@ export const setAutoExpandOutlines = (autoExpandOutlines = false) => ({
   type: 'SET_AUTO_EXPAND_OUTLINES',
   payload: { autoExpandOutlines },
 });
+export const setOutlinesStateMap = (outlinePath, outlineState, documentViewerKey = 1) => ({
+  type: 'SET_OUTLINES_PANEL_STATE',
+  payload: { outlinePath, outlineState, documentViewerKey },
+});
 export const setAnnotationNumbering = (isAnnotationNumberingEnabled = false) => ({
   type: 'SET_ANNOTATION_NUMBERING',
   payload: { isAnnotationNumberingEnabled },
 });
-export const setBookmarks = (bookmarks) => ({
+export const setBookmarks = (bookmarks, documentViewerKey = 1) => ({
   type: 'SET_BOOKMARKS',
-  payload: { bookmarks },
+  payload: { bookmarks, documentViewerKey },
 });
-export const addBookmark = (pageIndex, text) => (dispatch, getState) => {
-  dispatch({
-    type: 'ADD_BOOKMARK',
-    payload: { pageIndex, text },
-  });
-
-  const bookmarks = selectors.getBookmarks(getState());
-  fireEvent(Events.USER_BOOKMARKS_CHANGED, bookmarks);
-};
-export const editBookmark = (pageIndex, text) => (dispatch, getState) => {
-  dispatch({
-    type: 'EDIT_BOOKMARK',
-    payload: { pageIndex, text },
-  });
-  const bookmarks = selectors.getBookmarks(getState());
-  fireEvent(Events.USER_BOOKMARKS_CHANGED, bookmarks);
-};
-export const removeBookmark = (pageIndex) => (dispatch, getState) => {
-  dispatch({
-    type: 'REMOVE_BOOKMARK',
-    payload: { pageIndex },
-  });
-  const bookmarks = selectors.getBookmarks(getState());
-  fireEvent(Events.USER_BOOKMARKS_CHANGED, bookmarks);
-};
 export const setBookmarkIconShortcutVisibility = (bookmarkIconShortcutVisibility) => ({
   type: 'SET_BOOKMARK_ICON_SHORTCUT_VISIBILITY',
   payload: { bookmarkIconShortcutVisibility },
 });
-export const setPortfolio = (portfolio) => ({
+export const setPortfolio = (portfolio, documentViewerKey = 1) => ({
   type: 'SET_PORTFOLIO',
-  payload: { portfolio },
+  payload: { portfolio, documentViewerKey },
 });
-export const setLayers = (layers) => ({
+export const setLayers = (layers, documentViewerKey = 1) => ({
   type: 'SET_LAYERS',
-  payload: { layers },
+  payload: { layers, documentViewerKey },
 });
 export const setPasswordAttempts = (attempt) => ({
   type: 'SET_PASSWORD_ATTEMPTS',
@@ -585,9 +611,9 @@ export const resetLoadingProgress = () => ({
   type: 'SET_LOADING_PROGRESS',
   payload: { progress: 0 },
 });
-export const setVerificationResult = (result) => ({
+export const setVerificationResult = (result, documentViewerKey = 1) => ({
   type: 'SET_VERIFICATION_RESULT',
-  payload: { result },
+  payload: { result, documentViewerKey },
 });
 export const setIsRevocationCheckingEnabled = (isRevocationCheckingEnabled = false) => ({
   type: 'SET_IS_REVOCATION_CHECKING_ENABLED',
@@ -628,6 +654,10 @@ export const removeSearchListener = (func) => ({
 export const setSearchValue = (value) => ({
   type: 'SET_SEARCH_VALUE',
   payload: { value },
+});
+export const setSearchInProgress = (isSearchInProgress) => ({
+  type: 'SET_SEARCH_IN_PROGRESS',
+  payload: { isSearchInProgress },
 });
 export const setReplaceValue = (replaceText) => ({
   type: 'SET_REPLACE_VALUE',
@@ -675,9 +705,9 @@ export const setCustomMultiViewerAcceptedFileFormats = (customMultiViewerAccepte
   payload: { customMultiViewerAcceptedFileFormats },
 });
 
-export const setEnableSnapMode = (enable) => ({
+export const setEnableSnapMode = ({ toolName, isEnabled }) => ({
   type: 'SET_ENABLE_SNAP_MODE',
-  payload: { enable },
+  payload: { toolName, isEnabled },
 });
 
 export const setLanguage = (language) => ({
@@ -693,6 +723,11 @@ export const setHideContentEditWarning = (hideWarning) => ({
 export const setContentWorkersAsLoaded = () => ({
   type: 'SET_CONTENT_EDIT_WORKERS_LOADED',
   payload: { contentEditWorkersLoaded: true },
+});
+
+export const setIsContentEditingEnabled = (isContentEditingEnabled) => ({
+  type: 'SET_CONTENT_EDITING_ENABLED',
+  payload: { isContentEditingEnabled },
 });
 
 export const setCurrentContentBeingEdited = ({ content, annotation }) => ({
@@ -770,9 +805,32 @@ export const setIsOfficeEditorMode = (isOfficeEditorMode) => ({
   payload: { isOfficeEditorMode }
 });
 
+export const setIsOfficeEditorHeaderEnabled = (isOfficeEditorHeaderEnabled) => ({
+  type: 'SET_IS_OFFICE_EDITOR_HEADER_ENABLED',
+  payload: { isOfficeEditorHeaderEnabled }
+});
+
 export const setOfficeEditorEditMode = (editMode) => ({
   type: 'SET_OFFICE_EDITOR_EDIT_MODE',
   payload: { editMode }
+});
+
+export const setOfficeEditorActiveStream = (stream) => ({
+  type: 'SET_OFFICE_EDITOR_ACTIVE_STREAM',
+  payload: { stream }
+});
+
+export const setOfficeEditorUnitMeasurement = (unitMeasurement) => ({
+  type: 'SET_OFFICE_EDITOR_UNIT_MEASUREMENT',
+  payload: { unitMeasurement }
+});
+
+export const enableSpreadsheetEditorMode = () => ({
+  type: 'ENABLE_SPREADSHEET_EDITOR_MODE',
+});
+
+export const disableSpreadsheetEditorMode = () => ({
+  type: 'DISABLE_SPREADSHEET_EDITOR_MODE',
 });
 
 export const growCustomElement = (dataElement) => (dispatch, getState) => {
@@ -823,4 +881,64 @@ export const popFocusedElement = () => (dispatch, getState) => {
 export const setKeyboardOpen = (isKeyboardOpen) => ({
   type: 'SET_KEYBOARD_OPEN',
   payload: isKeyboardOpen,
+});
+
+export const setCompareAnnotationsMap = (compareAnnotationsMap) => ({
+  type: 'SET_COMPARE_ANNOTATIONS_MAP',
+  payload: compareAnnotationsMap,
+});
+
+export const stashComponents = (UIMode) => ({
+  type: 'STASH_COMPONENTS',
+  payload: { UIMode },
+});
+
+export const restoreComponents = (UIMode) => ({
+  type: 'RESTORE_COMPONENTS',
+  payload: { UIMode },
+});
+
+export const setActiveCellRange = ({ activeCellRange, cellProperties }) => ({
+  type: 'SET_ACTIVE_CELL_RANGE',
+  payload: { activeCellRange, cellProperties },
+});
+
+export const setUIConfiguration = (uiConfiguration) => ({
+  type: 'SET_UI_CONFIGURATION',
+  payload: uiConfiguration,
+});
+
+export const setActiveCellRangeStyle = (styles) => ({
+  type: 'SET_ACTIVE_CELL_RANGE_STYLE',
+  payload: { styles },
+});
+
+export const setSpreadsheetEditorCanUndo = (canUndo) => ({
+  type: 'SET_SPREADSHEET_EDITOR_CAN_UNDO',
+  payload: { canUndo },
+});
+
+export const setSpreadsheetEditorCanRedo = (canRedo) => ({
+  type: 'SET_SPREADSHEET_EDITOR_CAN_REDO',
+  payload: { canRedo },
+});
+
+export const setSelectedBorderColorOption = (selectedBorderColorOption) => ({
+  type: 'SET_SELECTED_BORDER_COLOR_OPTION',
+  payload: { selectedBorderColorOption },
+});
+
+export const setSelectedBorderStyleListOption = (selectedBorderStyleListOption) => ({
+  type: 'SET_SELECTED_BORDER_STYLE_OPTION',
+  payload: { selectedBorderStyleListOption },
+});
+
+export const setActiveBorderButtons = (activeBorderButtons) => ({
+  type: 'SET_ACTIVE_BORDER_BUTTONS',
+  payload: { activeBorderButtons },
+});
+
+export const stashEnabledTools = (toolNames) => ({
+  type: 'STASH_ENABLED_TOOLS',
+  payload: { toolNames },
 });

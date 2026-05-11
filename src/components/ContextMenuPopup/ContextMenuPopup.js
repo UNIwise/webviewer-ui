@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import classNames from 'classnames';
 import Draggable from 'react-draggable';
-import { useSelector, useDispatch, useStore, shallowEqual } from 'react-redux';
+import { useSelector, useDispatch, useStore } from 'react-redux';
 import FocusTrap from 'components/FocusTrap';
 import { useTranslation } from 'react-i18next';
 import ActionButton from 'components/ActionButton';
@@ -11,11 +11,13 @@ import useOnClickOutside from 'hooks/useOnClickOutside';
 import setToolModeAndGroup from 'helpers/setToolModeAndGroup';
 import actions from 'actions';
 import selectors from 'selectors';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import { isMobile as isMobileCSS, isIE, isMobileDevice, isFirefox, isMac } from 'helpers/device';
 import { isOfficeEditorMode } from 'helpers/officeEditor';
 import getRootNode from 'helpers/getRootNode';
 import DataElements from 'constants/dataElement';
+import { SpreadsheetEditorEditMode } from 'constants/spreadsheetEditor';
+import { EditingStreamType } from 'constants/officeEditor';
 
 import './ContextMenuPopup.scss';
 
@@ -58,24 +60,20 @@ const OfficeActionItem = ({ dataElement, onClick, img, title, shortcut = '', dis
 const ContextMenuPopup = ({
   clickPosition,
 }) => {
-  const [
-    isOpen,
-    isDisabled,
-    isRightClickAnnotationPopupEnabled,
-    isMultiViewerMode,
-    activeDocumentViewerKey,
-    isCursorInTable,
-  ] = useSelector(
-    (state) => [
-      selectors.isElementOpen(state, DataElements.CONTEXT_MENU_POPUP),
-      selectors.isElementDisabled(state, DataElements.CONTEXT_MENU_POPUP),
-      selectors.isRightClickAnnotationPopupEnabled(state),
-      selectors.isMultiViewerMode(state),
-      selectors.getActiveDocumentViewerKey(state),
-      selectors.isCursorInTable(state),
-    ],
-    shallowEqual,
-  );
+  const { core } = useCore();
+
+  const isOpen = useSelector((state) => selectors.isElementOpen(state, DataElements.CONTEXT_MENU_POPUP));
+  const isDisabled = useSelector((state) => selectors.isElementDisabled(state, DataElements.CONTEXT_MENU_POPUP));
+  const isRightClickAnnotationPopupEnabled = useSelector(selectors.isRightClickAnnotationPopupEnabled);
+  const isMultiViewerMode = useSelector(selectors.isMultiViewerMode);
+  const activeDocumentViewerKey = useSelector(selectors.getActiveDocumentViewerKey);
+  const isCursorInTable = useSelector(selectors.isCursorInTable);
+  const isSpreadsheetEditorModeEnabled = useSelector(selectors.isSpreadsheetEditorModeEnabled);
+  const spreadsheetEditorEditMode = useSelector(selectors.getSpreadsheetEditorEditMode);
+  const isReadOnlyMode = spreadsheetEditorEditMode === SpreadsheetEditorEditMode.VIEW_ONLY;
+  const activeStream = useSelector(selectors.getOfficeEditorActiveStream);
+
+  const [isSpreadsheetAndReadOnlyMode, setIsSpreadsheetAndReadOnlyMode] = useState(isSpreadsheetEditorModeEnabled && isReadOnlyMode);
 
   const [t] = useTranslation();
   const dispatch = useDispatch();
@@ -103,50 +101,82 @@ const ContextMenuPopup = ({
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    const isReadOnlyMode = spreadsheetEditorEditMode === SpreadsheetEditorEditMode.VIEW_ONLY;
+    setIsSpreadsheetAndReadOnlyMode(isSpreadsheetEditorModeEnabled && isReadOnlyMode);
+  }, [isSpreadsheetEditorModeEnabled, spreadsheetEditorEditMode]);
+
   useLayoutEffect(() => {
-    let { left, top } = clickPosition;
-    const { width, height } = popupRef.current.getBoundingClientRect();
-    const documentContainer =
-      isMultiViewerMode
-        ? getRootNode().querySelector(`#DocumentContainer${activeDocumentViewerKey}`)
-        : getRootNode().querySelector('.DocumentContainer');
-    if (documentContainer) {
-      const containerBox = documentContainer.getBoundingClientRect();
-      const horizontalGap = 2;
-      const verticalGap = 2;
-      let offsetLeft = 0;
-      let offsetTop = 0;
-
-      if (window.isApryseWebViewerWebComponent) {
-        const node = getRootNode();
-        if (node) {
-          const host = node.host;
-          offsetLeft = host.offsetLeft;
-          offsetTop = host.offsetTop;
-        }
-      }
-
-      left -= offsetLeft;
-      top -= offsetTop;
-
-      if (left < containerBox.left - offsetLeft) {
-        left = containerBox.left + horizontalGap - offsetLeft;
-      }
-
-      if (left + width > containerBox.right - offsetLeft) {
-        left = containerBox.right - width - horizontalGap - offsetLeft;
-      }
-
-      if (top < containerBox.top - offsetTop) {
-        top = containerBox.top + verticalGap - offsetTop;
-      }
-
-      if (top + height > containerBox.bottom - offsetTop) {
-        top = containerBox.bottom - height - verticalGap;
-      }
-      setPosition({ left, top });
+    if (isSpreadsheetAndReadOnlyMode) {
+      return;
     }
-  }, [clickPosition, isMultiViewerMode, activeDocumentViewerKey]);
+
+    const { width, height } = popupRef.current.getBoundingClientRect();
+    const documentContainerSelector = isMultiViewerMode ? `#DocumentContainer${activeDocumentViewerKey}` : '.DocumentContainer';
+    const documentContainer = getRootNode().querySelector(documentContainerSelector);
+    if (!documentContainer) {
+      return;
+    }
+
+    const containerBox = documentContainer.getBoundingClientRect();
+    const { left, top } = adjustPopupPosition(clickPosition, containerBox, width, height);
+    setPosition({ left, top });
+  }, [clickPosition, isMultiViewerMode, activeDocumentViewerKey, isSpreadsheetAndReadOnlyMode]);
+
+  /**
+   * Adjusts the position of the popup relative to the container.
+   */
+  const adjustPopupPosition = (clickPos, containerBox, width, height) => {
+    let { left, top } = clickPos;
+    const { offsetLeft, offsetTop } = getOffsetAdjustments();
+
+    left -= offsetLeft + window.scrollX;
+    top -= offsetTop + window.scrollY;
+
+    const horizontalGap = 2;
+    const verticalGap = 2;
+
+    if (left < containerBox.left - offsetLeft) {
+      left = containerBox.left + horizontalGap - offsetLeft;
+    }
+
+    if (left + width > containerBox.right - offsetLeft) {
+      left = containerBox.right - width - horizontalGap - offsetLeft;
+    }
+
+    if (top < containerBox.top - offsetTop) {
+      top = containerBox.top + verticalGap - offsetTop;
+    }
+
+    if (top + height > containerBox.bottom - offsetTop) {
+      top = containerBox.bottom - offsetTop - height - verticalGap;
+    }
+
+    return { left, top };
+  };
+
+  /**
+   * Retrieves offset adjustments if the app is running inside a Web Component.
+   */
+  const getOffsetAdjustments = () => {
+    let offsetLeft = 0;
+    let offsetTop = 0;
+
+    if (window.isApryseWebViewerWebComponent) {
+      const host = getRootNode()?.host;
+      const hostBoundingRect = host?.getBoundingClientRect();
+
+      if (hostBoundingRect) {
+        offsetLeft = hostBoundingRect.left;
+        offsetTop = hostBoundingRect.top;
+
+        // Include host scroll offsets
+        offsetLeft += host.scrollLeft;
+        offsetTop += host.scrollTop;
+      }
+    }
+    return { offsetLeft, offsetTop };
+  };
 
   const modifierKey = isMac ? '⌘ Command' : 'Ctrl';
   const modifierKeyShort = isMac ? '⌘Cmd' : 'Ctrl';
@@ -197,7 +227,7 @@ const ContextMenuPopup = ({
       })}
       ref={popupRef}
       data-element={DataElements.CONTEXT_MENU_POPUP}
-      style={{ ...position }}
+      css={position}
       onClick={() => dispatch(actions.closeElement(DataElements.CONTEXT_MENU_POPUP))}
     >
       <FocusTrap locked={isOpen && position.top !== 0 && position.left !== 0}>
@@ -233,6 +263,13 @@ const ContextMenuPopup = ({
                 dataElement={DataElements.OFFICE_EDITOR_PASTE_WITHOUT_FORMATTING}
                 onClick={() => handlePaste(false)}
                 shortcut={`${modifierKeyShort}+Shift+V`}
+              />
+              <OfficeActionItem
+                title="action.addComment"
+                img="icon-tool-comment-line"
+                dataElement={DataElements.OFFICE_EDITOR_ADD_COMMENT}
+                onClick={() => core.getOfficeEditor().getCommentManager().addCommentThreadAtCurrentRange('')}
+                disabled={activeStream !== EditingStreamType.BODY}
               />
               {!isCursorInTable && (
                 <OfficeActionItem
@@ -360,6 +397,10 @@ const ContextMenuPopup = ({
       </FocusTrap>
     </div>
   );
+
+  if (isSpreadsheetAndReadOnlyMode) {
+    return null;
+  }
 
   return isIE || isMobile ? (
     contextMenuPopup

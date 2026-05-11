@@ -8,6 +8,8 @@ import './FileSelectedPanel.scss';
 import PageThumbnailsGrid from 'src/components/PageThumbnailsGrid';
 import { isMobileSize, isTabletSize } from 'helpers/getDeviceSize';
 import ModalWrapper from 'components/ModalWrapper';
+import selectors from 'selectors';
+import { useSelector } from 'react-redux';
 
 const MAX_NAME_LENGTH_BEFORE_TRUNCATION = 25;
 const TRUNCATION_LENGTH = 10;
@@ -33,8 +35,9 @@ const FileSelectedPanel = React.forwardRef((
   const [sourceDocumentName, setSourceDocumentName] = useState(null);
   const [currentDocumentName, setCurrentDocumentName] = useState(null);
   const [sourceDocumentPageCount, setSourceDocumentPageCount] = useState(0);
-  const [pageNumberError, setPageNumberError] = useState('');
+  const [hasPageNumberError, setHasPageNumberError] = useState(false);
   const [sourceDocPagesNumberError, setSourceDocPagesNumberError] = useState('');
+  const documentViewerKey = useSelector(selectors.getActiveDocumentViewerKey);
 
   const isTablet = isTabletSize();
 
@@ -92,7 +95,7 @@ const FileSelectedPanel = React.forwardRef((
 
   const replacePages = () => {
     const pagesToReplaceIntoDocument = getPageNumbersFromSelectedThumbnails();
-    replacePagesHandler(sourceDocument, currentDocSelectedPageNumbers, pagesToReplaceIntoDocument);
+    replacePagesHandler(sourceDocument, currentDocSelectedPageNumbers, pagesToReplaceIntoDocument, documentViewerKey);
     closeThisModal();
   };
 
@@ -110,7 +113,7 @@ const FileSelectedPanel = React.forwardRef((
   };
 
   const isReplaceButtonDisabled = () => {
-    if (currentDocSelectedPageNumbers.length < 1 || pageNumberError || sourceDocPagesNumberError) {
+    if (currentDocSelectedPageNumbers.length < 1 || hasPageNumberError || sourceDocPagesNumberError) {
       return true;
     }
     for (const pageIndex in selectedThumbnails) {
@@ -131,15 +134,13 @@ const FileSelectedPanel = React.forwardRef((
 
   const handlePageNumbersChanged = (pageNumbers) => {
     if (pageNumbers.length > 0) {
-      setPageNumberError('');
+      setHasPageNumberError(false);
       setCurrentDocSelectedPageNumbers(pageNumbers);
     }
   };
 
-  const handlePageNumberError = (pageNumber) => {
-    if (pageNumber) {
-      setPageNumberError(`${t('message.errorPageNumber')} ${loadedDocumentPageCount}`);
-    }
+  const handlePageNumberError = () => {
+    setHasPageNumberError(true);
   };
 
   const handleSourcePageNumbersChanged = (pageNumbers) => {
@@ -150,12 +151,6 @@ const FileSelectedPanel = React.forwardRef((
       getPageNumbersFromSelectedThumbnails();
     }
   };
-  const handleSourceDocPagesNumberError = (pageNumber) => {
-    if (pageNumber) {
-      setSourceDocPagesNumberError(`${t('message.errorPageNumber')} ${sourceDocumentPageCount}`);
-    }
-  };
-
   const onCloseHandler = () => {
     closeModalWarning();
   };
@@ -183,7 +178,6 @@ const FileSelectedPanel = React.forwardRef((
                 onSelectedPageNumbersChange={handlePageNumbersChanged}
                 onBlurHandler={setCurrentDocSelectedPageNumbers}
                 onError={handlePageNumberError}
-                pageNumberError={pageNumberError}
               />
             </div>
             <div className="replace-page-input"><span className="page-replace-doc-name">{currentDocumentName}</span></div>
@@ -193,8 +187,7 @@ const FileSelectedPanel = React.forwardRef((
               pageCount={sourceDocumentPageCount}
               onSelectedPageNumbersChange={handleSourcePageNumbersChanged}
               onBlurHandler={onSourceDocumentNumberInputChange}
-              onError={handleSourceDocPagesNumberError}
-              pageNumberError={sourceDocPagesNumberError}
+              usePageIndexes={true}
             />
             <div className="replace-page-input"><span className="page-replace-doc-name">{sourceDocumentName}</span></div>
           </div>

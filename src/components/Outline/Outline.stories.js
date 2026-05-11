@@ -1,12 +1,14 @@
 import React from 'react';
-import { legacy_createStore as createStore } from 'redux';
+import { legacy_createStore as createStore, applyMiddleware } from 'redux';
 import { Provider as ReduxProvider } from 'react-redux';
 import Outline from './Outline';
 import OutlineContext from './Context';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DndProvider } from 'react-dnd';
-import { menuItems } from '../MoreOptionsContextMenuFlyout/MoreOptionsContextMenuFlyout';
+import { menuItems } from 'helpers/outlineFlyoutHelper';
 import '../LeftPanel/LeftPanel.scss';
+import thunk from 'redux-thunk';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 const NOOP = () => { };
 
@@ -40,6 +42,7 @@ export const createOutline = (outline, parent, i) => {
     getIndex: () => i,
     parent,
     getParent: () => parent,
+    ...outline,
   };
 
   outline.children.forEach((child, i) => children.push(createOutline(child, copy, i)));
@@ -90,7 +93,8 @@ const reducer = () => {
       activeFlyout: 'bookmarkOutlineFlyout-',
       openElements: {
         'bookmarkOutlineFlyout-': true,
-      }
+      },
+      outlinesStateMap: {},
     },
     document: {
       outlines: getDefaultOutlines(),
@@ -118,7 +122,7 @@ const outline = createOutline({
 
 export const Basic = () => {
   return (
-    <ReduxProvider store={createStore(reducer)}>
+    <ReduxProvider store={createStore(reducer, applyMiddleware(thunk))}>
       <div className='Panel LeftPanel' style={{ width: '330px', minWidth: '330px' }}>
         <div className='left-panel-container' style={{ minWidth: '330px' }}>
           <OutlineContext.Provider
@@ -126,9 +130,9 @@ export const Basic = () => {
               setActiveOutlinePath: NOOP,
               activeOutlinePath: '',
               isOutlineActive: NOOP,
-              setAddingNewOutline: NOOP,
-              setEditingOutlines: NOOP,
+              setIsAddingNewOutline: NOOP,
               selectedOutlines: [],
+              outlineScrollParentRef: { current: null },
             }}
           >
             <DndProvider backend={HTML5Backend}>
@@ -146,3 +150,5 @@ export const Basic = () => {
     </ReduxProvider>
   );
 };
+
+Basic.parameters = disableRtlModeParameters;

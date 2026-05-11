@@ -1,9 +1,17 @@
 import React from 'react';
 import DataElements from 'constants/dataElement';
-import { PRESET_BUTTON_TYPES } from 'constants/customizationVariables';
+import {
+  PRESET_BUTTON_TYPES,
+  CELL_ADJUSTMENT_FLYOUT_ITEMS,
+  CELL_BORDER_BUTTONS,
+  CELL_FORMAT_BUTTONS,
+  CELL_TEXT_WRAP_FLYOUT_ITEMS,
+} from 'constants/customizationVariables';
 import Button from 'components/Button';
+import classNames from 'classnames';
+import { getButtonPressedAnnouncement } from 'helpers/accessibility';
 
-export const menuItems = {
+const baseMenuItems = {
   [PRESET_BUTTON_TYPES.UNDO]: {
     dataElement: 'undoButton',
     presetDataElement: DataElements.UNDO_PRESET_BUTTON,
@@ -105,25 +113,324 @@ export const menuItems = {
     title: 'action.enterFullscreen',
     hidden: false,
   },
+  [PRESET_BUTTON_TYPES.TOGGLE_ACCESSIBILITY_MODE]: {
+    dataElement: PRESET_BUTTON_TYPES.TOGGLE_ACCESSIBILITY_MODE,
+    presetDataElement: DataElements.TOGGLE_ACCESSIBILITY_MODE_PRESET_BUTTON,
+    icon: 'icon-accessibility-mode',
+    label: 'accessibility.accessibilityMode',
+    title: 'accessibility.accessibilityMode',
+    hidden: false,
+  },
+  [PRESET_BUTTON_TYPES.BOLD]: {
+    dataElement: 'boldButton',
+    presetDataElement: DataElements.BOLD_PRESET_BUTTON,
+    icon: 'icon-text-bold',
+    label: 'officeEditor.bold',
+    title: 'officeEditor.bold',
+    hidden: false,
+  },
+  [PRESET_BUTTON_TYPES.ITALIC]: {
+    dataElement: 'italicButton',
+    presetDataElement: DataElements.ITALIC_PRESET_BUTTON,
+    icon: 'icon-text-italic',
+    label: 'officeEditor.italic',
+    title: 'officeEditor.italic',
+    hidden: false,
+  },
+  [PRESET_BUTTON_TYPES.UNDERLINE]: {
+    dataElement: 'underlineButton',
+    presetDataElement: DataElements.UNDERLINE_PRESET_BUTTON,
+    icon: 'icon-text-underline',
+    label: 'officeEditor.underline',
+    title: 'officeEditor.underline',
+    hidden: false,
+  },
+  [PRESET_BUTTON_TYPES.STRIKETHROUGH]: {
+    dataElement: 'strikethroughButton',
+    presetDataElement: DataElements.STRIKETHROUGH_PRESET_BUTTON,
+    icon: 'icon-text-strikeout',
+    label: 'spreadsheetEditor.strikethrough',
+    title: 'spreadsheetEditor.strikethrough',
+    hidden: false,
+  },
+  [PRESET_BUTTON_TYPES.STRIKEOUT]: {
+    dataElement: 'strikeoutButton',
+    presetDataElement: DataElements.STRIKEOUT_PRESET_BUTTON,
+    icon: 'icon-text-strikeout',
+    label: 'spreadsheetEditor.strikeout',
+    title: 'spreadsheetEditor.strikeout',
+    hidden: false,
+  },
+  [PRESET_BUTTON_TYPES.INCREASE_INDENT]: {
+    dataElement: 'increaseIndentButton',
+    presetDataElement: DataElements.INCREASE_INDENT_PRESET_BUTTON,
+    icon: 'ic-indent-increase',
+    label: 'officeEditor.increaseIndent',
+    title: 'officeEditor.increaseIndent',
+    hidden: false,
+  },
+  [PRESET_BUTTON_TYPES.DECREASE_INDENT]: {
+    dataElement: 'decreaseIndentButton',
+    presetDataElement: DataElements.DECREASE_INDENT_PRESET_BUTTON,
+    icon: 'ic-indent-decrease',
+    label: 'officeEditor.decreaseIndent',
+    title: 'officeEditor.decreaseIndent',
+    hidden: false,
+  },
+  [PRESET_BUTTON_TYPES.OE_TOGGLE_NON_PRINTING_CHARACTERS]: {
+    dataElement: PRESET_BUTTON_TYPES.OE_TOGGLE_NON_PRINTING_CHARACTERS,
+    presetDataElement: DataElements.OFFICE_EDITOR_TOGGLE_NON_PRINTING_CHARACTERS_BUTTON,
+    icon: 'icon-office-editor-toggle-non-printing-characters',
+    label: 'officeEditor.nonPrintingCharacters',
+    title: 'officeEditor.nonPrintingCharacters',
+    hidden: false,
+  },
+
+  [PRESET_BUTTON_TYPES.ALIGN_LEFT]: {
+    dataElement: 'alignLeftButton',
+    presetDataElement: DataElements.JUSTIFY_LEFT_PRESET_BUTTON,
+    icon: 'icon-menu-left-align',
+    label: 'officeEditor.leftAlign',
+    title: 'officeEditor.leftAlign',
+    hidden: false,
+  },
+  [PRESET_BUTTON_TYPES.ALIGN_CENTER]: {
+    dataElement: 'alignCenterButton',
+    presetDataElement: DataElements.JUSTIFY_CENTER_PRESET_BUTTON,
+    icon: 'icon-menu-center-align',
+    label: 'officeEditor.centerAlign',
+    title: 'officeEditor.centerAlign',
+    hidden: false,
+  },
+  [PRESET_BUTTON_TYPES.ALIGN_RIGHT]: {
+    dataElement: 'alignRightButton',
+    presetDataElement: DataElements.JUSTIFY_RIGHT_PRESET_BUTTON,
+    icon: 'icon-menu-right-align',
+    label: 'officeEditor.rightAlign',
+    title: 'officeEditor.rightAlign',
+    hidden: false,
+  },
+  [PRESET_BUTTON_TYPES.JUSTIFY_BOTH]: {
+    dataElement: 'justifyBothButton',
+    presetDataElement: DataElements.JUSTIFY_BOTH_PRESET_BUTTON,
+    icon: 'icon-menu-both-align',
+    label: 'officeEditor.justify',
+    title: 'officeEditor.justify',
+    hidden: false,
+  },
+  [PRESET_BUTTON_TYPES.INSERT_IMAGE]: {
+    dataElement: PRESET_BUTTON_TYPES.INSERT_IMAGE,
+    presetDataElement: DataElements.OFFICE_EDITOR_TOOLS_HEADER_INSERT_IMAGE,
+    icon: 'icon-tool-image-line',
+    label: 'officeEditor.image',
+    title: 'officeEditor.insertImage',
+  },
+  [PRESET_BUTTON_TYPES.OE_COLOR_PICKER]: {
+    dataElement: DataElements.OFFICE_EDITOR_FLYOUT_COLOR_PICKER,
+    presetDataElement: DataElements.OFFICE_EDITOR_COLOR_PICKER_PRESET_BUTTON,
+    icon: 'icon-office-editor-circle',
+    label: 'officeEditor.textColor',
+    title: 'officeEditor.textColor',
+    hidden: false,
+  },
+  [PRESET_BUTTON_TYPES.COMPARE]: {
+    dataElement: 'comparePanelToggle',
+    presetDataElement: 'comparePanelToggle',
+    title: 'action.comparePages',
+    label: 'action.comparePages',
+    icon: 'icon-header-compare',
+  },
+  [PRESET_BUTTON_TYPES.NEW_SPREADSHEET]: {
+    dataElement: PRESET_BUTTON_TYPES.NEW_SPREADSHEET,
+    presetDataElement: DataElements.NEW_SPREADSHEET_PRESET_BUTTON,
+    icon: 'icon-plus-sign',
+    label: 'action.newSpreadsheetDocument',
+    title: 'action.newSpreadsheetDocument',
+    isActive: false,
+  },
+  [PRESET_BUTTON_TYPES.CELL_MERGE_TOGGLE]: {
+    dataElement: 'cellMergeToggle',
+    presetDataElement: DataElements.MERGE_TOGGLE_BUTTON,
+    icon: 'ic-merge',
+    label: 'spreadsheetEditor.merge',
+    title: 'spreadsheetEditor.merge',
+    hidden: false,
+  },
+  [PRESET_BUTTON_TYPES.CELL_UNMERGE_TOGGLE]: {
+    dataElement: 'cellUnmergeToggle',
+    presetDataElement: DataElements.UNMERGE_TOGGLE_BUTTON,
+    icon: 'ic-unmerge',
+    label: 'spreadsheetEditor.unmerge',
+    title: 'spreadsheetEditor.unmerge',
+    hidden: false,
+  },
+  [PRESET_BUTTON_TYPES.CELL_FORMAT_CURRENCY]: {
+    dataElement: 'cellFormatAsCurrencyButton',
+    presetDataElement: DataElements.CELL_FORMAT_CURRENCY_BUTTON,
+    icon: 'ic-currency-dollar',
+    label: 'spreadsheetEditor.formatAsCurrency',
+    title: 'spreadsheetEditor.formatAsCurrency',
+    hidden: false,
+  },
+
+  /** CELL COPY PASTE CUT */
+  [PRESET_BUTTON_TYPES.CELL_COPY]: {
+    dataElement: 'cellCopy',
+    presetDataElement: DataElements.CELL_COPY_BUTTON,
+    icon: 'icon-copy',
+    label: 'action.copy',
+    title: 'action.copy',
+    hidden: false,
+  },
+  [PRESET_BUTTON_TYPES.CELL_CUT]: {
+    dataElement: 'cellCut',
+    presetDataElement: DataElements.CELL_CUT_BUTTON,
+    icon: 'icon-cut',
+    label: 'action.cut',
+    title: 'action.cut',
+    hidden: false,
+  },
+  [PRESET_BUTTON_TYPES.CELL_PASTE]: {
+    dataElement: 'cellPaste',
+    presetDataElement: DataElements.CELL_PASTE_BUTTON,
+    icon: 'icon-paste',
+    label: 'action.paste',
+    title: 'action.paste',
+    hidden: false,
+  },
+
+  /** CELL TEXT ALIGNMENT */
+  [PRESET_BUTTON_TYPES.ALIGN_TOP]: {
+    dataElement: PRESET_BUTTON_TYPES.ALIGN_TOP,
+    presetDataElement: DataElements.CELL_TEXT_ALIGN_TOP_BUTTON,
+    icon: 'ic-align-top-ios',
+    label: 'spreadsheetEditor.topAlign',
+    title: 'spreadsheetEditor.topAlign',
+    isActive: false,
+  },
+  [PRESET_BUTTON_TYPES.ALIGN_MIDDLE]: {
+    dataElement: PRESET_BUTTON_TYPES.ALIGN_MIDDLE,
+    presetDataElement: DataElements.CELL_TEXT_ALIGN_MIDDLE_BUTTON,
+    icon: 'ic-align-middle-ios',
+    label: 'spreadsheetEditor.middleAlign',
+    title: 'spreadsheetEditor.middleAlign',
+    isActive: false,
+  },
+  [PRESET_BUTTON_TYPES.ALIGN_BOTTOM]: {
+    dataElement: PRESET_BUTTON_TYPES.ALIGN_BOTTOM,
+    presetDataElement: DataElements.CELL_TEXT_ALIGN_BOTTOM_BUTTON,
+    icon: 'ic-align-bottom-ios',
+    label: 'spreadsheetEditor.bottomAlign',
+    title: 'spreadsheetEditor.bottomAlign',
+    isActive: false,
+  },
+  [PRESET_BUTTON_TYPES.SPREADSHEET_EDITOR_INSERT_IMAGE_BUTTON]: {
+    dataElement: 'spreadsheetEditorInsertImageButton',
+    presetDataElement: DataElements.SPREADSHEET_EDITOR_INSERT_IMAGE_BUTTON,
+    icon: 'icon-tool-image-line',
+  }
 };
 
-export const getPresetButtonDOM = (buttonType, isDisabled, onClick, isFullScreen) => {
-  const { dataElement, presetDataElement } = menuItems[buttonType];
-  let { icon, title } = menuItems[buttonType];
+export const menuItems = {
+  ...baseMenuItems,
+  ...CELL_ADJUSTMENT_FLYOUT_ITEMS.reduce((acc, item) => {
+    if (item === 'divider') {
+      return acc;
+    }
+    const icon = item.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
+    acc[item] = {
+      dataElement: `${item}`,
+      presetDataElement: `${item}PresetButton`,
+      icon: `ic-${icon}`,
+      label: `spreadsheetEditor.${item}`,
+      title: `spreadsheetEditor.${item}`,
+      isActive: false,
+    };
+    return acc;
+  }, {}),
 
+  ...CELL_TEXT_WRAP_FLYOUT_ITEMS.reduce((acc, item) => {
+    if (item === 'divider') {
+      return acc;
+    }
+    const icon = item.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
+    acc[item] = {
+      dataElement: `${item}`,
+      presetDataElement: `${item}PresetButton`,
+      icon: `ic-text-${icon}`,
+      label: `spreadsheetEditor.${item}`,
+      title: `spreadsheetEditor.${item}`,
+      isActive: false,
+    };
+    return acc;
+  }, {}),
+
+  ...Object.keys(CELL_BORDER_BUTTONS).reduce((acc, item) => {
+    if (item === 'divider') {
+      return acc;
+    }
+    const localeAndFileKey = item.toLowerCase();
+
+    acc[`${item}`] = {
+      dataElement: `${item}`,
+      presetDataElement: `${item}`,
+      icon: `ic-border-${localeAndFileKey}`,
+      label: `spreadsheetEditor.${localeAndFileKey}`,
+      title: `spreadsheetEditor.${localeAndFileKey}`,
+      isActive: false,
+    };
+    return acc;
+  }, {}),
+
+  ...CELL_FORMAT_BUTTONS.reduce((acc, item) => {
+    if (item === 'divider') {
+      return acc;
+    }
+    let { icon, label } = item;
+    if (!icon) {
+      let iconNameSuffix = label.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
+      iconNameSuffix = iconNameSuffix.replace(/-format/g, '');
+      icon = `ic-${iconNameSuffix}`;
+    }
+
+    acc[label] = {
+      dataElement: label,
+      presetDataElement: `${label}PresetButton`,
+      icon: icon,
+      label: `spreadsheetEditor.${label}`,
+      title: `spreadsheetEditor.${label}`,
+      isActive: false,
+    };
+    return acc;
+  }, {}),
+};
+
+export const getPresetButtonDOM = (presetButtonProperties) => {
+  const { buttonType, isDisabled, onClick, isFullScreen, isActive, style, className } = presetButtonProperties;
+  const menuItem = { ...menuItems[buttonType] };
   if (buttonType === PRESET_BUTTON_TYPES.FULLSCREEN) {
-    icon = isFullScreen ? 'icon-header-full-screen-exit' : 'icon-header-full-screen';
-    title = isFullScreen ? 'action.exitFullscreen' : 'action.enterFullscreen';
+    menuItem.icon = isFullScreen ? 'icon-header-full-screen-exit' : 'icon-header-full-screen';
+    menuItem.title = isFullScreen ? 'action.exitFullscreen' : 'action.enterFullscreen';
   }
+  const dataElement = presetButtonProperties.dataElement || menuItem.presetDataElement;
+  const icon = presetButtonProperties.icon || menuItem.icon;
+  const title = presetButtonProperties.title || menuItem.title;
 
   return (
     <Button
-      className={`PresetButton ${dataElement}`}
-      dataElement={presetDataElement}
+      className={classNames({
+        PresetButton: true,
+        [dataElement]: true,
+        [className]: true,
+      })}
+      dataElement={dataElement}
       img={icon}
       title={title}
       onClick={onClick}
       disabled={isDisabled}
+      isActive={isActive}
+      style={style}
+      onClickAnnouncement={getButtonPressedAnnouncement(title)}
     />
   );
 };

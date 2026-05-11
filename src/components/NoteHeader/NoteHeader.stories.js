@@ -1,10 +1,11 @@
 import React from 'react';
 import { configureStore } from '@reduxjs/toolkit';
 import NoteHeader from 'components/NoteHeader';
+import ShareTypes from 'constants/shareTypes';
 import NoteContext from '../Note/Context';
 import { Provider } from 'react-redux';
 import { initialColors } from 'helpers/initialColorStates';
-import ShareTypes from 'src/constants/shareTypes';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/Note/NoteHeader',
@@ -20,7 +21,10 @@ const initialState = {
     activeDocumentViewerKey: 1,
     openElements: {},
     flyoutMap: {},
-  }
+  },
+  officeEditor: {
+    editMode: 'editing',
+  },
 };
 function rootReducer(state = initialState, action) {
   return state;
@@ -90,6 +94,8 @@ export function Basic() {
     </Provider>
   );
 }
+Basic.parameters = disableRtlModeParameters;
+
 
 export const testPropsWithAnnotationNumbering = {
   ...testProps,
@@ -105,6 +111,8 @@ export function BasicWithAnnotationNumbering() {
     </Provider>
   );
 }
+BasicWithAnnotationNumbering.parameters = disableRtlModeParameters;
+
 
 export const testPropsWithTrackedChange = {
   ...testProps,
@@ -121,3 +129,5 @@ export function BasicWithTrackedChange() {
     </Provider>
   );
 }
+BasicWithTrackedChange.parameters = disableRtlModeParameters;
+

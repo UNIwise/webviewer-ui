@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import PropTypes from 'prop-types';
-import core from 'core';
+import useCore from 'hooks/useCore';
 
 import NoteState from './NoteState';
 import { createStateAnnotation } from 'helpers/NoteStateUtils';
@@ -13,6 +13,7 @@ const propTypes = {
 };
 
 function NoteStateContainer(props) {
+  const { core } = useCore();
   const activeDocumentViewerKey = useSelector((state) => selectors.getActiveDocumentViewerKey(state));
   const isNoteStateDisabled = useSelector((state) => selectors.isElementDisabled(state, 'noteState'));
 
@@ -23,7 +24,6 @@ function NoteStateContainer(props) {
     annotation.addReply(stateAnnotation);
     const annotationManager = core.getAnnotationManager(activeDocumentViewerKey);
     annotationManager.addAnnotation(stateAnnotation);
-    annotationManager.trigger('addReply', [stateAnnotation, annotation, annotationManager.getRootAnnotation(annotation)]);
   }, [annotation, activeDocumentViewerKey]));
 
   return (!isNoteStateDisabled &&

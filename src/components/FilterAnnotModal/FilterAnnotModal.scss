@@ -107,7 +107,7 @@
                 width: 22px;
                 height: 22px;
                 border-radius: 10000000px;
-                margin-left: 4px;
+                margin-inline-start: 4px;
                 border: 1px solid var(--gray-6);
               }
             }
@@ -128,26 +128,22 @@
       .settings-body {
         display: flex;
         flex-direction: column;
+        margin: 16px 0px 0px 0px;
+        border: 0;
         padding: 16px;
         font-size: var(--font-size-default);
         gap: 12px;
 
         .settings-header {
           font-weight: var(--font-weight-bold);
+          padding: 0;
         }
 
         .settings {
           display: flex;
           flex-direction: column;
           gap: 8px;
-
-          .setting {
-            display: flex;
-            flex-direction: row;
-            gap: 16px;
-          }
         }
-
       }
 
       .footer {

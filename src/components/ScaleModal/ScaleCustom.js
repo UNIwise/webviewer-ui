@@ -258,9 +258,9 @@ function ScaleCustom({ scale, onScaleChange, precision }) {
       <div className="scale-ratio-input-container">
         <div className="scale-ratio-display">
           <div className="left-container" ref={leftContainerRef}>
-            <div className="unit-label">{t('insertPageModal.pageDimensions.units')}</div>
+            <div className="unit-label" id="paper-units-dropdown-label">{t('option.measurement.scaleModal.paperUnits')}</div>
             <div className="input-wrapper">
-              <div className={classNames({ 'warning-alert' : !isPageValueValid })}>
+              <div className={classNames({ 'warning-alert': !isPageValueValid })}>
                 <input
                   type={isFractionalPrecision ? 'text' : 'number'}
                   min="0"
@@ -273,11 +273,13 @@ function ScaleCustom({ scale, onScaleChange, precision }) {
                   ref={pageValueInput}
                   onBlur={onInputBlur}
                 />
-                <Icon glyph="icon-alert" className="warning-alert-icon"/>
+                <Icon glyph="icon-alert" className="warning-alert-icon" />
               </div>
               <Tooltip content={'option.measurement.scaleModal.paperUnits'}>
                 <div className="unit-input">
                   <Dropdown
+                    id="paper-units-dropdown"
+                    labelledById='paper-units-dropdown-label'
                     dataElement="customPageScaleUnit"
                     items={unitFromOptions}
                     onClickItem={(value) => onScaleUnitChange(value, true)}
@@ -290,9 +292,9 @@ function ScaleCustom({ scale, onScaleChange, precision }) {
           </div>
           <div className="scale-ratio-equal">{' = '}</div>
           <div className="right-container">
-            <div className="unit-label">{t('insertPageModal.pageDimensions.units')}</div>
+            <div className="unit-label" id="display-units-dropdown-label">{t('option.measurement.scaleModal.displayUnits')}</div>
             <div className="input-wrapper">
-              <div className={classNames({ 'warning-alert' : !isWorldValueValid })}>
+              <div className={classNames({ 'warning-alert': !isWorldValueValid })}>
                 <input
                   type={(isFractionalPrecision || scale[1][1] === 'ft-in') ? 'text' : 'number'}
                   min='0'
@@ -305,11 +307,13 @@ function ScaleCustom({ scale, onScaleChange, precision }) {
                   ref={worldValueInput}
                   onBlur={onInputBlur}
                 />
-                <Icon glyph="icon-alert" className="warning-alert-icon"/>
+                <Icon glyph="icon-alert" className="warning-alert-icon" />
               </div>
               <Tooltip content={'option.measurement.scaleModal.displayUnits'}>
                 <div className="unit-input">
                   <Dropdown
+                    id="display-units-dropdown"
+                    labelledById='display-units-dropdown-label'
                     items={unitToOptions}
                     dataElement="customDisplayScaleUnit"
                     onClickItem={(value) => onScaleUnitChange(value, false)}

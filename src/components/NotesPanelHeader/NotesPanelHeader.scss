@@ -13,10 +13,15 @@
   span {
     font-weight: bold;
   }
+
+  h2 {
+    font-weight: normal;
+    font-size: 16px;
+  }
 }
 
-[data-element="notesPanelHeader"] {
-  padding-right: 18px;
+[data-element='notesPanelHeader'] {
+  padding-inline-end: 18px;
 
   .buttons-container {
     display: flex;
@@ -59,11 +64,11 @@
       align-self: flex-end;
 
       .label {
-        margin-right: 8px;
+        margin-inline-end: 8px;
       }
 
       .picked-option {
-        text-align: left;
+        text-align: start;
       }
     }
   }
@@ -79,11 +84,11 @@
       border-radius: 4px;
       color: var(--text-color);
       padding-top: 4px;
-      padding-right: 8px;
+      padding-inline-end: 8px;
       padding-bottom: 6px;
-      padding-left: 8px;
+      padding-inline-start: 8px;
     }
-    
+
     &.modular-ui-input {
       box-sizing: border-box;
       border: 1px solid var(--border);
@@ -99,8 +104,8 @@
       }
 
       input {
-        padding-left: 8px;
-        padding-right: 26px;
+        padding-inline-start: 8px;
+        padding-inline-end: 26px;
         height: 20px;
         border: none;
         background: transparent;
@@ -108,32 +113,32 @@
     }
   }
 
-    .input-button {
-      cursor: pointer;
-      background: var(--primary-button);
-      border-radius: 4px;
-      height: 100%;
-      width: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: absolute;
-      bottom: 0px;
-      right: 0px;
+  .input-button {
+    cursor: pointer;
+    background: var(--primary-button);
+    border-radius: 4px;
+    height: 100%;
+    width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    inset-block-end: 0px;
+    inset-inline-end: 0px;
 
-      .Icon {
-        width: 20px;
-        height: 20px;
-      }
-
-      svg {
-        color: var(--primary-button-text);
-      }
-
-      &:hover {
-        background: var(--primary-button-hover);
-      }
+    .Icon {
+      width: 20px;
+      height: 20px;
     }
+
+    svg {
+      color: var(--primary-button-text);
+    }
+
+    &:hover {
+      background: var(--primary-button-hover);
+    }
+  }
 
   .divider {
     height: 1px;
@@ -144,29 +149,7 @@
 }
 
 .modular-ui-header {
-  .sort-row .sort-container {
-    .Dropdown__wrapper {
-      .Dropdown__items {
-        .Dropdown__item {
-          font-size: 13px;
-
-          &:hover {
-            @extend %custom-flyout-item-hover;
-          }
-
-          &.active {
-            @extend %custom-flyout-item-active;
-          }
-
-          .Icon .arrow {
-            margin-top: 0;
-          }
-        }
-      }
-    }
-  }
-
-  .input-container.modular-ui-input .Icon{
+  .input-container.modular-ui-input .Icon {
     width: 16px;
     height: 16px;
   }

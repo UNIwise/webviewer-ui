@@ -1,7 +1,6 @@
 @import '../../../constants/styles';
 
 .RightHeader {
-  height: 100%;
   width: $right-header-width;
   min-width: fit-content;
   z-index: 63;
@@ -13,7 +12,13 @@
 }
 
 .RightHeader.stroke {
-  border-left-width: 1px;
-  border-left-style: solid;
-  border-left-color: var(--gray-5);
+  border-inline-start-width: 1px;
+  border-inline-start-style: solid;
+  border-inline-start-color: var(--gray-5);
+}
+
+.RightHeaderNav {
+  display: flex;
+  order: 2;
+  margin-inline-start: auto;
 }

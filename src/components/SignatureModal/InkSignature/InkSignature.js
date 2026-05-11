@@ -7,7 +7,7 @@ import { Swipeable } from 'react-swipeable';
 import ColorPalette from 'components/ColorPalette';
 import Dropdown from 'components/Dropdown';
 import SignatureModes from 'constants/signatureModes';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import { COMMON_COLORS, BASIC_PALETTE } from 'constants/commonColors';
 
 import './InkSignature.scss';
@@ -32,6 +32,11 @@ const InkSignature = ({
   enableCreateButton,
   isInitialsModeEnabled = false
 }) => {
+  // useCore must be called with 1 so that InkSignature always uses the
+  // viewer-1 signature tool. In MultiViewer, the active viewer key may be 2,
+  // but the signature tool of viewer 1 controls the shared signature list
+  // panel and propagates annotation state to all viewers.
+  const { core } = useCore(1);
   const fullSignatureCanvas = useRef();
   const initialsCanvas = useRef();
   // the ref holds the path points of the underlying freehand annotation
@@ -255,6 +260,7 @@ const InkSignature = ({
             <div className="colorpalette-clear-container">
               <div className="signature-style-options">
                 <Dropdown
+                  id="ink-signature-font-dropdown"
                   disabled={true}
                   placeholder={'Text Styles'}
                 />

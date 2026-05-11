@@ -24,7 +24,7 @@
 
     [data-element='signatureValidationModalCloseButton'] {
       position: absolute;
-      right: 0px;
+      inset-inline-end: 0px;
 
       &:hover {
         background: none;
@@ -42,24 +42,24 @@
     font-weight: bold;
   }
 
-  .summary-box>*:not(:first-child) {
-    margin-left: 8px;
+  .summary-box > *:not(:first-child) {
+    margin-inline-start: 8px;
   }
 
   .validation-header-valid {
-    background-color: #8DD88D;
+    background-color: #8dd88d;
   }
 
   .validation-header-warning {
-    background-color: #E2B719;
+    background-color: #e2b719;
   }
 
   .validation-header-error {
-    background-color: #FF7979;
+    background-color: #ff7979;
   }
 
   .validation-header-unknown {
-    background-color: #DDDDDD;
+    background-color: #dddddd;
   }
 
   .body {

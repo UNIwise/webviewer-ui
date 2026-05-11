@@ -3,7 +3,8 @@ import useFloatingHeaderSelectors from 'hooks/useFloatingHeaderSelectors';
 import FloatingHeader from './FloatingHeader';
 import './FloatingHeader.scss';
 import classNames from 'classnames';
-import { PLACEMENT, POSITION, DEFAULT_GAP } from 'src/constants/customizationVariables';
+import { PLACEMENT, POSITION, DEFAULT_GAP } from 'constants/customizationVariables';
+import useIsRTL from 'hooks/useIsRTL';
 
 const FloatSection = ({ position, isVertical, children, gap = DEFAULT_GAP }) => {
   const className = classNames('FloatSection', position, { 'vertical': isVertical });
@@ -18,11 +19,13 @@ const FloatingHeaderContainer = React.forwardRef((props, ref) => {
   const { floatingHeaders, placement } = props;
   const isHorizontalHeader = [PLACEMENT.TOP, PLACEMENT.BOTTOM].includes(placement);
   const selectors = useFloatingHeaderSelectors();
+  const isRTL = useIsRTL();
 
   const style = useMemo(() => computeFloatContainerStyle({
     ...selectors,
     isHorizontalHeader,
     placement,
+    isRTL
   }), [selectors, isHorizontalHeader, placement]);
 
   const renderHeaders = (headers, positionPrefix) => (
@@ -31,6 +34,9 @@ const FloatingHeaderContainer = React.forwardRef((props, ref) => {
     </FloatSection>
   );
 
+  if (!floatingHeaders.length) {
+    return null;
+  }
   return (
     <div
       className={classNames('FloatingHeaderContainer', placement, { 'vertical': !isHorizontalHeader })}
@@ -63,27 +69,38 @@ function computeFloatContainerStyle(params) {
     bottomHeadersHeight,
     bottomEndFloatingHeaders,
     topEndFloatingHeaders,
-    placement
+    placement,
+    bottomHeadersWidth,
+    isRTL
   } = params;
 
   const styles = {};
   const verticalHeaderWidth = rightHeaderWidth + leftHeaderWidth;
+  const horizontalHeaderWidth = bottomHeadersWidth;
+  const isStartPanelOpen = isRTL ? isRightPanelOpen : isLeftPanelOpen;
+  const isEndPanelOpen = isRTL ? isLeftPanelOpen : isRightPanelOpen;
+  const startPanelWidth = isRTL ? rightPanelWidth : leftPanelWidth;
+  const endPanelWidth = isRTL ? leftPanelWidth : rightPanelWidth;
   let panelsWidth = 0;
-  let leftOffset = leftHeaderWidth;
+  let startOffset = isRTL ? rightHeaderWidth : leftHeaderWidth;
 
-  if (isLeftPanelOpen) {
-    panelsWidth += leftPanelWidth;
-    leftOffset += leftPanelWidth;
+  if (isStartPanelOpen) {
+    panelsWidth += startPanelWidth;
+    startOffset += startPanelWidth;
   }
-  if (isRightPanelOpen) {
-    panelsWidth += rightPanelWidth;
+  if (isEndPanelOpen) {
+    panelsWidth += endPanelWidth;
   }
 
-  if (leftOffset !== 0) {
-    styles.transform = `translate(${leftOffset}px, 0px)`;
+  if (startOffset !== 0) {
+    const windowWidth = window.innerWidth;
+    const remainingWidthForStart = windowWidth - endPanelWidth;
+    const startExceedsRemainingWidth = startPanelWidth > remainingWidthForStart;
+    const xOffset = startExceedsRemainingWidth ? remainingWidthForStart - horizontalHeaderWidth : startOffset;
+    styles.transform = `translate(${isRTL ? -xOffset : xOffset}px, 0px)`;
   }
   if (placement === PLACEMENT.RIGHT) {
-    styles.transform = 'translate(-48px, 0px)';
+    styles.right = `${rightHeaderWidth}px`;
   }
   if (isHorizontalHeader && (panelsWidth || verticalHeaderWidth)) {
     styles.width = `calc(100% - ${panelsWidth + verticalHeaderWidth}px)`;

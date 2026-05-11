@@ -5,14 +5,14 @@ import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import Tooltip from 'components/Tooltip';
 import Icon from 'components/Icon';
-import { shortcutAria } from 'helpers/hotkeysManager';
+import { shortcutAria } from 'helpers/hotkeysUtils';
 import selectors from 'selectors';
 import { getClickMiddleWare, ClickedItemTypes } from 'helpers/clickTracker';
 import { createAnnouncement } from 'helpers/accessibility';
 
 import './Button.scss';
 
-const NOOP = e => {
+const NOOP = (e) => {
   e?.stopPropagation();
   e?.preventDefault();
 };
@@ -21,7 +21,7 @@ const propTypes = {
   isActive: PropTypes.bool,
   mediaQueryClassName: PropTypes.string,
   img: PropTypes.string,
-  label: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  label: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.node]),
   title: PropTypes.string,
   color: PropTypes.string,
   dataElement: PropTypes.string,
@@ -37,12 +37,13 @@ const propTypes = {
   hideTooltipShortcut: PropTypes.bool,
   useI18String: PropTypes.bool,
   shouldPassActiveDocumentViewerKeyToOnClickHandler: PropTypes.bool,
+  children: PropTypes.node,
 };
 
 // eslint-disable-next-line react/display-name
 const Button = forwardRef((props, ref) => {
   const [removeElement, isCustomUI, customOverrides = {}, activeDocumentViewerKey = 1] = useSelector(
-    state => [
+    (state) => [
       selectors.isElementDisabled(state, props.dataElement),
       selectors.getFeatureFlags(state)?.customizableUI,
       selectors.getCustomElementOverrides(state, props.dataElement),
@@ -71,7 +72,12 @@ const Button = forwardRef((props, ref) => {
     title,
     style,
     ariaLabel,
+    ariaLabelledby,
     ariaControls,
+    ariaCurrent,
+    ariaPressed,
+    ariaExpanded,
+    ariaSelected,
     role,
     strokeColor,
     fillColor,
@@ -82,6 +88,7 @@ const Button = forwardRef((props, ref) => {
     hideOnClick,
     shouldPassActiveDocumentViewerKeyToOnClickHandler,
     onClickAnnouncement,
+    onKeyDownHandler,
   } = { ...props, ...customOverrides };
   const [t] = useTranslation();
 
@@ -114,7 +121,7 @@ const Button = forwardRef((props, ref) => {
       }
     };
   } else {
-    onClickHandler = e => {
+    onClickHandler = (e) => {
       createAnnouncement(onClickAnnouncement);
       getClickMiddleWare()?.(dataElement, { type: ClickedItemTypes.BUTTON });
       if (onClick) {
@@ -147,14 +154,20 @@ const Button = forwardRef((props, ref) => {
       onClick={actuallyDisabled ? NOOP : onClickHandler}
       onDoubleClick={actuallyDisabled ? NOOP : onDoubleClick}
       onMouseUp={actuallyDisabled ? NOOP : onMouseUp}
+      onKeyDown={actuallyDisabled ? NOOP : onKeyDownHandler}
       aria-label={aLabel}
-      aria-controls={aControls}
+      aria-labelledby={ariaLabelledby}
+      aria-controls={aControls ? aControls : undefined}
       role={role}
       tabIndex={tabIndex}
-      aria-keyshortcuts={ariaKeyshortcuts}
-      aria-expanded={isActive}
       type={isSubmitType ? 'submit' : 'button'}
       disabled={actuallyDisabled}
+      aria-disabled={actuallyDisabled}
+      aria-keyshortcuts={ariaKeyshortcuts}
+      aria-pressed={ariaPressed}
+      aria-expanded={ariaExpanded}
+      aria-selected={ariaSelected}
+      aria-current={ariaCurrent}
     >
       {isGlyph && (
         <Icon
@@ -167,7 +180,12 @@ const Button = forwardRef((props, ref) => {
         />
       )}
       {imgToShow && !isGlyph && <img src={imgToShow} />}
-      {label && (useI18String ? <span>{t(label)}</span> : <span>{label}</span>)}
+      {
+        label && (useI18String ?
+          <span>{t(label)}</span> :
+          <span>{label}</span>)
+      }
+      {props.children}
     </button>
   );
 

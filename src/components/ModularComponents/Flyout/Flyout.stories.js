@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { configureStore } from '@reduxjs/toolkit';
 import Flyout from './Flyout';
 import { Provider } from 'react-redux';
@@ -6,24 +6,24 @@ import DataElements from 'constants/dataElement';
 import { menuItems } from 'components/ModularComponents/Helpers/menuItems';
 import { PRESET_BUTTON_TYPES, ITEM_TYPE } from 'constants/customizationVariables';
 
-import { createTemplate } from 'helpers/storybookHelper';
-import { userEvent, within, expect } from '@storybook/test';
-import { uiWithFlyout } from '../storyModularUIConfigs';
-import { fireEvent } from '@testing-library/react';
+import { createTemplate, oePartialState } from 'helpers/storybookHelper';
+import { userEvent, within, expect, fireEvent, waitFor } from 'storybook/test';
+import { uiWithFlyout, panelsInFlyoutMap } from '../storyModularUIConfigs';
+import createItemsForBookmarkOutlineFlyout from 'src/helpers/createItemsForBookmarkOutlineFlyout';
+import { menuItems as MenuItemsForBookmarkOutlines, menuTypes } from 'helpers/outlineFlyoutHelper';
+import { setClickMiddleWare } from 'helpers/clickTracker';
+import { mockHeadersNormalized, mockModularComponents } from '../AppStories/mockAppState';
+import { getTranslatedText } from 'src/helpers/testTranslationHelper';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'ModularComponents/Flyout',
   component: Flyout,
-  parameters: {
-    customizableUI: true,
-  },
 };
 
 const initialState = {
+  ...oePartialState,
   viewer: {
-    lastPickedToolForGroupedItems: {
-      undefined: '',
-    },
     toolButtonObjects: {
       AnnotationEdit: {
         'dataElement': 'selectToolButton',
@@ -46,6 +46,7 @@ const initialState = {
       noIcons: true,
       [DataElements.MAIN_MENU]: true,
       menuWithComponentItems: true,
+      bookmarkOutlineFlyout: true,
     },
     customPanels: [],
     genericPanels: [],
@@ -385,6 +386,10 @@ const initialState = {
           { dataElement: 'annotationEditToolButton', toolName: 'AnnotationEdit', className: 'FlyoutToolButton' },
         ],
       },
+      'bookmarkOutlineFlyout': {
+        dataElement: 'bookmarkOutlineFlyout',
+        items: createItemsForBookmarkOutlineFlyout(MenuItemsForBookmarkOutlines, 'portfolio', false, () => { }, menuTypes),
+      },
     },
     modularComponents: {
       panToolButton: {
@@ -402,7 +407,7 @@ const initialState = {
     },
     flyoutPosition: { x: 0, y: 0 },
     activeFlyout: 'flyoutMenu',
-    activeCustomPanel: '',
+    activeTabInPanel: {},
     modularHeaders: {},
     modularHeadersHeight: {
       topHeaders: 40,
@@ -414,6 +419,7 @@ const initialState = {
     customizableUI: true,
   }
 };
+
 const store = configureStore({
   reducer: () => initialState
 });
@@ -475,7 +481,7 @@ export const FlyoutOpeningTest = createTemplate({ headers: uiWithFlyout.modularH
 FlyoutOpeningTest.play = async ({ canvasElement }) => {
   const canvas = within(canvasElement);
   // Click the toggle button to open the flyout
-  const flyoutToggle = await canvas.findByRole('button', { 'aria-label': 'Flyout Toggle' });
+  const flyoutToggle = await canvas.findByRole('button', { 'name': 'Flyout Toggle' });
   await userEvent.click(flyoutToggle);
   // Check if the flyout is open
   const flyoutItem = await canvas.findByText('Custom Flyout Item');
@@ -491,7 +497,7 @@ FlyoutOpeningTest.play = async ({ canvasElement }) => {
   const submenuItem2 = await canvas.findByText('Submenu Item 2');
   expect(submenuItem2).toBeInTheDocument();
   // Click submenu back button to close it
-  const backBtn = await canvas.findByText('Back');
+  const backBtn = await canvas.getByRole('button', { name: getTranslatedText('action.back') });
   await userEvent.click(backBtn);
   // Check if the submenu is gone
   expect(submenuItem2).not.toBeInTheDocument();
@@ -506,13 +512,44 @@ FlyoutOpeningTest.play = async ({ canvasElement }) => {
   expect(disabledSubmenuItem).not.toBeInTheDocument();
 };
 
+export const FlyoutClosingTest = createTemplate(
+  {
+    headers: uiWithFlyout.modularHeaders,
+    components: uiWithFlyout.modularComponents,
+    flyoutMap: uiWithFlyout.flyouts,
+  }
+);
+
+FlyoutClosingTest.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+
+  const flyoutToggle = await canvas.findByRole(
+    'button',
+    { 'name': 'Flyout Toggle' },
+  );
+
+  await userEvent.click(flyoutToggle);
+
+  const flyoutItem = await canvas.findByText('Custom Flyout Item');
+  expect(flyoutItem).toBeInTheDocument();
+
+  const headerToolBar = await canvas.findByRole('toolbar');
+  await userEvent.click(headerToolBar);
+
+  expect(flyoutItem).not.toBeInTheDocument();
+};
+FlyoutClosingTest.parameters = {
+  layout: 'fullscreen',
+  ...disableRtlModeParameters,
+};
+
 FlyoutComponent.play = async ({ canvasElement }) => {
   const canvas = within(canvasElement);
   const option1 = await canvas.findByRole('button', { name: /Item 1/i });
   await fireEvent.focus(option1);
   // Pressing first element on the Flyout to open its children
   await fireEvent.keyDown(option1, { key: 'Enter', code: 'Enter' });
-  const backButton = await canvas.findByRole('button', { name: /Back/i });
+  const backButton = await canvas.findByRole('button', { name: getTranslatedText('action.back') });
   const option11 = await canvas.findByRole('button', { name: /Item 1.1/i });
   expect(backButton).toBeInTheDocument();
   expect(option11).toBeInTheDocument();
@@ -530,4 +567,301 @@ FlyoutComponent.play = async ({ canvasElement }) => {
   expect(backButton).not.toBeInTheDocument();
   const option1SecondRef = await canvas.findByRole('button', { name: /Item 1/i });
   expect(option1SecondRef).toBeInTheDocument();
+};
+
+let statefulButtonMount = false;
+const storeWithStatefulButton = configureStore({
+  reducer: () => {
+    return {
+      ...initialState,
+      viewer: {
+        ...initialState.viewer,
+        activeFlyout: 'flyoutMenu',
+        flyoutMap: {
+          ...initialState.viewer.flyoutMap,
+          flyoutMenu: {
+            dataElement: 'flyoutMenu',
+            items: [
+              {
+                type: 'statefulButton',
+                dataElement: 'testStatefulButton',
+                initialState: 'SinglePage',
+                states: {
+                  SinglePage: {
+                    img: 'icon-header-page-manipulation-page-layout-single-page-line',
+                    onClick: (update) => {
+                      console.log('SinglePage');
+                      update('DoublePage');
+                    },
+                    title: 'sIngLe pAgE',
+                  },
+                  DoublePage: {
+                    img: 'icon-header-page-manipulation-page-layout-double-page-line',
+                    onClick: (update) => {
+                      console.log('DoublePage');
+                      update('SinglePage');
+                    },
+                    title: 'Double Page',
+                  },
+                },
+                mount: () => {
+                  console.log('Stateful button mounted');
+                  statefulButtonMount = true;
+                },
+                unmount: () => {
+                  console.log('Stateful button unmounted');
+                },
+                title: 'tEsT pAgE',
+              },
+            ]
+          },
+        }
+      }
+    };
+  }
+});
+
+export const StatefulButtonInFlyout = () => (
+  <Provider store={storeWithStatefulButton}>
+    <Flyout />
+  </Provider>
+);
+StatefulButtonInFlyout.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+  // Ensure flyout calls onMount
+  expect(statefulButtonMount).toBe(true);
+  // Click and expect state to change (image)
+  canvas.getByRole('button', { name: /single page/i }).click();
+  let imgTitle = canvasElement.querySelector('svg > title');
+  await expect(imgTitle).toContainHTML('icon - header - page manipulation - page layout - double page - line');
+  canvas.getByRole('button', { name: /double page/i }).click();
+  imgTitle = canvasElement.querySelector('svg > title');
+  await expect(imgTitle).toContainHTML('icon - header - page manipulation - page layout - single page - line');
+};
+
+StatefulButtonInFlyout.parameters = disableRtlModeParameters;
+
+const portfolioFlyoutStore = configureStore({
+  reducer: () => {
+    return {
+      ...initialState,
+      viewer: { ...initialState.viewer, activeFlyout: 'bookmarkOutlineFlyout' }
+    };
+  }
+});
+
+export const PortfolioFlyout = () => {
+  return (
+    <Provider store={portfolioFlyoutStore}>
+      <Flyout />
+    </Provider>
+  );
+};
+PortfolioFlyout.parameters = disableRtlModeParameters;
+
+const mockInitialState = {
+  middleware: false,
+  onClick: false,
+};
+let mockFunctions = mockInitialState;
+
+const overrideStore = configureStore({
+  reducer: () => ({
+    ...initialState,
+    viewer: {
+      ...initialState.viewer,
+      activeFlyout: DataElements.MAIN_MENU,
+      customElementOverrides: {
+        'filePickerButton': {
+          onClick: () => mockFunctions.onClick = true,
+          img: 'icon-save',
+          label: 'New Label',
+          title: 'New tooltip',
+        },
+      },
+    },
+  }),
+});
+
+export const FlyoutOverride = () => {
+  mockFunctions = mockInitialState;
+
+  useEffect(() => {
+    setClickMiddleWare(() => {
+      mockFunctions.middleware = true;
+    });
+    return () => setClickMiddleWare(undefined);
+  }, []);
+
+  return (
+    <Provider store={overrideStore}>
+      <Flyout />
+    </Provider>
+  );
+};
+
+FlyoutOverride.parameters = disableRtlModeParameters;
+
+FlyoutOverride.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+  await canvas.getByRole('button', { name: /New Label/i }).click();
+  await expect(mockFunctions.onClick).toBe(true);
+  await expect(mockFunctions.middleware).toBe(true);
+};
+
+export const StylePanelInFlyout = createTemplate({ headers: uiWithFlyout.modularHeaders, components: uiWithFlyout.modularComponents, panels: {}, flyoutMap: panelsInFlyoutMap });
+
+StylePanelInFlyout.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+
+  const flyoutToggleButton = canvas.getByRole('button', { name: /Flyout Toggle/ });
+  await userEvent.click(flyoutToggleButton);
+
+  await waitFor(() => {
+    const stylePanel = document.querySelector('[data-element="stylePanelInFlyout"]');
+    expect(stylePanel).toBeInTheDocument();
+  });
+
+  const anotherFlyoutButton = canvas.getByRole('button', { name: /Other Item/i });
+  await waitFor(() => {
+    expect(anotherFlyoutButton).toBeInTheDocument();
+  });
+  await userEvent.click(anotherFlyoutButton);
+
+  await waitFor(() => {
+    const submenuStylePanel = document.querySelector('[data-element="submenuStylePanel"]');
+    expect(submenuStylePanel).toBeInTheDocument();
+  });
+};
+
+export const RubberStampPanelInFlyout = createTemplate({ headers: mockHeadersNormalized, components: mockModularComponents, panels: {}, flyoutMap: panelsInFlyoutMap });
+RubberStampPanelInFlyout.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+
+  const insertRibbon = canvas.getByRole('button', { name: getTranslatedText('option.toolbarGroup.toolbarGroup-Insert') });
+  await userEvent.click(insertRibbon);
+  const rubberStampButton = canvas.getByRole('button', { name: getTranslatedText('annotation.rubberStamp') });
+  await userEvent.click(rubberStampButton);
+
+  await waitFor(() => {
+    const rubberStampPanel = document.querySelector('[data-element="rubber-stamp-flyout"]');
+    expect(rubberStampPanel).toBeInTheDocument();
+  });
+};
+
+export const SignatureListPanelInFlyout = createTemplate({ headers: mockHeadersNormalized, components: mockModularComponents, panels: {}, flyoutMap: panelsInFlyoutMap });
+SignatureListPanelInFlyout.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+
+  const insertRibbon = canvas.getByRole('button', { name: getTranslatedText('option.toolbarGroup.toolbarGroup-Insert') });
+  await userEvent.click(insertRibbon);
+  const signatureListButton = canvas.getByRole('button', { name: getTranslatedText('annotation.signature') });
+  await userEvent.click(signatureListButton);
+
+  await waitFor(() => {
+    const signatureListPanel = document.querySelector('[data-element="signature-list-flyout"]');
+    expect(signatureListPanel).toBeInTheDocument();
+  });
+};
+
+const getDirectionalArgs = (location, alignment) => ({
+  headers: {
+    topHeader: {
+      dataElement: 'topHeader',
+      placement: location,
+      justifyContent: alignment,
+      items: ['toggleFlyoutButton']
+    },
+  },
+  components: {
+    toggleFlyoutButton: {
+      dataElement: 'toggleFlyoutButton',
+      title: 'Toggle Flyout',
+      type: 'toggleButton',
+      img: 'icon-header-search',
+      toggleElement: 'flyoutMenu',
+    }
+  },
+  flyoutMap: {
+    flyoutMenu: {
+      dataElement: 'flyoutMenu',
+      items: [
+        {
+          label: 'Flyout Item 1',
+          onClick: () => console.log('Flyout Item 1 clicked'),
+          icon: 'icon-tool-highlight',
+          children: [
+            {
+              label: 'Submenu Item',
+              onClick: () => console.log('Submenu Item clicked'),
+              icon: 'icon-arrow-right',
+            },
+            {
+              label: 'Disabled Flyout Item',
+              onClick: () => console.warn('Disabled Flyout Item clicked'),
+              disabled: true,
+            },
+          ],
+        },
+        {
+          label: 'Flyout Item 2',
+          onClick: () => console.log('Flyout Item 2 clicked'),
+          icon: 'icon-save',
+        },
+        {
+          label: 'Flyout Item 3',
+          onClick: () => console.log('Flyout Item 3 clicked'),
+          icon: 'icon-download',
+        },
+        {
+          label: 'Flyout Item 4',
+          onClick: () => console.log('Flyout Item 4 clicked'),
+          icon: 'icon-close',
+        },
+        {
+          label: 'Flyout Item 5',
+          onClick: () => console.log('Flyout Item 5 clicked'),
+          icon: 'icon-save',
+        },
+        {
+          label: 'Flyout Item 6',
+          onClick: () => console.log('Flyout Item 6 clicked'),
+          icon: 'icon-download',
+        },
+        {
+          label: 'Flyout Item 7',
+          onClick: () => console.log('Flyout Item 7 clicked'),
+          icon: 'icon-close',
+        },
+      ],
+    },
+  },
+  viewerRedux: {
+    activeFlyout: 'flyoutMenu',
+    openElements: { 'flyoutMenu': true },
+    flyoutToggleElement: 'toggleFlyoutButton',
+  }
+});
+
+export const FlyoutTopLeft = createTemplate(getDirectionalArgs('top', 'left'));
+export const FlyoutTopCenter = createTemplate(getDirectionalArgs('top', 'center'));
+export const FlyoutTopRight = createTemplate(getDirectionalArgs('top', 'right'));
+
+export const FlyoutLeftCenter = createTemplate(getDirectionalArgs('left', 'center'));
+export const FlyoutLeftEnd = createTemplate(getDirectionalArgs('left', 'end'));
+
+export const FlyoutRightCenter = createTemplate(getDirectionalArgs('right', 'center'));
+export const FlyoutRightEnd = createTemplate(getDirectionalArgs('right', 'end'));
+
+export const FlyoutBottomLeft = createTemplate(getDirectionalArgs('bottom', 'left'));
+export const FlyoutBottomCenter = createTemplate(getDirectionalArgs('bottom', 'center'));
+export const FlyoutBottomRight = createTemplate(getDirectionalArgs('bottom', 'right'));
+
+export const FlyoutOverflow = createTemplate({
+  ...getDirectionalArgs('top', 'left'),
+  height: '200px',
+});
+FlyoutOverflow.parameters = {
+  layout: 'fullscreen',
+  ...disableRtlModeParameters,
 };

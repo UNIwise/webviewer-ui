@@ -44,7 +44,7 @@ const RedactionItem = (props) => {
   const className = classNames('redaction-item', { 'redaction-item-selected': isSelected }, { 'modular-ui': isCustomUI });
   const {
     label,
-    icon = 'icon-form-field-text', // Default icon if none provided
+    icon = 'icon-text-redaction', // Default icon if none provided
     redactionType
   } = annotation;
 
@@ -67,14 +67,14 @@ const RedactionItem = (props) => {
     redactionPreview = annotation.getContents();
   }
 
-  const onKeyUp = (event) => {
-    if (event.key === 'Enter') {
-      onRedactionItemSelection();
-    }
-  };
-
   return (
-    <div role="listitem" className={className} onClick={onRedactionItemSelection} onKeyUp={onKeyUp} tabIndex={0}>
+    <li className={className}>
+      <Button
+        className='redaction-item-button'
+        onClick={onRedactionItemSelection}
+        ariaLabel={`${redactionPreview} ${dateAndAuthor} ${t('action.select')}`}
+        ariaCurrent={isSelected}
+      />
       <div className="redaction-icon-container">
         <Icon glyph={icon} color={iconColor} />
       </div>
@@ -97,9 +97,9 @@ const RedactionItem = (props) => {
         style={{ marginLeft: 'auto' }}
         img={'icon-close'}
         onClick={onRedactionItemDelete}
-        ariaLabel={`${redactionPreview} ${dateAndAuthor} ${t('action.delete')} `}
+        ariaLabel={`${redactionPreview} ${dateAndAuthor} ${t('action.delete')}`}
       />
-    </div>
+    </li>
   );
 };
 

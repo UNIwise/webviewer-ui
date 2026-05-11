@@ -1,7 +1,9 @@
 import React from 'react';
-import { createStore } from 'redux';
 import { Provider as ReduxProvider } from 'react-redux';
 import LineStyleOptions from './LineStyleOptions';
+import { configureStore } from '@reduxjs/toolkit';
+import rootReducer from 'src/redux/reducers/rootReducer';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/LineStyleOptions',
@@ -21,7 +23,7 @@ export function Basic() {
   };
 
   return (
-    <ReduxProvider store={createStore((state = {}) => state)}>
+    <ReduxProvider store={configureStore({ reducer: rootReducer })}>
       <div style={{ width: 100 }}>
         <LineStyleOptions
           properties={properties}
@@ -31,3 +33,5 @@ export function Basic() {
     </ReduxProvider>
   );
 }
+
+Basic.parameters = disableRtlModeParameters;

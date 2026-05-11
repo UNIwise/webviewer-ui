@@ -1,19 +1,27 @@
 import React from 'react';
 import ToggleElementButton from '../ToggleElementButton';
+import classNames from 'classnames';
+import PropTypes from 'prop-types';
 
-const ViewControlsToggleButton = () => {
+const ViewControlsToggleButton = ({ className, dataElement }) => {
   return (
-    <div>
-      <ToggleElementButton
-        dataElement="view-controls-toggle-button"
-        className="viewControlsToggleButton"
-        title="component.viewControlsOverlay"
-        disabled={false}
-        img="icon-header-page-manipulation-line"
-        toggleElement="viewControlsFlyout"
-      />
-    </div>
+    <ToggleElementButton
+      dataElement={dataElement || 'view-controls-toggle-button'}
+      className={classNames({
+        'viewControlsToggleButton': true,
+        [className]: true,
+      })}
+      title="component.viewControls"
+      disabled={false}
+      img="icon-header-page-manipulation-line"
+      toggleElement="viewControlsFlyout"
+    />
   );
+};
+
+ViewControlsToggleButton.propTypes = {
+  className: PropTypes.string,
+  dataElement: PropTypes.string,
 };
 
 export default ViewControlsToggleButton;

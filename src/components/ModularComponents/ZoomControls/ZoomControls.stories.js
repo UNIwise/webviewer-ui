@@ -7,13 +7,14 @@ import rootReducer from 'reducers/rootReducer';
 import { MockApp } from 'helpers/storybookHelper';
 import actions from 'actions';
 import initialState from 'src/redux/initialState';
+import { expect } from 'storybook/test';
+import core from 'core';
+import { workerTypes } from 'src/constants/types';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'ModularComponents/ZoomControls',
   component: ZoomControlsContainer,
-  parameters: {
-    customizableUI: true,
-  },
 };
 
 const store = configureStore({
@@ -24,9 +25,14 @@ export const FullSize = () => {
   return (
     <Provider store={store}>
       <FlyoutContainer/>
-      <ZoomControlsContainer/>
+      <ZoomControlsContainer className='zoom-full-size' />
     </Provider>
   );
+};
+
+FullSize.play = async ({ canvasElement }) => {
+  const zoomContainer = canvasElement.querySelector('.ZoomContainerWrapper');
+  expect(zoomContainer.classList.contains('zoom-full-size')).toBe(true);
 };
 
 export const SmallSize = () => {
@@ -37,29 +43,73 @@ export const SmallSize = () => {
   return (
     <Provider store={store}>
       <FlyoutContainer/>
-      <ZoomControlsContainer/>
+      <ZoomControlsContainer />
     </Provider>
   );
 };
 
-const stateWithFlyoutOpen = {
-  ...initialState,
-  viewer: {
-    ...initialState.viewer,
-    activeFlyout: 'zoom-containerFlyout',
-    flyoutToggleElement: 'zoom-container',
-    openElements: {
-      ...initialState.viewer.openElements,
-      'zoom-containerFlyout': true,
+SmallSize.parameters = disableRtlModeParameters;
+
+export const ZoomInSheetEditorMode = () => {
+  let preloadedState = {
+    ...initialState,
+    viewer: {
+      ...initialState.viewer,
+      isSpreadsheetEditorModeEnabled: true,
     },
-  },
-  featureFlags: {
-    customizableUI: true,
-  },
+  };
+
+  const store = configureStore({
+    preloadedState: preloadedState,
+    reducer: rootReducer,
+  });
+
+  return (
+    <Provider store={store}>
+      <FlyoutContainer/>
+      <ZoomControlsContainer />
+    </Provider>
+  );
 };
 
-export const OpenWithMockApp = () => {
-  return <MockApp initialState={stateWithFlyoutOpen} />;
+ZoomInSheetEditorMode.parameters = disableRtlModeParameters;
+
+export const ZoomInOfficeEditorMode = (args, context) => {
+  core.getDocument = () => ({
+    getType: () => workerTypes.OFFICE_EDITOR,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    getOfficeEditor: () => {},
+  });
+
+  return <MockApp initialState={getStateWithFlyoutOpen(context)} initialDirection={context.globals.addonRtl} />;
+};
+
+ZoomInOfficeEditorMode.parameters = {
+  layout: 'fullscreen',
+};
+
+const getStateWithFlyoutOpen = (context) => {
+  return {
+    ...initialState,
+    viewer: {
+      ...initialState.viewer,
+      activeFlyout: 'zoom-containerFlyout',
+      flyoutToggleElement: 'zoom-container',
+      openElements: {
+        ...initialState.viewer.openElements,
+        'zoom-containerFlyout': true,
+      },
+      activeTheme: context.globals.theme,
+    },
+    featureFlags: {
+      customizableUI: true,
+    },
+  };
+};
+
+export const OpenWithMockApp = (args, context) => {
+  return <MockApp initialState={getStateWithFlyoutOpen(context)} initialDirection={context.globals.addonRtl}/>;
 };
 
 OpenWithMockApp.parameters = {

@@ -2,13 +2,14 @@ import React from 'react';
 import ToggleElementButton from './ToggleElementButton';
 import { configureStore } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
+import { panelData } from 'src/constants/panel';
+import PropTypes from 'prop-types';
+import { expect, within } from 'storybook/test';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'ModularComponents/ToggleElementButton',
   component: ToggleElementButton,
-  parameters: {
-    customizableUI: true,
-  },
 };
 
 const initialState = {
@@ -16,23 +17,34 @@ const initialState = {
     disabledElements: {},
     customElementOverrides: {},
     openElements: {
-      signatureModal: false
+      signatureModal: false,
+      testFlyout: false,
     },
     toolbarGroup: 'toolbarGroup-Insert',
     customPanels: [],
     genericPanels: [],
     lastPickedToolGroup: '',
+    flyoutMap: {
+      testFlyout: {}
+    },
+    activeFlyout: null,
+  },
+  featureFlags: {
+    customizableUI: true
   },
   featureFlags: {
     customizableUI: true
   }
 };
 const initialStateActive = {
+  ...initialState,
   viewer: {
     ...initialState.viewer,
     openElements: {
       signatureModal: true,
+      testFlyout: true,
     },
+    activeFlyout: 'testFlyout',
   },
 };
 
@@ -54,12 +66,58 @@ export const ToggleElementButtonComponent = () => (
   </Provider>
 );
 
+ToggleElementButtonComponent.parameters = disableRtlModeParameters;
+
 export const ToggleElementButtonWithLabelOnHoverState = () => (
   <Provider store={store}>
-    <ToggleElementButton img='icon-header-search' toggleElement='signatureModal' dataElement='toggleButton' label='Toggle Element' />
+    <ToggleElementButton img='icon-header-search' toggleElement='signatureModal' dataElement='toggleButton' label='Toggle Element' className='custom-class' />
   </Provider>
 );
+ToggleElementButtonWithLabelOnHoverState.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+  const button = canvas.getByRole('button', { name: /Toggle Element/i });
+  expect(button.classList.contains('custom-class')).toBe(true);
+};
 
 ToggleElementButtonWithLabelOnHoverState.parameters = {
   pseudo: { hover: true },
+  ...disableRtlModeParameters,
 };
+
+const togglePanelButtons = Object.keys(panelData).map((panel) => ({
+  img: panelData[panel].icon,
+  toggleElement: 'signatureModal',
+  dateElement: 'toggleButton',
+}));
+
+export const TogglePanelButtons = () => (
+  <Provider store={store}>
+    {togglePanelButtons.map((props) => (
+      <div key={props.dataElement}>
+        <ToggleElementButton {...props} />
+      </div>
+    ))}
+  </Provider>
+);
+
+TogglePanelButtons.propTypes = {
+  dataElement: PropTypes.string,
+};
+
+TogglePanelButtons.parameters = disableRtlModeParameters;
+
+const activeStore = configureStore({ reducer: () => initialStateActive });
+
+export const ToggleFlyoutButtonActive = () => (
+  <Provider store={activeStore}>
+    <ToggleElementButton img="icon-tools-more-active" toggleElement="testFlyout" dataElement="toggleButton"/>
+  </Provider>
+);
+ToggleFlyoutButtonActive.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+  const button = canvas.getByRole('button');
+  await expect(button.ariaPressed).toBe(null);
+  await expect(button.ariaExpanded).toBe('true');
+};
+
+ToggleFlyoutButtonActive.parameters = disableRtlModeParameters;

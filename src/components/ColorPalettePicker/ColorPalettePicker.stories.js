@@ -4,6 +4,7 @@ import { Provider } from 'react-redux';
 import initialState from 'src/redux/initialState';
 import ColorPalettePicker from './ColorPalettePicker';
 import { useTranslation } from 'react-i18next';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/ColorPalettePicker',
@@ -26,7 +27,7 @@ export function Basic() {
     customColors,
     getHexColor: noop,
     findCustomColorsIndex: noop,
-    setColorToBeDeleted: noop,
+    setColorToBeDeleted: noop
   };
   return (
     <Provider store={configureStore({ reducer: () => initialState })}>
@@ -34,3 +35,5 @@ export function Basic() {
     </Provider>
   );
 }
+
+Basic.parameters = disableRtlModeParameters;

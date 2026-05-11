@@ -1,15 +1,18 @@
-import React from 'react';
+import { createTemplate } from 'helpers/storybookHelper';
+import { mockHeadersNormalized, mockModularComponents } from '../AppStories/mockAppState';
+import React, { useEffect } from 'react';
 import { Provider } from 'react-redux';
 import ToolButton from './ToolButton';
 import { configureStore } from '@reduxjs/toolkit';
 import initialState from 'src/redux/initialState';
+import { expect, within } from 'storybook/test';
+import core from 'core';
+import actions from 'actions';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'ModularComponents/ToolButton',
   component: ToolButton,
-  parameters: {
-    customizableUI: true,
-  },
 };
 
 const toolNames = Object.values(window.Core.Tools.ToolNames);
@@ -44,6 +47,8 @@ export function AllToolButtons() {
   );
 }
 
+AllToolButtons.parameters = disableRtlModeParameters;
+
 export const OverrideToolButtonProps = () => {
   const props = {
     dataElement: 'AnnotationCreateSticky',
@@ -56,4 +61,137 @@ export const OverrideToolButtonProps = () => {
       <ToolButton {...props} />
     </WithProvider>
   );
+};
+
+OverrideToolButtonProps.parameters = disableRtlModeParameters;
+
+export const WithCustomStyle = () => {
+  const props = {
+    dataElement: 'AnnotationCreateSticky',
+    toolName: 'AnnotationCreateSticky',
+    img: 'icon-tool-measurement-arc',
+    title: 'Arc measurement',
+    className: 'arc-measurement-class',
+    style: {
+      backgroundColor: 'darksalmon',
+      color: 'white',
+      borderRadius: '50%',
+    }
+  };
+  return (
+    <WithProvider>
+      <ToolButton {...props} />
+    </WithProvider>
+  );
+};
+
+WithCustomStyle.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+  const button = canvas.getByRole('button', { name: /Arc measurement/i });
+  expect(button.classList.contains('arc-measurement-class')).toBe(true);
+};
+
+WithCustomStyle.parameters = disableRtlModeParameters;
+
+let toolStyles;
+const ReduxStory = () => {
+  toolStyles = {
+    StrokeColor: {
+      R: 0,
+      G: 122,
+      B: 59,
+      A: 1,
+      // eslint-disable-next-line custom/no-hex-colors
+      toHexString: () => '#007a3b'
+    },
+    StrokeThickness: 1,
+    Opacity: 1,
+  };
+  const props = {
+    dataElement: 'AnnotationCreateRectangle',
+    toolName: 'AnnotationCreateRectangle',
+  };
+  const originalGetTool = core.getTool;
+  core.getTool = () => ({
+    ...originalGetTool(),
+    defaults: toolStyles,
+  });
+  useEffect(() => {
+    return () => core.getTool = originalGetTool;
+  }, []);
+  return <ToolButton {...props}/>;
+};
+
+const store = configureStore({
+  reducer: () => ({
+    ...initialState,
+    viewer: {
+      ...initialState.viewer,
+      activeToolStyles: { ...toolStyles },
+    }
+  })
+});
+export const ChangingToolStylesShouldRerender = () => (
+  <Provider store={store}>
+    <ReduxStory/>
+  </Provider>
+);
+ChangingToolStylesShouldRerender.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+  const button = canvas.getByRole('button', { name: /Rectangle/i });
+  await expect(button.firstChild.style.color).toBe('rgb(0, 122, 59)');
+  toolStyles.StrokeColor = {
+    R: 100,
+    G: 0,
+    B: 100,
+    A: 1,
+    // eslint-disable-next-line custom/no-hex-colors
+    toHexString: () => '#640064',
+  };
+  store.dispatch(actions.setActiveToolStyles(toolStyles));
+  await expect(button.firstChild.style.color).toBe('rgb(100, 0, 100)');
+};
+
+ChangingToolStylesShouldRerender.parameters = disableRtlModeParameters;
+
+export const getsDisabledWithTool = createTemplate({
+  headers: {
+    ...mockHeadersNormalized,
+    'default-top-header': {
+      ...mockHeadersNormalized['default-top-header'],
+      items: [
+        ...mockHeadersNormalized['default-top-header'].items,
+        'customDataElementButton',
+      ],
+    },
+  },
+  components: {
+    ...mockModularComponents,
+    customDataElementButton: {
+      dataElement: 'customDataElementButton',
+      type: 'toolButton',
+      toolName: 'AnnotationCreateFileAttachment',
+      title: 'Custom Data Element',
+    },
+  },
+});
+
+getsDisabledWithTool.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+  const buttonLabel = /Custom Data Element/i;
+  const toolName = window.instance.Core.Tools.ToolNames.FILEATTACHMENT;
+
+  const expectButtonVisible = async () => {
+    await expect(canvas.findByRole('button', { name: buttonLabel })).resolves.toBeInTheDocument();
+  };
+
+  const expectButtonHidden = async () => {
+    await expect(canvas.queryByRole('button', { name: buttonLabel })).toBeNull();
+  };
+
+  await expectButtonVisible();
+  window.instance.UI.disableTools([toolName]);
+  await expectButtonHidden();
+  window.instance.UI.enableTools([toolName]);
+  await expectButtonVisible();
 };

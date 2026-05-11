@@ -3,7 +3,7 @@ import classNames from 'classnames';
 import { useSelector, useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import defaultTool from 'constants/defaultTool';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import { Tabs, Tab, TabPanel } from 'components/Tabs';
 import Button from 'components/Button';
 import actions from 'actions';
@@ -15,6 +15,7 @@ import DataElementWrapper from 'components/DataElementWrapper';
 import './LinkModal.scss';
 
 const LinkModal = ({ rightClickedAnnotation, setRightClickedAnnotation }) => {
+  const { core } = useCore();
   const [
     isDisabled,
     isOpen,
@@ -208,7 +209,7 @@ const LinkModal = ({ rightClickedAnnotation, setRightClickedAnnotation }) => {
         }
       }
 
-      setPageLabel(pageLabels.length > 0 ? pageLabels[0] : '1');
+      setPageLabel(pageLabels?.length > 0 ? pageLabels[0] : '1');
     }
   }, [totalPages, isOpen]);
 

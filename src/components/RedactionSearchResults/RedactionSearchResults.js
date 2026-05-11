@@ -90,7 +90,7 @@ function RedactionSearchResults(props) {
 
   const noResults = (
     <div aria-label={t('message.noResults')}>
-      <p aria-live="polite" className="no-margin">{t('message.noResults')}</p>
+      <p aria-live="assertive" role="alert" className="no-margin">{t('message.noResults')}</p>
     </div>
   );
 
@@ -147,9 +147,10 @@ function RedactionSearchResults(props) {
         {shouldShowResultsCounterOptions && (
           <>
             <div className="redaction-search-results-counter">
-              <p aria-live="assertive" className="no-margin">
-                <span>{t('redactionPanel.searchResults')}</span> ({redactionSearchResults.length})
-              </p>
+              <h4 aria-live="assertive" role="alert" className="no-margin">
+                {t('redactionPanel.searchResults')}
+                <span>{` (${redactionSearchResults.length})`}</span>
+              </h4>
             </div>
             <Button
               className={classNames({
@@ -158,9 +159,7 @@ function RedactionSearchResults(props) {
               onClick={selectAllResults}
               disabled={isEmptyList}
               label={t('action.selectAll')}
-            >
-              {t('action.selectAll')}
-            </Button>
+            />
             <Button
               className={classNames({
                 'inactive': selectedIndexes.length < 1
@@ -168,9 +167,7 @@ function RedactionSearchResults(props) {
               disabled={isEmptyList}
               onClick={unselectAllResults}
               label={t('action.unselect')}
-            >
-              {t('action.unselect')}
-            </Button>
+            />
           </>)}
       </div>
       <div className={resultsContainerClass} role="list">
@@ -184,25 +181,20 @@ function RedactionSearchResults(props) {
           onClick={onCancelHandler}
           label={t('action.cancel')}
           className="cancel"
-        >
-          {t('action.cancel')}
-        </Button>
+        />
         <Button
           disabled={selectedIndexes.length === 0}
           label={t('annotation.redact')}
           className={redactAllButtonClass}
           onClick={onRedactSelectedResults}
-        >
-          {t('annotation.redact')}
-        </Button>
+        />
         <Button
           disabled={selectedIndexes.length === 0}
           label={t('action.addMark')}
+          ariaLabel={t('action.addMark')}
           className={markAllForRedactionButtonClass}
           onClick={onMarkAllForRedaction}
-        >
-          {t('action.addMark')}
-        </Button>
+        />
       </div >
     </>
   );

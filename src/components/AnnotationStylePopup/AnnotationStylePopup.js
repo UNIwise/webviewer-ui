@@ -5,7 +5,7 @@ import Measure from 'react-measure';
 import { useTranslation } from 'react-i18next';
 import StylePopup from 'components/StylePopup';
 import ActionButton from 'components/ActionButton';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import getClassName from 'helpers/getClassName';
 import setToolStyles from 'helpers/setToolStyles';
 import { isMobile } from 'helpers/device';
@@ -44,22 +44,21 @@ const AnnotationStylePopup = (props) => {
     hasBackToMenu,
     onBackToMenu
   } = props;
+  const { core } = useCore();
 
-  const [
-    isDisabled,
-    isToolDefaultStyleUpdateFromAnnotationPopupEnabled,
-    activeDocumentViewerKey,
-  ] = useSelector((state) => [
-    selectors.isElementDisabled(state, DataElements.ANNOTATION_STYLE_POPUP),
-    selectors.isToolDefaultStyleUpdateFromAnnotationPopupEnabled(state),
-    selectors.getActiveDocumentViewerKey(state),
-  ]);
+  const isDisabled = useSelector((state) => selectors.isElementDisabled(state, DataElements.ANNOTATION_STYLE_POPUP));
+  const isToolDefaultStyleUpdateFromAnnotationPopupEnabled = useSelector((state) => selectors.isToolDefaultStyleUpdateFromAnnotationPopupEnabled(state));
+  const activeDocumentViewerKey = useSelector((state) => selectors.getActiveDocumentViewerKey(state));
 
   const dispatch = useDispatch();
   const [t] = useTranslation();
   const [isAutoSizeFont, setAutoSizeFont] = useState(properties.isAutoSizeFont);
 
-  const handleSliderChange = (property, value) => {
+  const handleSliderChange = (property, value, doneSliderChange) => {
+    if (doneSliderChange) {
+      handleStyleChange();
+    }
+
     const annotationManager = core.getAnnotationManager(activeDocumentViewerKey);
     annotations.forEach((annotation) => {
       annotation[property] = value;
@@ -67,6 +66,10 @@ const AnnotationStylePopup = (props) => {
         adjustFreeTextBoundingBox(annotation);
       }
       annotationManager.redrawAnnotation(annotation);
+
+      if (annotation instanceof window.Core.Annotations.WidgetAnnotation) {
+        annotation.refresh();
+      }
     });
   };
 
@@ -173,7 +176,7 @@ const AnnotationStylePopup = (props) => {
             style={style}
             isFreeText={isFreeText}
             isFreeTextAutoSize={isAutoSizeFont}
-            onFreeTextSizeToggle={() => handleFreeTextAutoSizeToggle(annotations[0], setAutoSizeFont, isAutoSizeFont)}
+            onFreeTextSizeToggle={() => handleFreeTextAutoSizeToggle(annotations[0], setAutoSizeFont, isAutoSizeFont, activeDocumentViewerKey)}
             isEllipse={isEllipse}
             isMeasure={isMeasure}
             onStyleChange={handleStyleChange}

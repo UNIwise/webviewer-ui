@@ -5,20 +5,20 @@ import PropTypes from 'prop-types';
 import NoteStateFlyout, { noteStateFlyoutItems } from './NoteStateFlyout';
 import Flyout from '../Flyout';
 
-import { createTemplate } from 'helpers/storybookHelper';
-import { userEvent, within, expect } from '@storybook/test';
+import { createTemplate, oePartialState } from 'helpers/storybookHelper';
+import { userEvent, within, expect } from 'storybook/test';
 import { uiWithFlyout } from '../storyModularUIConfigs';
+import { getTranslatedText } from 'src/helpers/testTranslationHelper';
+import { mobileStoryParameters, disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'ModularComponents/NoteStateFlyout',
   component: NoteStateFlyout,
-  parameters: {
-    customizableUI: true,
-  },
 };
 
 function createReduxWrapper(dataElement, disabled) {
   const currentState = {
+    ...oePartialState,
     viewer: {
       disabledElements: {},
       customElementOverrides: {},
@@ -37,7 +37,7 @@ function createReduxWrapper(dataElement, disabled) {
       modularHeadersHeight: {},
       flyoutPosition: { x: 0, y: 0 },
       modularComponents: {},
-      activeCustomPanel: ''
+      activeTabInPanel: {},
     },
     featureFlags: {
       customizableUI: true
@@ -78,6 +78,7 @@ export const CancelledStateDisabled = () => {
     </ReduxWrapper>
   );
 };
+CancelledStateDisabled.parameters = disableRtlModeParameters;
 
 export const RejectedStateDisabled = () => {
   const ReduxWrapper = createReduxWrapper('noteStateFlyoutRejectedOption', true);
@@ -87,6 +88,7 @@ export const RejectedStateDisabled = () => {
     </ReduxWrapper>
   );
 };
+RejectedStateDisabled.parameters = disableRtlModeParameters;
 
 export const NoteStateFlyoutTest = createTemplate({
   headers: uiWithFlyout.modularHeaders,
@@ -104,6 +106,10 @@ export const NoteStateFlyoutTest = createTemplate({
     }
   }
 });
+NoteStateFlyoutTest.parameters = {
+  layout: 'fullscreen',
+  ...disableRtlModeParameters,
+};
 
 NoteStateFlyoutTest.play = async (context) => {
   const canvas = within(context.canvasElement);
@@ -111,6 +117,14 @@ NoteStateFlyoutTest.play = async (context) => {
   const flyoutToggle = await canvas.findByRole('button', { 'aria-label': /Flyout Toggle/i });
   await userEvent.click(flyoutToggle);
   // Check if the flyout is open
-  const flyoutItem = await canvas.findByText('Rejected');
+  const flyoutItem = await canvas.findByText(getTranslatedText('option.state.rejected'));
   expect(flyoutItem).toBeInTheDocument();
+};
+
+export const NoteStateFlyoutOnMobile = () => {
+  return <Default />;
+};
+
+NoteStateFlyoutOnMobile.parameters = {
+  ...mobileStoryParameters
 };

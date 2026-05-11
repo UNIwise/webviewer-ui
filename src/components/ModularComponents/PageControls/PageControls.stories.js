@@ -8,6 +8,11 @@ import ModularHeader from '../ModularHeader';
 import { ITEM_TYPE, PLACEMENT } from 'constants/customizationVariables';
 import Flyout from '../Flyout';
 import { button8, button9 } from '../Helpers/mockHeaders';
+import { MockDocumentContainer, oePartialState, createStore } from 'helpers/storybookHelper';
+import { expect, within, userEvent } from 'storybook/test';
+import PropTypes from 'prop-types';
+import { getTranslatedText } from 'src/helpers/testTranslationHelper';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 const leftChevron = {
   onClick: () => { },
@@ -34,6 +39,7 @@ const rightChevron = {
 };
 
 const initialState = {
+  ...oePartialState,
   viewer: {
     modularComponents: {},
     modularHeaders: {},
@@ -41,16 +47,19 @@ const initialState = {
     activeGroupedItems: [],
     disabledElements: [],
     openElements: {
-      pageNavFlyoutMenu: true,
+      pageControlsFlyout: true,
     },
     customPanels: [],
     genericPanels: [],
-    currentPage: 2,
-    activeFlyout: 'pageNavFlyoutMenu',
-    activeCustomPanel: '',
+    activeDocumentViewerKey: 1,
+    currentPage: { 1: 2, 2: 1 },
+    totalPages: { 1: 9, 2: 9 },
+    activeFlyout: 'pageControlsFlyout',
+    activeTabInPanel: {},
     flyoutPosition: { x: 0, y: 0 },
     fixedGroupedItems: ['grouped-item-ABC'],
-    pageLabels: ['1', '2', '3', '4', '5', '6', '7', '8', '9'],
+    pageLabels: { 1: ['1', '2', '3', '4', '5', '6', '7', '8', '9'], 2: ['1', '2', '3', '4', '5', '6', '7', '8', '9'] },
+    isCustomPageLabelsEnabled: { 1: false, 2: false },
     allowPageNavigation: true,
     customElementSizes: {
       PageNavigationTool: 0,
@@ -68,22 +77,13 @@ const initialState = {
       2: false,
     },
     flyoutMap: {
-      'pageNavFlyoutMenu': {
-        dataElement: 'pageNavFlyoutMenu',
+      'pageControlsFlyout': {
+        dataElement: 'pageControlsFlyout',
         items: [
           {
-            dataElement: 'pageNavigationButton',
-            currentPage: 1,
-            totalPages: 9,
-            input: 2,
-            label: 'pageNavigationButton',
-            inputWidth: 30,
-            onClick: () => { },
-            onChange: () => { },
-            onSubmit: () => { },
-            onBlur: () => { },
-            onFocus: () => { },
-
+            dataElement: 'pageNavigationInput',
+            label: 'pageNavigationInput',
+            onKeyDownHandler: () => { },
           },
           leftChevron,
           rightChevron
@@ -92,16 +92,16 @@ const initialState = {
     }
   },
   document: {
-    totalPages: { 1: 9, 2: 0 }
+    totalPages: { 1: 9, 2: 9 },
+  },
+  featureFlags: {
+    customizableUI: true,
   },
 };
 
 export default {
   title: 'ModularComponents/PageControl Container',
   component: PageControlsContainer,
-  parameters: {
-    customizableUI: true,
-  }
 };
 
 const store = configureStore({
@@ -129,7 +129,7 @@ const props = {
   onChange,
 };
 
-export const Basic = (storyProps) => {
+const PageControlsStory = ({ store, storyProps }) => {
   const pageControlsTools = {
     dataElement: 'PageNavigationTool',
     type: 'pageControls',
@@ -145,23 +145,26 @@ export const Basic = (storyProps) => {
   return (
     <Provider store={store}>
       <ModularHeader {...headerProps} />
-      <MockDocumentContainer />
+      <MockDocumentContainer width='90%' height='90%' />
     </Provider>
   );
 };
 
-const MockDocumentContainer = () => {
-  return (
-    <div style={{ width: '90%', height: '90%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-      Mock Document Container
-    </div>
-  );
+PageControlsStory.propTypes = {
+  store: PropTypes.object.isRequired,
+  storyProps: PropTypes.object.isRequired,
 };
+
+export const Basic = (storyProps) => {
+  return <PageControlsStory store={store} storyProps={storyProps} />;
+};
+Basic.parameters = disableRtlModeParameters;
 
 export const PageControlsInHeader = (storyProps) => {
   const pageControlsTools = {
     dataElement: 'pageControlsTools',
     type: 'pageControls',
+    className: 'page-controls-in-header',
   };
 
   const props = {
@@ -179,10 +182,16 @@ export const PageControlsInHeader = (storyProps) => {
 
   return (
     <Provider store={store}>
-      <MockDocumentContainer />
+      <MockDocumentContainer width='90%' height='90%' />
       <ModularHeader {...props} />
     </Provider>
   );
+};
+PageControlsInHeader.parameters = disableRtlModeParameters;
+
+PageControlsInHeader.play = async ({ canvasElement }) => {
+  const pageControls = canvasElement.querySelector('[data-element="pageControlsTools"]');
+  expect(pageControls.classList.contains('page-controls-in-header')).toBe(true);
 };
 
 export const PageControlsInFlyout = () => {
@@ -192,4 +201,38 @@ export const PageControlsInFlyout = () => {
       <Flyout />
     </Provider>
   );
+};
+
+const docxStore = createStore(initialState);
+
+export const PageControlsInputDocx = (storyProps) => {
+  return <PageControlsStory store={docxStore} storyProps={storyProps} />;
+};
+PageControlsInputDocx.parameters = disableRtlModeParameters;
+
+/**
+ * This story demonstrates the functionality of the PageControlsInput component
+ * within the context of a document viewer and Office viewer. Office Document
+ * doesn't receive all the pages on load, so we simulate adding a page
+ * to the viewer and document state.
+ */
+PageControlsInputDocx.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+  const input = await canvas.findByRole('textbox', { name: new RegExp(getTranslatedText('action.pageNumberInput')) });
+  expect(input).toBeInTheDocument();
+
+  await userEvent.click(input);
+  await userEvent.clear(input);
+  await userEvent.type(input, '5');
+
+  docxStore.dispatch({
+    type: 'SET_PAGE_LABELS',
+    payload: { pageLabels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'] },
+  });
+  docxStore.dispatch({
+    type: 'SET_TOTAL_PAGES',
+    payload: { totalPages: 10, documentViewerKey: 1 },
+  });
+
+  expect(input).toHaveValue('5');
 };

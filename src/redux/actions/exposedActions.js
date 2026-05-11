@@ -2,21 +2,50 @@ import core from 'core';
 import isDataElementLeftPanel from 'helpers/isDataElementLeftPanel';
 import fireEvent from 'helpers/fireEvent';
 import { getMaxZoomLevel, getMinZoomLevel } from 'constants/zoomFactors';
-import { disableElements, enableElements, setActiveFlyout } from 'actions/internalActions';
+import { disableElements, enableElements, setActiveFlyout, setFlyoutToggleElement } from 'actions/internalActions';
 import defaultTool from 'constants/defaultTool';
 import { PRIORITY_TWO } from 'constants/actionPriority';
 import Events from 'constants/events';
-import { getGenericPanels, getGroupedItemsWithSelectedTool, getOpenGenericPanel } from 'selectors/exposedSelectors';
+import {
+  getOpenGenericPanel,
+  getEnabledRibbonItems,
+  getGenericPanelsOnTheSameLocation,
+  isElementOpen,
+  getIsCustomUIEnabled,
+  getGenericPanels,
+  isDisabledViewOnly,
+  getVisibleTabPanelTabs
+} from 'selectors/exposedSelectors';
 import DataElements from 'constants/dataElement';
-import { ITEM_TYPE } from 'constants/customizationVariables';
+import { OPACITY_LEVELS } from 'constants/customizationVariables';
 import pick from 'lodash/pick';
 import { v4 as uuidv4 } from 'uuid';
 import selectors from 'selectors';
 import checkFeaturesToEnable from 'helpers/checkFeaturesToEnable';
-import { getNestedGroupedItems, getBasicItemsFromGroupedItems, getParentGroupedItems } from 'helpers/modularUIHelpers';
+import { getAllAssociatedGroupedItems } from 'helpers/modularUIHelpers';
 import { isMobile } from 'helpers/device';
-import { isOfficeEditorMode } from 'src/helpers/officeEditor';
+import { isOfficeEditorMode } from 'helpers/officeEditor';
+import { areConfigsEquivalent } from 'helpers/compareObjects';
+import i18next from 'i18next';
+import { panelNames } from 'src/constants/panel';
 
+export const updateViewOnlyBlacklist = (dataElements) => ({
+  type: 'UPDATE_VIEW_ONLY_BLACKLIST',
+  payload: { dataElements },
+});
+export const updateViewOnlyWhitelist = (dataElements) => ({
+  type: 'UPDATE_VIEW_ONLY_WHITELIST',
+  payload: { dataElements },
+});
+export const closeAllElements = () => (dispatch, getState) => {
+  const state = getState();
+  const openElements = Object.keys(state.viewer.openElements);
+  if (openElements.length > 0) {
+    dispatch(closeElements(openElements));
+  }
+  dispatch(setFlyoutToggleElement(null));
+  dispatch(setActiveFlyout(false));
+};
 export const setScaleOverlayPosition = (position) => ({
   type: 'SET_SCALE_OVERLAY_POSITION',
   payload: { position },
@@ -94,6 +123,7 @@ export const setStandardStamps = (t) => async (dispatch) => {
         canvasWidth,
         canvasHeight,
         text,
+        direction: i18next.dir(),
       };
 
       return rubberStampTool.getPreview(annotation, options);
@@ -125,6 +155,7 @@ export const setCustomStamps = (t) => async (dispatch) => {
         canvasWidth,
         canvasHeight,
         text,
+        direction: i18next.dir(),
       };
 
       return rubberStampTool.getPreview(annotation, options);
@@ -144,12 +175,27 @@ export const setCustomStamps = (t) => async (dispatch) => {
   });
 };
 
+const stashEnabledRibbons = (ribbonItems) => (
+  {
+    type: 'STASH_ENABLED_RIBBONS',
+    payload: { ribbonItems }
+  }
+);
+
 export const setReadOnlyRibbons = () => (dispatch, getState) => {
+  // Set default toolbar group to View
   dispatch(setToolbarGroup('toolbarGroup-View'));
+  let toolbarGroupsToDisable;
   const state = getState();
-  const toolbarGroupsToDisable = Object.keys(state.viewer.headers).filter(
-    (key) => key.includes('toolbarGroup-') && key !== 'toolbarGroup-View',
-  );
+  if (getIsCustomUIEnabled(state)) {
+    // we must remember these toolbar groups to re-enable them when we exit read-only mode
+    toolbarGroupsToDisable = getEnabledRibbonItems(state).filter((item) => item !== 'toolbarGroup-View');
+    dispatch(stashEnabledRibbons(toolbarGroupsToDisable));
+  } else {
+    toolbarGroupsToDisable = Object.keys(state.viewer.headers).filter(
+      (key) => key.includes('toolbarGroup-') && key !== 'toolbarGroup-View',
+    );
+  }
 
   disableElements(toolbarGroupsToDisable, PRIORITY_TWO)(dispatch, getState);
 };
@@ -160,15 +206,17 @@ export const enableRibbons = () => (dispatch, getState) => {
   // the active toolbarGroup as what is in the current state and Forms, as redux hasnt dispatched the update to the Forms tool bar yet.
   // We double check here if we are in form mode and set the correct tool bar group
   // We enable ribbons when going into form mode, as we temporarily elevate the user's permissions
-  const featureFlags = selectors.getFeatureFlags(getState());
-  const { customizableUI } = featureFlags;
-
   const isInFormFieldCreationMode = core.getFormFieldCreationManager().isInFormFieldCreationMode();
   const toolbarGroup = isInFormFieldCreationMode ? DataElements.FORMS_TOOLBAR_GROUP : state.viewer.toolbarGroup;
-  if (!customizableUI) {
+  let toolbarGroupsToEnable;
+  const isCustomUIDisabled = !getIsCustomUIEnabled(state);
+  if (isCustomUIDisabled) {
     dispatch(setToolbarGroup(toolbarGroup || DataElements.ANNOTATE_TOOLBAR_GROUP));
+    toolbarGroupsToEnable = Object.keys(state.viewer.headers).filter((key) => key.includes('toolbarGroup-'));
+  } else {
+    // re-enable the stashed ribbons
+    toolbarGroupsToEnable = state.viewer.enabledRibbonsStash;
   }
-  const toolbarGroupsToEnable = Object.keys(state.viewer.headers).filter((key) => key.includes('toolbarGroup-'));
 
   enableElements(toolbarGroupsToEnable, PRIORITY_TWO)(dispatch, getState);
 };
@@ -183,35 +231,10 @@ export const allButtonsInGroupDisabled = (state, toolGroup) => {
   return dataElements.every((dataElement) => isElementDisabled(state, dataElement));
 };
 
-export const getFirstToolForGroupedItems = (state, group) => {
-  const modularComponents = state.viewer.modularComponents;
-  const allItems = getBasicItemsFromGroupedItems(state, group);
-  let firstTool = '';
-
-  allItems?.find((item) => {
-    const { type, toolName, dataElement } = modularComponents[item];
-    if (type === ITEM_TYPE.TOOL_BUTTON && toolName && !isElementDisabled(state, dataElement)) {
-      firstTool = toolName;
-      return toolName;
-    }
-    return false;
-  });
-  return firstTool;
-};
-
-export const setLastPickedToolAndGroup = (toolAndGroup) => ({
-  type: 'SET_LAST_PICKED_TOOL_AND_GROUP',
-  payload: { tool: toolAndGroup.tool, group: toolAndGroup.group },
+export const setLastActiveToolForRibbon = ({ ribbon, toolName }) => ({
+  type: 'SET_LAST_ACTIVE_TOOL_FOR_RIBBON',
+  payload: { ribbon, toolName }
 });
-
-export const getAllAssociatedGroupedItems = (state, groupedItems) => {
-  const arrayOfGroupedItems = Array.isArray(groupedItems) ? groupedItems : [groupedItems];
-  const parentGroupedItems = getParentGroupedItems(state, groupedItems);
-  const nestedGroupedItems = getNestedGroupedItems(state, groupedItems);
-  const allAssociatedGroupedItems = Array.from(new Set([...arrayOfGroupedItems, ...parentGroupedItems, ...nestedGroupedItems]));
-
-  return allAssociatedGroupedItems;
-};
 
 export const setActiveGroupedItems = (groupedItems) => (dispatch, getState) => {
   if (!groupedItems.length) {
@@ -222,38 +245,7 @@ export const setActiveGroupedItems = (groupedItems) => (dispatch, getState) => {
   const state = getState();
   const allAssociatedGroupedItems = getAllAssociatedGroupedItems(state, groupedItems);
 
-  const groupedItemsHasLastPickedTool = groupedItems.find((groupedItem) => state.viewer.lastPickedToolForGroupedItems?.[groupedItem]);
-  if (!groupedItemsHasLastPickedTool) {
-    groupedItems.some((groupedItem) => {
-      const firstTool = getFirstToolForGroupedItems(state, groupedItem);
-      if (firstTool) {
-        dispatch(setLastPickedToolForGroupedItems(groupedItem, firstTool));
-        dispatch(setLastPickedToolAndGroup({
-          tool: firstTool,
-          group: allAssociatedGroupedItems
-        }));
-        return true;
-      }
-      return false;
-    });
-  }
   dispatch(setGroupedItems(allAssociatedGroupedItems));
-};
-
-export const setLastPickedToolForGroupedItems = (groupedItem, toolName) => (dispatch, getState) => {
-  const state = getState();
-  const groupedItemsWithTool = getGroupedItemsWithSelectedTool(state, toolName);
-  const activeGroupedItems = selectors.getActiveGroupedItems(state);
-  const activeGroupedItemsContainsTool = activeGroupedItems.filter((item) => groupedItemsWithTool.includes(item));
-
-  const arrayOfGroupedItems = Array.isArray(groupedItem) ? groupedItem : [groupedItem];
-  const groupsToSetLastPickedTool = Array.from(new Set(activeGroupedItemsContainsTool.concat(arrayOfGroupedItems)));
-  for (const group of groupsToSetLastPickedTool) {
-    dispatch({
-      type: 'SET_LAST_PICKED_TOOL_FOR_GROUPED_ITEMS',
-      payload: { toolName, groupedItem: group },
-    });
-  }
 };
 
 const setGroupedItems = (groupedItems) => ({
@@ -268,10 +260,13 @@ export const setFixedGroupedItems = (groupedItems) => (dispatch) => {
   });
 };
 
-export const setActiveCustomRibbon = (customRibbon) => ({
-  type: 'SET_ACTIVE_CUSTOM_RIBBON',
-  payload: { customRibbon }
-});
+export const setActiveCustomRibbon = (customRibbon) => (dispatch) => {
+  fireEvent(Events.TOOLBAR_GROUP_CHANGED, customRibbon);
+  dispatch({
+    type: 'SET_ACTIVE_CUSTOM_RIBBON',
+    payload: { customRibbon }
+  });
+};
 
 export const setToolbarGroup = (toolbarGroup, pickTool = true, toolGroup = '') => (dispatch, getState) => {
   const getFirstToolGroupForToolbarGroup = (state, _toolbarGroup) => {
@@ -345,40 +340,6 @@ export const setToolbarGroup = (toolbarGroup, pickTool = true, toolGroup = '') =
   fireEvent(Events.TOOLBAR_GROUP_CHANGED, toolbarGroup);
 };
 
-export const setActiveGroupedItemWithTool = (toolName) => (dispatch, getState) => {
-  const state = getState();
-  const groupedItemsWithTool = selectors.getGroupedItemsWithSelectedTool(state, toolName);
-  const activeGroupedItems = selectors.getActiveGroupedItems(state);
-  const activeGroupedItemsContainsTool = activeGroupedItems.filter((item) => groupedItemsWithTool.includes(item));
-
-  // If no active grouped items have the selected tool, we set the first one as active
-  if (!activeGroupedItemsContainsTool.length && groupedItemsWithTool.length > 0) {
-    let firstGroupedItem = '';
-    let associatedRibbonItem = '';
-    for (const groupedItems of groupedItemsWithTool) {
-      firstGroupedItem = groupedItems;
-      associatedRibbonItem = selectors.getRibbonItemAssociatedWithGroupedItem(state, groupedItems);
-      if (associatedRibbonItem) {
-        break;
-      }
-    }
-    // We just set the active custom ribbon if there is an associated ribbon item.
-    if (associatedRibbonItem) {
-      dispatch(setActiveCustomRibbon(associatedRibbonItem));
-    }
-    const parentGroupedItems = getParentGroupedItems(state, firstGroupedItem);
-    const nestedGroupedItems = getNestedGroupedItems(state, parentGroupedItems);
-    const allAssociatedGroupedItems = Array.from(new Set([firstGroupedItem, ...parentGroupedItems, ...nestedGroupedItems]));
-
-    dispatch(setActiveGroupedItems(allAssociatedGroupedItems));
-  } else if (activeGroupedItemsContainsTool.length) {
-    // For all grouped items that contain the selected tool, we set the last picked tool
-    for (const groupedItem of activeGroupedItemsContainsTool) {
-      dispatch(setLastPickedToolForGroupedItems(groupedItem, toolName));
-    }
-  }
-};
-
 export const setSelectedStampIndex = (index) => ({
   type: 'SET_SELECTED_STAMP_INDEX',
   payload: { index },
@@ -386,10 +347,6 @@ export const setSelectedStampIndex = (index) => ({
 export const setLastSelectedStampIndex = (index) => ({
   type: 'SET_LAST_SELECTED_STAMP_INDEX',
   payload: { index },
-});
-export const setOutlineControlVisibility = (outlineControlVisibility) => ({
-  type: 'SET_OUTLINE_CONTROL_VISIBILITY',
-  payload: { outlineControlVisibility },
 });
 export const setSelectedDisplayedSignatureIndex = (index) => ({
   type: 'SET_SELECTED_DISPLAYED_SIGNATURE_INDEX',
@@ -442,10 +399,6 @@ export const setTextEditingPanelWidth = (width) => ({
   type: 'SET_TEXT_EDITING_PANEL_WIDTH',
   payload: { width },
 });
-export const setWatermarkPanelWidth = (width) => ({
-  type: 'SET_WATERMARK_PANEL_WIDTH',
-  payload: { width },
-});
 export const setWv3dPropertiesPanelWidth = (width) => ({
   type: 'SET_WV3D_PROPERTIES_PANEL_WIDTH',
   payload: { width },
@@ -465,6 +418,18 @@ export const setOfficeEditorCursorProperties = (cursorProperties) => ({
 export const setOfficeEditorSelectionProperties = (selectionProperties) => ({
   type: 'SET_OFFICE_EDITOR_SELECTION_PROPERTIES',
   payload: { selectionProperties },
+});
+export const setOfficeEditorCanUndo = (canUndo) => ({
+  type: 'SET_OFFICE_EDITOR_CAN_UNDO',
+  payload: { canUndo },
+});
+export const setOfficeEditorCanRedo = (canRedo) => ({
+  type: 'SET_OFFICE_EDITOR_CAN_REDO',
+  payload: { canRedo },
+});
+export const setOfficeEditorIsReplaceInProgress = (isReplaceInProgress) => ({
+  type: 'SET_OFFICE_EDITOR_IS_REPLACE_IN_PROGRESS',
+  payload: { isReplaceInProgress },
 });
 export const addOfficeEditorAvailableFontFace = (fontFace) => ({
   type: 'ADD_OFFICE_EDITOR_AVAILABLE_FONT_FACE',
@@ -489,6 +454,8 @@ export const setHeaderMaxWidth = (dataElement, maxWidth) => updateHeaderProperty
 export const setHeaderMaxHeight = (dataElement, maxHeight) => updateHeaderProperty(dataElement, 'maxHeight', maxHeight);
 
 export const setHeaderStyle = (dataElement, style) => updateHeaderProperty(dataElement, 'style', style);
+
+export const setOpacityOfItem = (dataElement, value) => updateHeaderProperty(dataElement, 'opacity', value);
 
 const updateHeaderProperty = (dataElement, property, value) => ({
   type: 'UPDATE_MODULAR_HEADER',
@@ -535,6 +502,16 @@ export const enableAllElements = () => ({
   type: 'ENABLE_ALL_ELEMENTS',
   payload: {},
 });
+
+const closeOtherOpenPanelsInSameLocation = (state, dispatch, dataElement) => {
+  const genericPanelsInSameLocation = getGenericPanelsOnTheSameLocation(state, dataElement);
+  genericPanelsInSameLocation.forEach(({ dataElement: panelElement }) => {
+    if (panelElement !== dataElement && isElementOpen(state, panelElement)) {
+      dispatch(closeElement(panelElement));
+    }
+  });
+};
+
 export const openElement = (dataElement) => (dispatch, getState) => {
   const state = getState();
 
@@ -544,25 +521,31 @@ export const openElement = (dataElement) => (dispatch, getState) => {
     ? isLeftPanelOpen && state.viewer.activeLeftPanel === dataElement
     : state.viewer.openElements[dataElement];
   const isFlyoutElement = state.viewer.flyoutMap?.[dataElement];
+  const isElementDisabledViewOnly = isDisabledViewOnly(state, dataElement);
 
   if (isFlyoutElement) {
     dispatch(setActiveFlyout(dataElement));
   }
 
-  if (isElementDisabled || isElementOpen) {
+  if (dataElement === panelNames.TABS) {
+    const visibleTabPanelTabs = getVisibleTabPanelTabs(state, dataElement);
+    const hideTabPanel = visibleTabPanelTabs.length === 0;
+    if (hideTabPanel) {
+      return;
+    }
+  }
+
+  if (isElementDisabled || isElementOpen || isElementDisabledViewOnly) {
     return;
   }
 
-  const genericPanel = state.viewer.genericPanels.find((item) => dataElement === item.dataElement);
-  if (genericPanel?.location === 'left' || genericPanel?.location === 'right') {
-    const keys = genericPanel.location === 'left' ? ['leftPanel'] : [...rightPanelList];
-    const genericPanelsInSameLocation = state.viewer.genericPanels.filter((item) => item.location === genericPanel?.location && item.dataElement !== genericPanel?.dataElement);
-    genericPanelsInSameLocation.forEach((item) => keys.push(item.dataElement));
-    dispatch(closeElements(keys));
+  const isGenericPanel = getGenericPanels(state).find((item) => dataElement === item.dataElement);
+  if (isGenericPanel) {
+    closeOtherOpenPanelsInSameLocation(state, dispatch, dataElement);
   }
 
   // In the mobile UI, we can have only one panel open at a time
-  if (genericPanel && isMobile()) {
+  if (isGenericPanel && isMobile()) {
     const openGenericPanel = getOpenGenericPanel(state);
     if (openGenericPanel) {
       dispatch(closeElement(openGenericPanel));
@@ -621,6 +604,10 @@ export const closeElement = (dataElement) => (dispatch, getState) => {
         type: 'SET_ACTIVE_FLYOUT',
         payload: { dataElement: null }
       });
+      dispatch({
+        type: 'SET_FLYOUT_TOGGLE_ELEMENT',
+        payload: { toggleElement: null },
+      });
     }
     if (dataElement === DataElements.PAGE_MANIPULATION_OVERLAY) {
       dispatch({
@@ -647,20 +634,22 @@ export const closeElements = (dataElements) => (dispatch) => {
   }
 };
 
-const rightPanelList = ['searchPanel', DataElements.NOTES_PANEL, 'comparePanel', 'redactionPanel', 'wv3dPropertiesPanel', 'textEditingPanel', 'watermarkPanel'];
+const rightPanelList = ['searchPanel', DataElements.NOTES_PANEL, 'comparePanel', 'redactionPanel', 'wv3dPropertiesPanel', 'textEditingPanel'];
 export const toggleElement = (dataElement) => (dispatch, getState) => {
   const state = getState();
-  const rightGenericPanels = getGenericPanels(state, 'right');
-  const allPanelsOnTheRight = [...rightPanelList, ...rightGenericPanels.map((item) => item.dataElement)];
 
-  if (state.viewer.disabledElements[dataElement]?.disabled) {
+  if (isElementDisabled(state, dataElement)) {
     return;
   }
 
-  // hack for new ui
+  if (getIsCustomUIEnabled(state)) {
+    const isGenericPanel = getGenericPanels(state).find((item) => dataElement === item.dataElement);
+    isGenericPanel && closeOtherOpenPanelsInSameLocation(state, dispatch, dataElement);
+  }
+
   if (!state.viewer.notesInLeftPanel) {
-    if (allPanelsOnTheRight.includes(dataElement)) {
-      for (const panel of allPanelsOnTheRight) {
+    if (rightPanelList.includes(dataElement)) {
+      for (const panel of rightPanelList) {
         if (panel !== dataElement) {
           dispatch(closeElement(panel));
         }
@@ -695,7 +684,7 @@ const itemKeysToStore = [
   'groupedItems', 'grow', 'gap', 'position', 'placement', 'alwaysVisible',
   'style', 'headerDirection', 'icon', 'toolbarGroup', 'direction',
   'states', 'mount', 'unmount', 'initialState', 'hidden', 'toggleElement',
-  'toolName', 'color', 'buttonType'];
+  'toolName', 'color', 'buttonType', 'render', 'renderArguments', 'className'];
 
 //* Recursively normalize the items in a header
 const normalizeItems = (items, componentsMap, existingComponentsMap) => {
@@ -705,27 +694,24 @@ const normalizeItems = (items, componentsMap, existingComponentsMap) => {
     const normalizedItem = pick(item, itemKeysToStore);
     const dataElementKey = normalizedItem.dataElement;
 
-    // if the dataElementKey already exists in the header items, we will just continue
-    if (result.indexOf(dataElementKey) > -1) {
-      continue;
-    }
-
-    normalizedItem.dataElement = dataElementKey;
-
     // If there are nested items, recursively normalize them
-    if (item.items && item.items.length > 0) {
+    if (item.items?.length > 0) {
       const nestedItemsDataElements = normalizeItems(item.items, componentsMap, existingComponentsMap);
       normalizedItem.items = nestedItemsDataElements;
     }
 
-    let newNormalizedItem = normalizedItem;
-    if (existingComponentsMap[dataElementKey]) {
-      console.warn(`Modular component with dataElement ${dataElementKey} already exists. Existing component's properties have been updated.`);
-      const comp = existingComponentsMap[dataElementKey];
-      newNormalizedItem = { ...comp, ...normalizedItem };
+    const componentsMapHasItem = componentsMap[dataElementKey];
+    // If existing the component items already contains dataElementKey and there is a difference in the new component, merge; otherwise append as new.
+    if (componentsMapHasItem) {
+      const areComponentsDifferent = !areConfigsEquivalent(item, existingComponentsMap[dataElementKey]);
+      if (areComponentsDifferent) {
+        const existingComponent = existingComponentsMap[dataElementKey];
+        componentsMap[dataElementKey] = { ...existingComponent, ...normalizedItem };
+        console.warn(`Modular component with dataElement ${dataElementKey} already exists. Existing component's properties have been updated.`);
+      }
     }
-    componentsMap[dataElementKey] = newNormalizedItem;
 
+    componentsMap[dataElementKey] = normalizedItem;
     result.push(dataElementKey);
   }
   return result;
@@ -784,7 +770,7 @@ export const setModularHeaderItems = (headerDataElement, items) => (dispatch, ge
   });
 };
 
-export const setModularHeadersAndComponents = (componentsMap, headersMap) => (dispatch) => {
+export const setModularHeadersAndComponents = (headersMap, componentsMap) => (dispatch) => {
   dispatch({
     type: 'SET_MODULAR_HEADERS_AND_COMPONENTS',
     payload: { headersMap, componentsMap }
@@ -805,16 +791,39 @@ export const setFlyouts = (flyouts) => (dispatch) => {
   });
 };
 
+export const openFlyout = (dataElement, toggleElement) => (dispatch, getState) => {
+  const state = getState();
+  const isElementDisabled = state.viewer.disabledElements[dataElement]?.disabled;
+  const flyoutElement = state.viewer.flyoutMap?.[dataElement];
+  const toggleComponent = flyoutElement?.toggleElement ?? toggleElement;
+  const isToggleElementDisabled = state.viewer.disabledElements[toggleComponent]?.disabled;
+  if (isElementDisabled || !flyoutElement || isToggleElementDisabled) {
+    return;
+  }
+
+  if (toggleComponent) {
+    const ribbonAssociatedWithToggleButton = selectors.getRibbonAssociatedWithToggleButton(state, toggleComponent);
+    const activeCustomRibbon = selectors.getActiveCustomRibbon(state);
+    if (
+      ribbonAssociatedWithToggleButton &&
+      activeCustomRibbon !== ribbonAssociatedWithToggleButton
+    ) {
+      dispatch(setActiveCustomRibbon(ribbonAssociatedWithToggleButton));
+    }
+
+    dispatch(setFlyoutToggleElement(toggleComponent));
+    dispatch(openElement(dataElement));
+  } else {
+    console.warn(`No toggle element provided for flyout ${dataElement}. Please provide a toggle element to open the flyout.`);
+  }
+};
+
 export const resetModularUIState = () => ({
   type: 'RESET_MODULAR_UI_STATE',
 });
-export const setRightHeaderWidth = (width) => ({
-  type: 'SET_RIGHT_HEADER_WIDTH',
-  payload: width
-});
-export const setLeftHeaderWidth = (width) => ({
-  type: 'SET_LEFT_HEADER_WIDTH',
-  payload: width
+export const setHeaderWidth = (header, width) => ({
+  type: 'SET_HEADER_WIDTH',
+  payload: { header, width }
 });
 export const setTopFloatingContainerHeight = (height) => ({
   type: 'SET_TOP_FLOATING_CONTAINER_HEIGHT',
@@ -824,10 +833,7 @@ export const setBottomFloatingContainerHeight = (height) => ({
   type: 'SET_BOTTOM_FLOATING_CONTAINER_HEIGHT',
   payload: height
 });
-export const setActiveHeaderGroup = (headerGroup) => ({
-  type: 'SET_ACTIVE_HEADER_GROUP',
-  payload: { headerGroup },
-});
+
 export const setActiveLeftPanel = (dataElement) => (dispatch, getState) => {
   const state = getState();
 
@@ -861,6 +867,11 @@ export const setActiveLeftPanel = (dataElement) => (dispatch, getState) => {
     );
   }
 };
+
+export const setActiveHeaderGroup = (headerGroup) => ({
+  type: 'SET_ACTIVE_HEADER_GROUP',
+  payload: { headerGroup },
+});
 
 export const setTimezone = (timezone) => ({
   type: 'SET_TIMEZONE',
@@ -899,14 +910,17 @@ export const setMobilePanelSize = (panelSize) => ({
   payload: { panelSize },
 });
 
-export const setPageLabels = (pageLabels) => (dispatch) => {
-  if (pageLabels.length !== core.getTotalPages()) {
+export const setPageLabels = (pageLabels, documentViewerKey = 1) => (dispatch) => {
+  if (pageLabels.length !== core.getTotalPages(documentViewerKey)) {
     console.warn('Number of page labels do not match with the total pages.');
     return;
   }
   dispatch({
     type: 'SET_PAGE_LABELS',
-    payload: { pageLabels: pageLabels.map(String) },
+    payload: {
+      pageLabels: pageLabels.map(String),
+      documentViewerKey
+    },
   });
 };
 export const setSelectedPageThumbnails = (selectedThumbnailPageIndexes = []) => {
@@ -944,6 +958,10 @@ export const showErrorMessage = (message, title = '') => (dispatch) => {
 export const setCustomNoteFilter = (filterFunc) => ({
   type: 'SET_CUSTOM_NOTE_FILTER',
   payload: { customNoteFilter: filterFunc },
+});
+export const setInternalNoteFilter = (filterFunc) => ({
+  type: 'SET_INTERNAL_NOTE_FILTER',
+  payload: { internalNoteFilter: filterFunc },
 });
 export const setInlineCommentFilter = (filterFunc) => ({
   type: 'SET_INLINE_COMMENT_FILTER',
@@ -1006,6 +1024,10 @@ export const setActiveTheme = (theme) => {
     payload: { theme },
   };
 };
+export const setSearchStatus = (status) => ({
+  type: 'SET_SEARCH_STATUS',
+  payload: status,
+});
 export const setSearchResults = (searchResults) => ({
   type: 'SET_SEARCH_RESULTS',
   payload: searchResults,
@@ -1025,13 +1047,13 @@ export const setAnnotationReadState = ({ isRead, annotationId }) => ({
   type: 'SET_ANNOTATION_READ_STATE',
   payload: { isRead, annotationId },
 });
-export const addTrustedCertificates = (certificates) => ({
+export const addTrustedCertificates = (certificates, documentViewerKey = 1) => ({
   type: 'ADD_TRUSTED_CERTIFICATES',
-  payload: { certificates },
+  payload: { certificates, documentViewerKey },
 });
-export const addTrustList = (trustList) => ({
-  type: 'ADD_TRUST_LIST',
-  payload: { trustList },
+export const setTrustListKey = (trustListKey) => ({
+  type: 'SET_TRUST_LIST_KEY',
+  payload: { trustListKey },
 });
 export const setSignatureValidationModalWidgetName = (widgetName) => ({
   type: 'SET_VALIDATION_MODAL_WIDGET_NAME',
@@ -1058,15 +1080,21 @@ export const setCommentThreadExpansion = (enableCommentThreadExpansion) => ({
   payload: { enableCommentThreadExpansion },
 });
 
-export const enableFadePageNavigationComponent = () => ({
-  type: 'SET_FADE_PAGE_NAVIGATION_COMPONENT',
-  payload: { fadePageNavigationComponent: true },
-});
+export const enableFadePageNavigationComponent = () => (dispatch) => {
+  dispatch(setOpacityOfItem(DataElements.PAGE_NAV_FLOATING_HEADER, OPACITY_LEVELS.NONE));
+  return dispatch({
+    type: 'SET_FADE_PAGE_NAVIGATION_COMPONENT',
+    payload: { fadePageNavigationComponent: true },
+  });
+};
 
-export const disableFadePageNavigationComponent = () => ({
-  type: 'SET_FADE_PAGE_NAVIGATION_COMPONENT',
-  payload: { fadePageNavigationComponent: false },
-});
+export const disableFadePageNavigationComponent = () => (dispatch) => {
+  dispatch(setOpacityOfItem(DataElements.PAGE_NAV_FLOATING_HEADER, OPACITY_LEVELS.FULL));
+  return dispatch({
+    type: 'SET_FADE_PAGE_NAVIGATION_COMPONENT',
+    payload: { fadePageNavigationComponent: false },
+  });
+};
 
 export const enablePageDeletionConfirmationModal = () => ({
   type: 'PAGE_DELETION_CONFIRMATION_MODAL_POPUP',
@@ -1205,3 +1233,50 @@ export const setColors = (colors, tool, type, updateOnly = false) => (dispatch, 
     payload: type === 'text' ? { textColors: colors } : { colors },
   });
 };
+
+export const setAccessibleMode = (isAccessibleMode) => ({
+  type: 'SET_ACCESSIBLE_MODE',
+  payload: { isAccessibleMode },
+});
+
+export const setShouldAddA11yContentToDOM = (shouldAddA11yContentToDOM) => ({
+  type: 'SET_SHOULD_ADD_A11Y_CONTENT',
+  payload: { shouldAddA11yContentToDOM },
+});
+
+export const setSpreadsheetEditorEditMode = (mode) => ({
+  type: 'SET_SPREADSHEET_EDITOR_EDIT_MODE',
+  payload: { mode },
+});
+
+export const enableWidgetHighlighting = () => ({
+  type: 'ENABLE_WIDGET_HIGHLIGHTING',
+});
+export const disableWidgetHighlighting = () => ({
+  type: 'DISABLE_WIDGET_HIGHLIGHTING',
+});
+
+export const setCellBackgroundColors = (colors) => ({
+  type: 'SET_CELL_BACKGROUND_COLORS',
+  payload: { colors },
+});
+export const setCustomCellBackgroundColors = (customColors) => ({
+  type: 'SET_CUSTOM_CELL_BACKGROUND_COLORS',
+  payload: { customColors },
+});
+export const setTextColors = (colors) => ({
+  type: 'SET_TEXT_COLORS',
+  payload: { colors },
+});
+export const setCustomTextColors = (customColors) => ({
+  type: 'SET_CUSTOM_TEXT_COLORS',
+  payload: { customColors },
+});
+export const setBorderColors = (colors) => ({
+  type: 'SET_BORDER_COLORS',
+  payload: { colors },
+});
+export const setCustomBorderColors = (customColors) => ({
+  type: 'SET_CUSTOM_BORDER_COLORS',
+  payload: { customColors },
+});

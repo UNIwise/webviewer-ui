@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useSelector, useDispatch, shallowEqual } from 'react-redux';
 import Measure from 'react-measure';
 import { useTranslation } from 'react-i18next';
 import selectors from 'selectors';
@@ -9,33 +9,19 @@ import PropTypes from 'prop-types';
 import './TabPanel.scss';
 import Button from 'components/Button';
 import Element from 'components/Element';
-import CustomElement from 'components/CustomElement';
 import ToggleElementButton from 'components/ModularComponents/ToggleElementButton';
-import { panelNames, panelData } from 'constants/panel';
-import PortfolioPanel from 'components/PortfolioPanel';
-import DataElements from 'constants/dataElement';
-import core from 'core';
-import useOnRedactionAnnotationChanged from 'hooks/useOnRedactionAnnotationChanged';
-import LayersPanel from 'components/LayersPanel';
-import TextEditingPanel from 'components/TextEditingPanel';
-import MultiViewerWrapper from 'components/MultiViewer/MultiViewerWrapper';
-import ComparePanel from 'components/MultiViewer/ComparePanel';
-import OutlinesPanel from 'components/OutlinesPanel';
-import SignaturePanel from 'components/SignaturePanel';
-import BookmarksPanel from 'components/BookmarksPanel';
-import FileAttachmentPanel from 'components/FileAttachmentPanel';
-import ThumbnailsPanel from 'components/ThumbnailsPanel';
-import StylePanel from 'components/StylePanel';
 import RedactionPanel from 'components/RedactionPanel';
-import SearchPanel from 'components/SearchPanel';
-import NotesPanel from 'components/NotesPanel';
-import SignatureListPanel from 'components/SignatureListPanel';
-import RubberStampPanel from 'components/RubberStampPanel';
+import { panelNames, panelData } from 'constants/panel';
+import { getPanelToRender, createCustomElement } from 'helpers/tabPanelHelper';
 import { isMobileSize } from 'helpers/getDeviceSize';
 
-const TabPanel = ({ dataElement: tabPanelDataElement }) => {
+const removeDuplicates = (array) => [...new Set(array)];
+
+const TabPanel = ({ dataElement: tabPanelDataElement, redactionAnnotationsList }) => {
   const dispatch = useDispatch();
   const [t] = useTranslation();
+  const moreButtonDefaultIcon = 'icon-tools-more';
+  const PANEL_PADDING = 32;
   const isMobile = isMobileSize();
   const tabPanelHeaderRef = useRef();
   const moreButtonRef = useRef();
@@ -45,97 +31,38 @@ const TabPanel = ({ dataElement: tabPanelDataElement }) => {
   const [overflowItems, setOverflowItems] = useState([]);
   const [headerContainerPrevWidth, setHeaderContainerPrevWidth] = useState({ width: 0 });
   const [headerContainerWidth, setHeaderContainerWidth] = useState({ width: 0 });
-  const moreButtonDefaultIcon = 'icon-tools-more';
   const [moreButtonIcon, setMoreButtonIcon] = useState(moreButtonDefaultIcon);
   const [labelFlag, setLabelFlag] = useState(false);
   const [iconFlag, setIconFlag] = useState(false);
+  const [hiddenTabsMinWidth, setHiddenTabsMinWidth] = useState({});
+  const [isShrinkingPanel, setIsShrinkingPanel] = useState(false);
 
-  const [
-    genericPanels,
-    activeCustomPanel,
-    flyoutMap,
-    bookmarks,
-    isBookmarkPanelEnabled,
-    isBookmarkIconShortcutVisible,
-    isPortfolioPanelDisabled,
-  ] = useSelector(
-    (state) => [
-      selectors.getGenericPanels(state),
-      selectors.getActiveCustomPanel(state, tabPanelDataElement),
-      selectors.getFlyoutMap(state),
-      selectors.getBookmarks(state),
-      !selectors.isElementDisabled(state, DataElements.BOOKMARKS_PANEL),
-      selectors.isBookmarkIconShortcutVisible(state),
-      selectors.isElementDisabled(state, DataElements.PORTFOLIO_PANEL),
-    ],
-  );
-
-  const { redactionAnnotationsList } = useOnRedactionAnnotationChanged();
-
-  const panelsList = genericPanels.find((panel) => panel.dataElement === tabPanelDataElement).panelsList;
+  const genericPanels = useSelector(selectors.getGenericPanels);
+  const selectedTab = useSelector((state) => selectors.getActiveTabInPanel(state, tabPanelDataElement));
+  const flyoutMap = useSelector(selectors.getFlyoutMap, shallowEqual);
+  const activeDocumentViewerKey = useSelector(selectors.getActiveDocumentViewerKey);
+  const portfolioFiles = useSelector((state) => selectors.getPortfolio(state, activeDocumentViewerKey));
+  const disabledElements = useSelector(selectors.getDisabledElements);
+  const enabledPanels = useSelector((state) => selectors.getEnabledTabPanelTabs(state, tabPanelDataElement));
 
   const renderPanel = (panelName, dataElement) => {
-    switch (panelName) {
-      case panelNames.OUTLINE:
-        return <OutlinesPanel dataElement={dataElement}/>;
-      case panelNames.SIGNATURE:
-        return <SignaturePanel dataElement={dataElement}/>;
-      case panelNames.BOOKMARKS:
-        return <BookmarksPanel dataElement={dataElement}/>;
-      case panelNames.FILE_ATTACHMENT:
-        return <FileAttachmentPanel dataElement={dataElement}/>;
-      case panelNames.THUMBNAIL:
-        return <ThumbnailsPanel panelSelector={dataElement} parentDataElement={tabPanelDataElement}/>;
-      case panelNames.LAYERS:
-        return <LayersPanel/>;
-      case panelNames.TEXT_EDITING:
-        return <TextEditingPanel dataElement={dataElement}/>;
-      case panelNames.PORTFOLIO:
-        return <PortfolioPanel />;
-      case panelNames.CHANGE_LIST:
-        return <MultiViewerWrapper><ComparePanel dataElement={dataElement}/></MultiViewerWrapper>;
-      case panelNames.STYLE:
-        return <StylePanel dataElement={dataElement}/>;
-      case panelNames.REDACTION:
-        return <RedactionPanel dataElement={dataElement} redactionAnnotationsList={redactionAnnotationsList} isCustomPanel={true}/>;
-      case panelNames.SEARCH:
-        return <SearchPanel dataElement={dataElement} parentDataElement={tabPanelDataElement}/>;
-      case panelNames.NOTES:
-        return <NotesPanel dataElement={dataElement} parentDataElement={tabPanelDataElement} isCustomPanel={true}
-          isCustomPanelOpen={true}/>;
-      case panelNames.SIGNATURE_LIST:
-        return <SignatureListPanel dataElement={dataElement}/>;
-      case panelNames.RUBBER_STAMP:
-        return <RubberStampPanel dataElement={dataElement}/>;
-      default:
-        return <div></div>;
+    if (panelName === panelNames.REDACTION) {
+      return (
+        <RedactionPanel
+          dataElement={dataElement}
+          redactionAnnotationsList={redactionAnnotationsList}
+          isCustomPanel={true}
+        />
+      );
+    } else {
+      return getPanelToRender(panelName, dataElement, tabPanelDataElement);
     }
   };
-
-  const createCustomElement = (item) => {
-    return <CustomElement
-      key={item.dataElement}
-      className={`Panel ${item.dataElement}`}
-      display={item.dataElement}
-      dataElement={item.dataElement}
-      render={item.render}
-    />;
-  };
-
   const getPanelsObjectToRender = () => {
     const panelsToRender = {};
-    panelsList?.forEach((panel, index) => {
-      if (panel.render === panelNames.PORTFOLIO && isPortfolioPanelDisabled) {
-        return;
-      }
-      if (panel.icon) {
-        setIconFlag(true);
-      }
-      if (panel.label) {
-        setLabelFlag(true);
-      }
+    const presetPanels = Object.values(panelNames);
+    enabledPanels?.forEach((panel, index) => {
       const panelRenderer = panel.render;
-      const presetPanels = Object.values(panelNames);
       // Case it is a preset panel
       if (typeof panelRenderer === 'string') {
         const customPanel = genericPanels.find((customPanel) => [customPanel.render, customPanel.dataElement].includes(panelRenderer));
@@ -155,26 +82,12 @@ const TabPanel = ({ dataElement: tabPanelDataElement }) => {
             tabPanel: tabPanelDataElement,
             render: renderPanel(customPanel.render, `${customPanel.dataElement}-tab-panel`)
           };
-          // preset panels may not have these explicitly set by the user
-          // since they have their own defaults
-          if (panelInfo.icon) {
-            setIconFlag(true);
-          }
-          if (panelInfo.label) {
-            setLabelFlag(true);
-          }
         } else {
           panelsToRender[panelRenderer] = {
             ...customPanel,
             render: createCustomElement(customPanel),
             sortIndex: index,
           };
-          if (customPanel.icon) {
-            setIconFlag(true);
-          }
-          if (customPanel.label) {
-            setLabelFlag(true);
-          }
         }
       } else if (typeof panelRenderer === 'function') {
         dispatch(actions.addPanel(panel));
@@ -188,12 +101,11 @@ const TabPanel = ({ dataElement: tabPanelDataElement }) => {
       }
     });
 
-    setVisiblePanelTabs(Object.keys(panelsToRender));
     return panelsToRender;
   };
 
-  const handleActiveTabPanel = () => {
-    if (activeCustomPanel && !visiblePanelTabs.includes(activeCustomPanel)) {
+  const handleMoreButtonIcon = () => {
+    if (selectedTab && !visiblePanelTabs.includes(selectedTab)) {
       setMoreButtonIcon('icon-tools-more-active');
     } else {
       setMoreButtonIcon(moreButtonDefaultIcon);
@@ -212,7 +124,7 @@ const TabPanel = ({ dataElement: tabPanelDataElement }) => {
         const flyoutItem = {
           ...panelsObject[item],
           onClick: () => {
-            dispatch(actions.setActiveCustomPanel(item, tabPanelDataElement));
+            dispatch(actions.setActiveTabInPanel(item, tabPanelDataElement));
             dispatch(actions.closeElements([FLYOUT_NAME]));
           },
           sortIndex: panelsObject[item].sortIndex,
@@ -233,128 +145,156 @@ const TabPanel = ({ dataElement: tabPanelDataElement }) => {
   };
 
   const moveItemsToOverflow = (items) => {
-    setOverflowItems([...overflowItems, ...items].sort((a, b) => panelsObject[a].sortIndex - panelsObject[b].sortIndex));
+    setOverflowItems(removeDuplicates([...overflowItems, ...items]).sort((a, b) => panelsObject[a].sortIndex - panelsObject[b].sortIndex));
     const itemsToKeepVisible = visiblePanelTabs.filter((item) => !(items.includes(item)));
-    setVisiblePanelTabs(itemsToKeepVisible);
+    setVisiblePanelTabs(removeDuplicates(itemsToKeepVisible));
   };
 
   const moveItemsToContainer = (items) => {
-    setVisiblePanelTabs([...visiblePanelTabs, ...items]);
+    setVisiblePanelTabs(removeDuplicates([...visiblePanelTabs, ...items]));
     const itemsToKeepInOverflow = overflowItems.filter((item) => !(items.includes(item)));
-    setOverflowItems(itemsToKeepInOverflow);
+    setOverflowItems(removeDuplicates(itemsToKeepInOverflow));
   };
 
-  const getItemsToHide = (items, itemsDom, missingSpace) => {
-    let spaceToFree = missingSpace;
-    const allItems = [...items];
+  const getItemsToHide = (itemsDom, missingSpace) => {
+    let spaceToFree = Math.abs(missingSpace);
+    const allItems = [...visiblePanelTabs];
     const itemsToHide = [];
-    while (spaceToFree <= 0 && allItems.length > 1) {
+
+    // Continue removing items while we need to free space
+    while (spaceToFree > 0 && allItems.length > 1) {
       const lastItem = allItems.pop();
-      itemsToHide.push(lastItem);
       const lastItemDom = Array.from(itemsDom).find((item) => item.getAttribute('data-element') === `${lastItem}-${tabPanelDataElement}`);
-      const lastItemSpace = lastItemDom.getBoundingClientRect().width;
-      spaceToFree += (lastItemSpace);
+      const lastItemWidth = lastItemDom.getBoundingClientRect().width;
+      const spaceFreedByItem = lastItemWidth;
+
+      if (spaceToFree > spaceFreedByItem) {
+        itemsToHide.push(lastItem);
+        spaceToFree -= lastItemWidth;
+        setHiddenTabsMinWidth((prev) => ({
+          ...prev,
+          [lastItem]: lastItemWidth,
+        }));
+      } else {
+        break;
+      }
     }
     return itemsToHide;
   };
 
-  const calculateAvailableSpace = (itemsShown, headerRect) => {
-    const lastItemRect = itemsShown[itemsShown.length - 1]?.getBoundingClientRect();
-    const lastItemEnd = lastItemRect?.right || 0;
-    const parentRectEnd = headerRect?.right || 0;
+  const getItemsToShow = (availableSpace) => {
+    let spaceToFill = availableSpace;
+    const allItems = [...overflowItems];
+    const itemsToShow = [];
 
-    return parentRectEnd - lastItemEnd;
+    while (spaceToFill > 0 && allItems.length > 0) {
+      const firstItem = allItems[0];
+      const firstItemWidth = hiddenTabsMinWidth[firstItem];
+      if (spaceToFill >= firstItemWidth) {
+        itemsToShow.push(firstItem);
+        allItems.shift();
+        spaceToFill -= firstItemWidth;
+      } else {
+        break;
+      }
+    }
+    return itemsToShow;
+  };
+
+  const calculateAvailableSpace = (itemsShown, headerRect) => {
+    const totalMinWidth = itemsShown.reduce((acc, item) => {
+      const minWidth = parseFloat(getComputedStyle(item).minWidth) || item.getBoundingClientRect().width;
+      return acc + minWidth;
+    }, 0);
+
+    const panelWidth = headerRect.width;
+    const availableSpace = panelWidth - totalMinWidth;
+    return availableSpace - PANEL_PADDING;
   };
 
   const handleTabPanelElements = () => {
     dispatch(actions.closeElements([FLYOUT_NAME]));
-
     const itemsShown = Array.from(tabPanelHeaderRef?.current?.querySelectorAll('.tabPanelButton'));
     const headerRect = tabPanelHeaderRef.current.getBoundingClientRect();
+    const moreButtonWidth = moreButtonRef.current.getBoundingClientRect().width;
     const availableSpace = calculateAvailableSpace(itemsShown, headerRect);
-    const moreButtonRect = moreButtonRef.current.getBoundingClientRect();
-    const sizeNeededForMoreButton = moreButtonRect.width;
 
-    if (availableSpace < sizeNeededForMoreButton && visiblePanelTabs.length > 1) {
-      const minAvailableSpaceRequired = availableSpace - sizeNeededForMoreButton;
-      const itemsToHide = getItemsToHide(visiblePanelTabs, itemsShown, minAvailableSpaceRequired);
-      moveItemsToOverflow(itemsToHide);
-    } else if (overflowItems.length > 0) {
-      const largestItem = itemsShown.reduce((largestItem, item) => {
-        return largestItem.getBoundingClientRect().width > item.getBoundingClientRect().width ? largestItem : item;
-      });
-
-      const spaceForLargestItem = largestItem.getBoundingClientRect().width;
-      if (availableSpace > spaceForLargestItem + sizeNeededForMoreButton) {
-        moveItemsToContainer([overflowItems[0]]);
+    // when the panel is getting smaller
+    if (isShrinkingPanel) {
+      const minAvailableSpaceRequired = availableSpace - moreButtonWidth;
+      if (minAvailableSpaceRequired < 0 && visiblePanelTabs.length > 1) {
+        const itemsToHide = getItemsToHide(itemsShown, minAvailableSpaceRequired);
+        if (itemsToHide.length) {
+          moveItemsToOverflow(itemsToHide);
+        }
+      }
+    } else if (availableSpace > 0 && overflowItems.length > 0) {
+      const itemsToGetBack = getItemsToShow(availableSpace);
+      if (itemsToGetBack.length) {
+        moveItemsToContainer(itemsToGetBack);
       }
     }
-    handleActiveTabPanel();
+    handleMoreButtonIcon();
   };
 
   useEffect(() => {
-    setPanelsObject(getPanelsObjectToRender());
+    const panelsToRender = getPanelsObjectToRender();
+
+    setPanelsObject(panelsToRender);
+    setVisiblePanelTabs(Object.keys(panelsToRender));
+
+    const hasIcon = Object.values(panelsToRender).some((panel) => panel.icon);
+    const hasLabel = Object.values(panelsToRender).some((panel) => panel.label);
+
+    if (hasIcon) {
+      setIconFlag(true);
+    }
+    if (hasLabel) {
+      setLabelFlag(true);
+    }
+
     // We set the overflow items to an empty array so we can re-calculate the overflow items when the tabs change
     setOverflowItems([]);
-  }, [isPortfolioPanelDisabled]);
+  }, [portfolioFiles, redactionAnnotationsList, disabledElements]);
 
   useEffect(() => {
-    handleActiveTabPanel();
-  }, [activeCustomPanel]);
-
-  useEffect(() => {
-    if (!activeCustomPanel) {
+    if (!selectedTab) {
       const firstPanel = Object.keys(panelsObject)[0];
-      dispatch(actions.setActiveCustomPanel(firstPanel, tabPanelDataElement));
+      dispatch(actions.setActiveTabInPanel(firstPanel, tabPanelDataElement));
     }
     setVisiblePanelTabs(Object.keys(panelsObject));
   }, [panelsObject]);
 
   useEffect(() => {
-    handleTabPanelElements();
-    setOverflowFlyout();
-  }, [
-    visiblePanelTabs,
-    overflowItems,
-    headerContainerWidth
-  ]);
+    handleMoreButtonIcon();
+  }, [selectedTab]);
 
   useEffect(() => {
     if (headerContainerPrevWidth !== headerContainerWidth) {
       if (headerContainerWidth > headerContainerPrevWidth) {
-        if (overflowItems.length) {
-          const itemsToMove = overflowItems.slice(0, 1);
-          moveItemsToContainer(itemsToMove);
-        }
+        setIsShrinkingPanel(false);
+      } else {
+        setIsShrinkingPanel(true);
       }
       setHeaderContainerPrevWidth(headerContainerWidth);
     }
   }, [headerContainerWidth]);
 
-  useEffect(() => {
-    if (isBookmarkPanelEnabled) {
-      core.setBookmarkShortcutToggleOnFunction((pageIndex) => {
-        dispatch(actions.addBookmark(pageIndex, t('message.untitled')));
-      });
-      core.setBookmarkShortcutToggleOffFunction((pageIndex) => {
-        dispatch(actions.removeBookmark(pageIndex));
-      });
-      core.setUserBookmarks(Object.keys(bookmarks).map((pageIndex) => parseInt(pageIndex, 10)));
-    }
-  }, [isBookmarkPanelEnabled, bookmarks]);
-
-  useEffect(() => {
-    if (isBookmarkPanelEnabled && isBookmarkIconShortcutVisible) {
-      core.setBookmarkIconShortcutVisibility(true);
-    } else {
-      core.setBookmarkIconShortcutVisibility(false);
-    }
-  }, [isBookmarkPanelEnabled, isBookmarkIconShortcutVisible]);
+  useLayoutEffect(() => {
+    handleTabPanelElements();
+    overflowItems.length > 0 && setOverflowFlyout();
+  }, [
+    visiblePanelTabs,
+    overflowItems,
+    headerContainerWidth,
+  ]);
 
   const renderTabs = () => {
     if (visiblePanelTabs?.length) {
       return visiblePanelTabs.map((tab, index) => {
         const panelInfo = panelsObject[tab];
+        const isActive = tab === selectedTab;
+        const tabSelector = `${tab}-${tabPanelDataElement}`;
         return (
           <Button
             className={classNames({
@@ -363,13 +303,14 @@ const TabPanel = ({ dataElement: tabPanelDataElement }) => {
               hasLabel: labelFlag,
               lastButton: overflowItems.length === 0 && index === visiblePanelTabs.length - 1,
             })}
-            key={`${tab}-${tabPanelDataElement}`}
-            isActive={tab === activeCustomPanel}
-            dataElement={`${tab}-${tabPanelDataElement}`}
+            key={tabSelector}
+            isActive={isActive}
+            dataElement={tabSelector}
             img={panelInfo.icon}
-            onClick={() => dispatch(actions.setActiveCustomPanel(tab, tabPanelDataElement))}
+            onClick={() => dispatch(actions.setActiveTabInPanel(tab, tabPanelDataElement))}
             title={panelInfo.title}
             label={panelInfo.label}
+            ariaCurrent={isActive}
           />
         );
       });
@@ -377,12 +318,12 @@ const TabPanel = ({ dataElement: tabPanelDataElement }) => {
   };
 
   const getActivePanelRender = () => {
-    const activePanel = panelsObject[activeCustomPanel];
+    const activePanel = panelsObject[selectedTab];
     return activePanel?.render;
   };
 
   const closePanel = () => {
-    dispatch(actions.closeElement('tabPanel'));
+    dispatch(actions.closeElement(tabPanelDataElement));
   };
 
   const childElements = <>
@@ -428,6 +369,7 @@ const TabPanel = ({ dataElement: tabPanelDataElement }) => {
 
 TabPanel.propTypes = {
   dataElement: PropTypes.string.isRequired,
+  redactionAnnotationsList: PropTypes.array,
 };
 
 export default TabPanel;

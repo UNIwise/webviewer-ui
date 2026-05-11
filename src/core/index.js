@@ -121,10 +121,14 @@ import mergeDocument from './mergeDocument';
 import getFormFieldCreationManager from './getFormFieldCreationManager';
 import syncNamespaces from './syncNamespaces';
 import createDocument from './createDocument';
+import performDocumentCreationChecks from './performDocumentCreationChecks';
 import getContentEditManager from './getContentEditManager';
 import getTool from './getTool';
 import { getDocumentViewer, setDocumentViewer, getDocumentViewers, deleteDocumentViewer } from './documentViewers';
+import getUserBookmarks from './getUserBookmarks';
 import setUserBookmarks from './setUserBookmarks';
+import addUserBookmark from './addUserBookmark';
+import removeUserBookmark from './removeUserBookmark';
 import setBookmarkIconShortcutVisibility from './setBookmarkIconShortcutVisibility';
 import setBookmarkShortcutToggleOnFunction from './setBookmarkShortcutToggleOnFunction';
 import setBookmarkShortcutToggleOffFunction from './setBookmarkShortcutToggleOffFunction';
@@ -139,6 +143,8 @@ import getOfficeEditor from './getOfficeEditor';
 import isValidURI from './isValidURI';
 import openURI from './openURI';
 import getAllowedFileExtensions from './getAllowedFileExtensions';
+import loadBlankSpreadsheet from './loadBlankSpreadsheet';
+import getCellRange from './getCellRange';
 
 export default {
   getSemanticDiffAnnotations,
@@ -271,8 +277,12 @@ export default {
   getFormFieldCreationManager,
   syncNamespaces,
   createDocument,
+  performDocumentCreationChecks,
   getContentEditManager,
+  getUserBookmarks,
   setUserBookmarks,
+  addUserBookmark,
+  removeUserBookmark,
   setBookmarkIconShortcutVisibility,
   setBookmarkShortcutToggleOnFunction,
   setBookmarkShortcutToggleOffFunction,
@@ -286,4 +296,6 @@ export default {
   isValidURI,
   openURI,
   getAllowedFileExtensions,
+  loadBlankSpreadsheet,
+  getCellRange,
 };

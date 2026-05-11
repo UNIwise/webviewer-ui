@@ -1,11 +1,10 @@
-@import "../../constants/styles";
-@import "../../constants/modal";
+@import '../../constants/styles';
+@import '../../constants/modal';
 
 .SettingsModal {
   @extend %modal;
 
   .container {
-
     display: flex;
     flex-direction: column;
     width: 888px;
@@ -33,11 +32,11 @@
 
       input {
         width: 100%;
-        padding-right: 26px;
+        padding-inline-end: 26px;
         height: 20px;
         border: none;
         background: transparent;
-        padding-left: 8px;
+        padding-inline-start: 8px;
       }
     }
 
@@ -57,7 +56,6 @@
         height: 32px;
         margin-bottom: 8px;
       }
-
     }
 
     .body {
@@ -69,9 +67,14 @@
       .settings-tabs-container {
         width: 168px;
         flex-shrink: 0;
-        border-right: 1px solid var(--gray-4);
+        border-inline-end: 1px solid var(--gray-4);
 
         .settings-tabs {
+          button {
+            border: none;
+            background: none;
+            width: 100%;
+          }
           .settings-tab {
             height: 32px;
             margin-top: 4px;
@@ -82,15 +85,21 @@
             cursor: pointer;
 
             &:hover {
-              border-right: 2px solid var(--blue-6);
+              border-inline-end: 2px solid var(--blue-6);
               color: var(--blue-6);
             }
 
             &.selected {
               background-color: var(--gray-2) !important;
-              border-right: 2px var(--blue-5) solid;
+              border-inline-end: 2px var(--blue-5) solid;
               color: var(--blue-5);
               cursor: default;
+            }
+
+            &:focus-visible {
+              outline-offset: -2px;
+              outline: var(--focus-visible-outline);
+              border-radius: 4px;
             }
           }
         }
@@ -126,8 +135,11 @@
       width: 100%;
       background: var(--divider);
     }
+  }
 
-    @include mobile {
+  @include mobile {
+    .container {
+      width: 100%;
       height: 100%;
 
       .body {
@@ -135,21 +147,19 @@
 
         .settings-tabs-container {
           width: 100%;
-          position: fixed;
 
           .settings-tabs {
             display: flex;
 
             .settings-tab {
               flex: 1;
-              height: 32px;
+              height: 48px;
               margin-top: 0px;
               justify-content: center;
-              white-space: nowrap;
               min-width: 0;
 
               &.selected {
-                border-right: 0px;
+                border-inline-end: 0px;
                 border-bottom: 2px var(--blue-5) solid;
               }
             }
@@ -157,8 +167,6 @@
         }
 
         .settings-content {
-          margin-top: 32px;
-
           &.KeyboardShortcutTab {
             overflow-x: scroll;
             width: 640px;

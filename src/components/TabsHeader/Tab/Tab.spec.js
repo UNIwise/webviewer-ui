@@ -20,14 +20,24 @@ describe('Tab', () => {
   it('Component should have Aria Controls defined', () => {
     render(<TestTab tab={tabObject} />);
 
-    const element = screen.getByRole('button');
-    expect(element).toHaveAttribute('aria-controls');
+    const element = screen.getByRole('tab', { name: 'testfile' });
+    expect(element).toHaveAttribute('aria-controls', 'document-container-testfile');
   });
 
-  it('Component should have an Aria Label for the filename', () => {
+  it('Component should have an Aria Label for the close button', () => {
     render(<TestTab tab={tabObject} />);
 
     const element = screen.getByLabelText('Close testfile');
+    expect(element).toHaveAttribute('aria-label', 'Close testfile');
     expect(element).toBeInTheDocument();
+  });
+
+  it('Component should have an Aria Label for the filename', () => {
+    render(<TestTab tab={tabObject} isActive={true} ariaSelected={true}/>);
+
+    const element = screen.getByRole('tab', { name: 'testfile' });
+    expect(element).toBeInTheDocument();
+    expect(element).toHaveAttribute('aria-label', 'testfile');
+    expect(element).toHaveAttribute('aria-selected', 'true');
   });
 });

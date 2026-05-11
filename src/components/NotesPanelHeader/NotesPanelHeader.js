@@ -6,7 +6,7 @@ import debounce from 'lodash/debounce';
 import selectors from 'selectors';
 import actions from 'actions';
 import classNames from 'classnames';
-import core from 'core';
+import useCore from 'hooks/useCore';
 
 import Dropdown from 'components/Dropdown';
 import Button from 'components/Button';
@@ -14,15 +14,18 @@ import DataElementWrapper from 'components/DataElementWrapper';
 import CustomElement from 'components/CustomElement';
 
 import Events from 'constants/events';
-import { getSortStrategies } from 'constants/sortStrategies';
+import { BASE_SORT_STRATEGIES, OFFICE_EDITOR_SORT_STRATEGIES } from 'constants/sortStrategies';
 import DataElements from 'constants/dataElement';
-import { OFFICE_EDITOR_EDIT_MODE } from 'constants/officeEditor';
+import { OfficeEditorEditMode } from 'constants/officeEditor';
+import getNotesPanelConfig from 'helpers/getNotesPanelConfig';
 import useFocusHandler from 'hooks/useFocusHandler';
 
 import './NotesPanelHeader.scss';
 import Icon from '../Icon';
+import { getEventHandler } from 'helpers/fireEvent';
 
 const propTypes = {
+  parentDataElement: PropTypes.string,
   notes: PropTypes.array.isRequired,
   disableFilterAnnotation: PropTypes.bool,
   setSearchInputHandler: PropTypes.func.isRequired,
@@ -33,6 +36,7 @@ const propTypes = {
 
 const SORT_CONTAINER_ELEMENT = 'sortContainer';
 function NotesPanelHeader({
+  parentDataElement = DataElements.NOTES_PANEL,
   notes,
   disableFilterAnnotation,
   setSearchInputHandler,
@@ -40,6 +44,7 @@ function NotesPanelHeader({
   toggleMultiSelectMode,
   isMultiSelectEnabled,
 }) {
+  const { core } = useCore();
   const [
     sortStrategy,
     isSortContainerDisabled,
@@ -68,6 +73,7 @@ function NotesPanelHeader({
   const [filterEnabled, setFilterEnabled] = useState(false);
   const [isPreviewingTrackedChanges, setIsPreviewingTrackedChanges] = useState(false);
   const [searchInput, setSearchInput] = useState('');
+  const notesPanelConfig = getNotesPanelConfig(parentDataElement);
 
   useEffect(() => {
     // check if Redux filter state is enabled on mount and set filterEnabled to true
@@ -85,15 +91,15 @@ function NotesPanelHeader({
       }
     };
 
-    window.addEventListener(Events.ANNOTATION_FILTER_CHANGED, toggleFilterStyle);
+    getEventHandler().addEventListener(Events.ANNOTATION_FILTER_CHANGED, toggleFilterStyle);
     return () => {
-      window.removeEventListener(Events.ANNOTATION_FILTER_CHANGED, toggleFilterStyle);
+      getEventHandler().removeEventListener(Events.ANNOTATION_FILTER_CHANGED, toggleFilterStyle);
     };
   }, []);
 
   // on oe preview mode, disable and clear the search input
   useEffect(() => {
-    if (isOfficeEditorMode && officeEditorEditMode === OFFICE_EDITOR_EDIT_MODE.PREVIEW) {
+    if (isOfficeEditorMode && officeEditorEditMode === OfficeEditorEditMode.PREVIEW) {
       setIsPreviewingTrackedChanges(true);
       setSearchInputHandler('');
       setSearchInput('');
@@ -114,14 +120,24 @@ function NotesPanelHeader({
     setSearchInputHandler(value);
   }, 500);
 
+  const sortStrategyItems = isOfficeEditorMode ? OFFICE_EDITOR_SORT_STRATEGIES : BASE_SORT_STRATEGIES;
+
+  useEffect(() => {
+    if (!sortStrategyItems.includes(sortStrategy)) {
+      dispatch(actions.setNotesPanelSortStrategy(sortStrategyItems[0]));
+    }
+  }, [dispatch, sortStrategy, sortStrategyItems]);
+
   const sortContainer = (
     <div className="sort-container" data-element={SORT_CONTAINER_ELEMENT}>
-      <div className="label">{`${t('message.sort')}:`}</div>
+      <div className="label" id="notesSortLabel">{`${t('message.sort')}:`}</div>
       <Dropdown
+        id="notesOrderDropdown"
+        labelledById='notesSortLabel'
         dataElement="notesOrderDropdown"
         disabled={notes.length === 0 || isPreviewingTrackedChanges}
         ariaLabel={`${t('message.sortBy')} ${sortStrategy}`}
-        items={Object.keys(getSortStrategies())}
+        items={sortStrategyItems}
         translationPrefix="option.notesOrder"
         currentSelectionKey={sortStrategy}
         onClickItem={(strategy) => {
@@ -132,7 +148,8 @@ function NotesPanelHeader({
   );
 
   const openFilterModalWithFocusTransfer = useFocusHandler(() => dispatch(actions.openElement('filterModal')));
-  const placeholderText = isOfficeEditorMode ? t('message.searchSuggestionsPlaceholder') : t('message.searchCommentsPlaceholder');
+  const placeholderText = t(notesPanelConfig.searchPlaceholder);
+
   const originalHeaderElement = (
     <DataElementWrapper
       className={
@@ -165,7 +182,7 @@ function NotesPanelHeader({
         className="comments-counter"
         dataElement={DataElements.NotesPanel.DefaultHeader.COMMENTS_COUNTER}
       >
-        <span className='main-comment'>{isOfficeEditorMode ? t('officeEditor.reviewing') : t('component.notesPanel')}</span> {`(${notes.length})`}
+        <h2 className='main-comment'>{t(notesPanelConfig.title)} {`(${notes.length})`}</h2>
       </DataElementWrapper>
 
       <DataElementWrapper
@@ -185,20 +202,20 @@ function NotesPanelHeader({
                   img="icon-header-chat-line"
                   onClick={() => {
                     const selectedAnnotations = core.getSelectedAnnotations(activeDocumentViewerKey);
-                    if(selectedAnnotations.length > 0) {
+                    if (selectedAnnotations.length > 0) {
                       core.deselectAllAnnotations();
                     } else {
                       core.selectAnnotations(notes, activeDocumentViewerKey);
-                    } 
+                    }
                   }}
                   className={classNames({
                     'inactive': notes.length === 0,
                     'select-all-button': true,
                     active: core.getSelectedAnnotations(activeDocumentViewerKey).length === notes.length,
                   })}
-                  style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
                     flexDirection: 'row',
                     justifyContent: 'center',
                     width: '38px',
@@ -208,7 +225,7 @@ function NotesPanelHeader({
                   title={t('action.selectAll')}
                 />
               )}
-              
+
               <Button
                 dataElement={DataElements.NOTE_MULTI_SELECT_MODE_BUTTON}
                 className={classNames({
@@ -221,6 +238,7 @@ function NotesPanelHeader({
                   toggleMultiSelectMode();
                 }}
                 title={t('component.multiSelectButton')}
+                ariaPressed={isMultiSelectMode}
               />
             </>
           )}
@@ -233,6 +251,7 @@ function NotesPanelHeader({
             img="icon-comments-filter"
             onClick={openFilterModalWithFocusTransfer}
             title={t('component.filter')}
+            ariaPressed={filterEnabled}
           />
         </div>
       </DataElementWrapper>

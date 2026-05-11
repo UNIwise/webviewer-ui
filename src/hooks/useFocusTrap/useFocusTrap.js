@@ -2,20 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useCurrentRef } from 'hooks/useCurrentRef';
 import { findFocusableIndex } from 'helpers/accessibility';
 import { getDOMActiveElement } from 'helpers/webComponent';
-
-const focusableElementDomString = [
-  'a[href]',
-  'area[href]',
-  'input:not([disabled]):not([type="hidden"]):not([aria-hidden])',
-  'select:not([disabled]):not([aria-hidden])',
-  'textarea:not([disabled]):not([aria-hidden])',
-  'button:not([disabled]):not([aria-hidden])',
-  'iframe',
-  'object',
-  'embed',
-  '[contenteditable]',
-  '[tabindex]:not([tabindex^="-"])',
-].join(',');
+import { focusableElementDomString } from 'constants/focusableElementDomString';
 
 /**
  * @ignore
@@ -27,7 +14,8 @@ const focusableElementDomString = [
  */
 export default function useFocusTrap(locked = false, options = {}) {
   const focusLastOnUnlock = options.focusLastOnUnlock;
-  const focusRef = useRef(null);
+  const internalRef = useRef(null);
+  const focusRef = options.overrideRef ?? internalRef;
   // Get the focusable elements. Assumes that focusRef exists. DON'T CALL if
   // you haven't asserted existance of focusRef.current.
   const getFocusableElements = useCallback(() => {
@@ -113,12 +101,18 @@ export default function useFocusTrap(locked = false, options = {}) {
     // Blur focus target if no focusable elements.
     const focusableElements = getFocusableElements();
     const target = getTarget(event);
-    if (!focusableElements.length) {
+    const targetIsInFocusRef = focusRef.current.contains(target);
+
+    if (!focusableElements.length && targetIsInFocusRef) {
       return target?.blur();
     }
+
     // Focus initial element if focused outside.
     const focusedItemIndex = findFocusableIndex(focusableElements, target);
-    if (focusedItemIndex === -1) {
+    const focusedItemWasFound = focusedItemIndex !== -1;
+    const eventIsFromWithinApp = event && targetIsInFocusRef;
+
+    if (!focusedItemWasFound && eventIsFromWithinApp) {
       return focusableElements[0].focus();
     }
   }, [getFocusableElements, locked]);

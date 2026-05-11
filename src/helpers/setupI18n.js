@@ -45,20 +45,23 @@ export default (state) => {
     },
   };
   const callback = (err, t) => {
-    window.Core.Annotations.Utilities.setAnnotationSubjectHandler((type) => t(`annotation.${type}`),
-    );
+    window.Core.Annotations.Utilities.setAnnotationSubjectHandler((type) => t(`annotation.${type}`));
 
-    window.Core.Tools.SignatureCreateTool.setTextHandler(() => t('message.signHere'),
-    );
+    window.Core.Tools.SignatureCreateTool.setTextHandler(() => t('message.signHere'));
 
-    window.Core.Tools.SignatureCreateTool.setInitialsTextHandler(() => t('option.type.initials'),
-    );
+    window.Core.Tools.SignatureCreateTool.setInitialsTextHandler(() => t('option.type.initials'));
 
-    window.Core.Tools.FreeTextCreateTool.setTextHandler(() => t('message.insertTextHere'),
-    );
+    window.Core.Tools.FreeTextCreateTool.setTextHandler(() => t('message.insertTextHere'));
 
-    window.Core.Tools.CalloutCreateTool.setTextHandler(() => t('message.insertTextHere'),
-    );
+    window.Core.Tools.CalloutCreateTool.setTextHandler(() => t('message.insertTextHere'));
+
+    window.Core.Tools.ArcMeasurementCreateTool.setMeasurementLabelsHandler(() => {
+      return {
+        length: t('option.measurementOverlay.length'),
+        radius: t('option.measurementOverlay.radius'),
+        angle: t('option.measurementOverlay.angle'),
+      };
+    });
   };
 
   if (state.advanced.disableI18n) {

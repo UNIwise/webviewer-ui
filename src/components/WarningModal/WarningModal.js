@@ -1,19 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, shallowEqual, useDispatch } from 'react-redux';
 import i18next from 'i18next';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import Button from 'components/Button';
-import Choice from 'components/Choice/Choice';
+import Choice from 'components/Choice';
 import getClassName from 'helpers/getClassName';
 import classNames from 'classnames';
 import actions from 'actions';
 import selectors from 'selectors';
 import DataElements from 'constants/dataElement';
 import ModalWrapper from 'components/ModalWrapper';
+import useFocusOnClose from 'hooks/useFocusOnClose';
 
 import './WarningModal.scss';
 
 const WarningModal = () => {
+  const { core } = useCore();
   const doNotAskCheckboxRef = React.createRef();
 
   const [
@@ -88,26 +90,28 @@ const WarningModal = () => {
     return translatedMessage;
   };
 
-  const cancel = async () => {
-    onCancel && await onCancel();
-    closeModal();
-  };
-
-  const confirm = async () => {
-    onConfirm && await onConfirm();
-    closeModal();
-  };
-
-  const secondary = async () => {
-    onSecondary && await onSecondary();
-    closeModal();
-  };
-
   const closeModal = async () => {
     if (isOpen) {
       onClose && await onClose(disableWarning);
       dispatch(actions.closeElements(DataElements.WARNING_MODAL));
     }
+  };
+
+  const closeWithFocusTransfer = useFocusOnClose(closeModal);
+
+  const cancel = async () => {
+    onCancel && await onCancel();
+    closeWithFocusTransfer();
+  };
+
+  const confirm = async (e) => {
+    onConfirm && await onConfirm(e);
+    closeWithFocusTransfer();
+  };
+
+  const secondary = async () => {
+    onSecondary && await onSecondary();
+    closeWithFocusTransfer();
   };
 
   return isDisabled ? null : (

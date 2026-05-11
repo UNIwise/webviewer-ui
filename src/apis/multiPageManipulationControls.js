@@ -1,35 +1,47 @@
 /**
- * An instance of MultiPageManipulationControls that can be used to edit the items included in the overlay
+ * An instance of MultiPageManipulationControls that can be used to add, update, or retrieve page manipulation controls in the multi-page manipulation overlay.
  * @name UI.multiPageManipulationControls
  * @type {UI.MultiPageManipulationControls}
  * @example
- WebViewer(...)
+WebViewer(...)
   .then(function (instance) {
-    instance.UI.multiPageManipulationControls.someAPI();
-  })
+    // Add a custom page operation control
+    instance.UI.multiPageManipulationControls.add([{
+      type: 'customPageOperation',
+      header: 'Custom options',
+      dataElement: 'customPageOperations',
+      operations: [{
+        title: 'Custom Operation',
+        img: '/path-to-image',
+        onClick: (selectedPageNumbers) => {
+          console.log('Selected pages:', selectedPageNumbers);
+        },
+        dataElement: 'customPageOperationButton',
+      }]
+    }]);
+  });
  */
 
 /**
  * A class which contains MultiPageManipulationControls APIs. <br/><br/>
+ * The MultiPageManipulationControls shows the first 3 sets of controls and the rest in a flyout menu.
  * <span style="color: red; font-size: 1.2em; font-weight: bold">⚠</span> If you want to remove an item in the MultiPageManipulationControls, use {@link UI.disableElements disableElements}.
  * @class
  * @name UI.MultiPageManipulationControls
  */
 /**
- * @typedef UI.MultiPageManipulationControls.PageManipulationSection
- * @type {object}
- * @property {string} type Required type of 'customPageOperation' or 'divider'.
- * @property {string} header Header to be displayed in the UI for this section
- * @property {string} dataElement Unique dataElement
- * @property {UI.MultiPageManipulationControls.PageOperation[]} operations the operations that will be available under this section
+ * @typedef {Object} UI.MultiPageManipulationControls.PageManipulationSection
+ * @property {string} type The type of section. Use 'customPageOperation' for custom operations or 'divider' for separators.
+ * @property {string} [header] Header text to be displayed in the UI for this section. Required if type is 'customPageOperation'.
+ * @property {string} [dataElement] Unique data element identifier. Required if type is 'customPageOperation'.
+ * @property {Array.<UI.MultiPageManipulationControls.PageOperation>} [operations] The operations that will be available under this section. Required if type is 'customPageOperation'.
  */
 /**
- * @typedef UI.MultiPageManipulationControls.PageOperation
- * @type {object}
- * @property {string} title Title to be displayed for the operation
- * @property {string} img Path to image to be used as an icon for the operation
- * @property {function} onClick onClick handler, which takes as a parameter an array of selected page numbers
- * @property {string} dataElement Unique dataElement for this operation
+ * @typedef {Object} UI.MultiPageManipulationControls.PageOperation
+ * @property {string} title Title to be displayed for the operation.
+ * @property {string} img Path to the image to be used as an icon for the operation.
+ * @property {function(Array.<number>): void} onClick Click handler function that receives an array of selected page numbers as a parameter.
+ * @property {string} dataElement Unique data element identifier for this operation.
  */
 import actions from 'actions';
 import selectors from 'selectors';
@@ -42,40 +54,34 @@ const MultiPageManipulationControls = {
     return this;
   },
   /**
-   * Adds an array of page manipulation operations to the default operations. If passed a dataElement parameter, it will
-   * add the new operations after this element. Otherwise, they will be appended to the start of the existing list
-   * of operations.
+  * Adds page manipulation operations to the multi-page manipulation controls. If a dataElement parameter is provided, the new operations will be added after that element. Otherwise, they will be added at the beginning.
    * @method UI.MultiPageManipulationControls#add
-   * @param {Array.<UI.MultiPageManipulationControls.PageManipulationSection>} pageManipulationSections Array of sections to be added, each with its individual operations. See example below.
-   * @param {('leftPanelPageTabsRotate' | 'leftPanelPageTabsOperations' | 'leftPanelPageTabsMore')} [dataElementToInsertAfter] An optional string that determines where in the overlay the new section will be added. If not included, the new page manipulation section will be added to the left.
-   * You can call {@link UI.MultiPageManipulationControls#getItems getItems} to get existing items and their dataElements.
-   * @returns {UI.MultiPageManipulationControls} The instance itself
+   * @memberof UI.MultiPageManipulationControls
+  * @param {Array.<UI.MultiPageManipulationControls.PageManipulationSection>} pageManipulationSections Array of sections to be added, each with its individual operations.
+   * @param {string} [dataElementToInsertAfter] The data element of the item to insert after. Can be 'leftPanelPageTabsRotate', 'leftPanelPageTabsOperations', 'leftPanelPageTabsMore', or a custom data element. If not provided, items will be added at the beginning. Call {@link UI.MultiPageManipulationControls#getItems getItems} to see existing items and their data elements.
+  * @returns {UI.MultiPageManipulationControls} The MultiPageManipulationControls instance for chaining.
    * @example
-   // An example of the operation object is shown below.
-   // Additionally, to add dividers you can include this in the operations array:
-    { type: 'divider' }
-    // Example:
-    WebViewer(...)
-      .then(function (instance) {
-        instance.UI.multiPageManipulationControls.add([
+WebViewer(...)
+  .then(function (instance) {
+    instance.UI.multiPageManipulationControls.add([
+      {
+        type: 'customPageOperation',
+        header: 'Custom options',
+        dataElement: 'customPageOperations',
+        operations: [
           {
-            type: 'customPageOperation',
-            header: 'Custom options',
-            dataElement: 'customPageOperations',
-            operations: [
-              {
-                title: 'Alert me',
-                img: '/path-to-image',
-                onClick: (selectedPageNumbers) => {
-                  alert(`Selected thumbnail pages: ${selectedPageNumbers}`);
-                },
-                dataElement: 'customPageOperationButton',
-              }
-            ]
-          },
-          { type: 'divider' }
-        ]);
-      });
+            title: 'Alert me',
+            img: '/path-to-image',
+            onClick: (selectedPageNumbers) => {
+              alert(`Selected thumbnail pages: ${selectedPageNumbers}`);
+            },
+            dataElement: 'customPageOperationButton',
+          }
+        ]
+      },
+      { type: 'divider' }
+    ]);
+  });
    */
   add(operations, dataElementToInsertAfter) {
     if (!operations || operations.length === 0) {
@@ -88,96 +94,82 @@ const MultiPageManipulationControls = {
 
     const index = this._getIndexByDataElement(dataElementToInsertAfter);
     const items = this.getItems();
-    const indexSmall = this._getIndexByDataElementSmall(dataElementToInsertAfter);
-    const itemsSmall = this.getItemsSmall();
-    const indexLarge = this._getIndexByDataElementLarge(dataElementToInsertAfter);
-    const itemsLarge = this.getItemsLarge();
 
     items.splice(index + 1, 0, ...operations);
-    itemsSmall.splice(indexSmall + 1, 0, ...operations);
-    itemsLarge.splice(indexLarge + 1, 0, ...operations);
 
     this.store.dispatch(actions.setMultiPageManipulationControlsItems(items));
-    this.store.dispatch(actions.setMultiPageManipulationControlsItemsSmall(itemsSmall));
-    this.store.dispatch(actions.setMultiPageManipulationControlsItemsLarge(itemsLarge));
-
     return this;
   },
 
   /**
-   * Update all the operations in the MultiPageManipulationControls, essentially replacing them with
-   * a new list of operations.
-   * To update an individual item, use {@link UI.updateElement updateElement}
+   * Replaces all operations in the MultiPageManipulationControls with a new list of operations.
+   * To update an individual item, use {@link UI.updateElement}.
    * @method UI.MultiPageManipulationControls#update
-   * @param {Array.<UI.MultiPageManipulationControls.PageManipulationSection>} pageManipulationSections The list of PageManipulationSections that will be rendered in the PageManipulation overlay. See the add documentation for an example.
-   * @returns {UI.MultiPageManipulationControls} The instance of itself
+   * @memberof UI.MultiPageManipulationControls
+   * @param {Array.<UI.MultiPageManipulationControls.PageManipulationSection>} pageManipulationSections The list of page manipulation sections that will be rendered in the controls. If not provided, the controls will be cleared.
+   * @returns {UI.MultiPageManipulationControls} The MultiPageManipulationControls instance for chaining
+   * @see UI.updateElement
    * @example
-    WebViewer(...)
-      .then(function (instance) {
-        instance.UI.multiPageManipulationControls.update([
+WebViewer(...)
+  .then(function (instance) {
+    instance.UI.multiPageManipulationControls.update([
+      {
+        type: 'customPageOperation',
+        header: 'Print Operations',
+        dataElement: 'customPageOperations',
+        operations: [
           {
-            type: 'customPageOperation',
-            header: 'Print Operations',
-            dataElement: 'customPageOperations',
-            operations: [
-              {
-                title: 'Print page',
-                img: 'icon-header-print-line',
-                onClick: (selectedPageNumbers) => {
-                  alert(`Selected thumbnail pages: ${selectedPageNumbers}`);
-                },
-                dataElement: 'printThumbnailPage',
-              }
-            ]
-          },
-          { type: 'divider' },
-          {
-            type: 'customPageOperation',
-            header: 'Alert Operations',
-            dataElement: 'customPageOperations-2',
-            operations: [
-              {
-                title: 'Alert me',
-                img: 'icon-header-print-line',
-                onClick: (selectedPageNumbers) => {
-                  alert(`Selected thumbnail pages: ${selectedPageNumbers}`);
-                },
-                dataElement: 'alertPage',
-              }
-            ]
+            title: 'Print page',
+            img: 'icon-header-print-line',
+            onClick: (selectedPageNumbers) => {
+              console.log('Printing pages:', selectedPageNumbers);
+            },
+            dataElement: 'printThumbnailPage',
           }
-        ]);
-      });
+        ]
+      },
+      { type: 'divider' },
+      {
+        type: 'customPageOperation',
+        header: 'Alert Operations',
+        dataElement: 'customPageOperations-2',
+        operations: [
+          {
+            title: 'Alert me',
+            img: 'icon-header-print-line',
+            onClick: (selectedPageNumbers) => {
+              alert(`Selected thumbnail pages: ${selectedPageNumbers}`);
+            },
+            dataElement: 'alertPage',
+          }
+        ]
+      }
+    ]);
+  });
    */
   update(operations) {
     if (!operations) {
       operations = [];
     }
     this.store.dispatch(actions.setMultiPageManipulationControlsItems(operations));
-    this.store.dispatch(actions.setMultiPageManipulationControlsItemsSmall(operations));
-    this.store.dispatch(actions.setMultiPageManipulationControlsItemsLarge(operations));
 
     return this;
   },
 
   /**
-   * Return the array of items in the MultiPageManipulationControls.
+   * Returns the current array of items in the MultiPageManipulationControls.
    * @method UI.MultiPageManipulationControls#getItems
-   * @returns {Array.<UI.MultiPageManipulationControls.PageManipulationSection>} Current items in the MultiPageManipulationControls.
+   * @memberof UI.MultiPageManipulationControls
+   * @returns {Array.<UI.MultiPageManipulationControls.PageManipulationSection>} The current page manipulation sections in the controls.
    * @example
 WebViewer(...)
   .then(function(instance) {
-    instance.UI.multiPageManipulationControls.getItems();
+    const items = instance.UI.multiPageManipulationControls.getItems();
+    console.log('Current multi-page manipulation items:', items);
   });
    */
   getItems() {
     return [...selectors.getMultiPageManipulationControlsItems(this.store.getState())];
-  },
-  getItemsSmall() {
-    return [...selectors.getMultiPageManipulationControlsItemsSmall(this.store.getState())];
-  },
-  getItemsLarge() {
-    return [...selectors.getMultiPageManipulationControlsItemsLarge(this.store.getState())];
   },
   _getIndexByDataElement(dataElement) {
     let index;
@@ -187,30 +179,6 @@ WebViewer(...)
     } else {
       const state = this.store.getState();
       index = selectors.getMultiPageManipulationControlsItems(state).findIndex((obj) => obj.dataElement === dataElement);
-    }
-
-    return index;
-  },
-  _getIndexByDataElementSmall(dataElement) {
-    let index;
-
-    if (typeof dataElement === 'undefined') {
-      index = -1;
-    } else {
-      const state = this.store.getState();
-      index = selectors.getMultiPageManipulationControlsItemsSmall(state).findIndex((obj) => obj.dataElement === dataElement);
-    }
-
-    return index;
-  },
-  _getIndexByDataElementLarge(dataElement) {
-    let index;
-
-    if (typeof dataElement === 'undefined') {
-      index = -1;
-    } else {
-      const state = this.store.getState();
-      index = selectors.getMultiPageManipulationControlsItemsLarge(state).findIndex((obj) => obj.dataElement === dataElement);
     }
 
     return index;

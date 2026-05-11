@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
+import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
 
@@ -60,11 +61,24 @@ function NoteTextPreview(props) {
   }, [text, previewElementWidth]);
 
   return (
-    <div className={noteTextPreviewClass} ref={ref} style={style}>
+    <div className={noteTextPreviewClass} ref={ref} style={style} aria-live="polite">
       {beforeContent()}
-      {renderRichText && richTextStyle ? renderRichText(textToDisplay, richTextStyle, 0) : textToDisplay} {showPrompt && <a className="note-text-preview-prompt" onClick={onClickHandler}>{prompt}</a>}
+      {renderRichText && richTextStyle
+        ? renderRichText(textToDisplay, richTextStyle, 0)
+        : textToDisplay} {showPrompt && <button className="note-text-preview-prompt" onClick={onClickHandler}>{prompt}</button>}
     </div>
   );
 }
+
+NoteTextPreview.propTypes = {
+  panelWidth: PropTypes.number,
+  linesToBreak: PropTypes.number,
+  renderRichText: PropTypes.func,
+  richTextStyle: PropTypes.any,
+  resize: PropTypes.func,
+  style: PropTypes.any,
+  comment: PropTypes.bool,
+  beforeContent: PropTypes.func,
+};
 
 export default NoteTextPreview;

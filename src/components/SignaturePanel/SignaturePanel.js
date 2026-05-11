@@ -1,13 +1,14 @@
-import React, { useCallback, useEffect, useState, } from 'react';
-import { useDispatch, useSelector, } from 'react-redux';
+import React, { useCallback, useEffect, useMemo, useState, } from 'react';
+import { shallowEqual, useDispatch, useSelector, } from 'react-redux';
 import { useTranslation } from 'react-i18next';
+import throttle from 'lodash/throttle';
 
 import actions from 'actions';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import selectors from 'selectors';
 import setVerificationResult from 'helpers/setVerificationResult';
 
-import Spinner from './Spinner';
+import Spinner from 'components/Spinner';
 import WidgetInfo from './WidgetInfo';
 
 import './SignaturePanel.scss';
@@ -15,36 +16,46 @@ import Icon from 'components/Icon';
 import { panelData, panelNames } from 'constants/panel';
 
 const SignaturePanel = () => {
+  const { core } = useCore();
   const dispatch = useDispatch();
   const [fields, setFields] = useState([]);
   const [showSpinner, setShowSpinner] = useState(false);
   const [certificateErrorMessage, setCertificateErrorMessage] = useState('');
   const [document, setDocument] = useState(core.getDocument());
-  const [
-    isDisabled,
-    certificate,
-    trustLists,
-    currentLanguage,
-    revocationChecking,
-    revocationProxyPrefix,
-  ] = useSelector((state) => [
-    selectors.isElementDisabled(state, 'signaturePanel'),
-    selectors.getCertificates(state),
-    selectors.getTrustLists(state),
-    selectors.getCurrentLanguage(state),
-    selectors.getIsRevocationCheckingEnabled(state),
-    selectors.getRevocationProxyPrefix(state),
-  ]);
+  const [signatureVersion, setSignatureVersion] = useState(0);
+  const activeDocumentViewerKey = useSelector(selectors.getActiveDocumentViewerKey);
+  const isDisabled = useSelector((state) => selectors.isElementDisabled(state, 'signaturePanel'));
+  const certificate = useSelector((state) => selectors.getCertificates(state, activeDocumentViewerKey), shallowEqual);
+  const currentLanguage = useSelector(selectors.getCurrentLanguage);
+  const revocationChecking = useSelector(selectors.getIsRevocationCheckingEnabled);
+  const revocationProxyPrefix = useSelector(selectors.getRevocationProxyPrefix);
+  const trustListKey = useSelector(selectors.getTrustListKey);
+
   const [translate] = useTranslation();
 
-  const onDocumentLoaded = async () => {
+  const onDocumentLoaded = () => {
     setDocument(core.getDocument());
   };
 
   const onDocumentUnloaded = useCallback(() => {
     setShowSpinner(true);
-    dispatch(actions.setVerificationResult({}));
-  }, [setShowSpinner, dispatch]);
+    dispatch(actions.setVerificationResult({}, activeDocumentViewerKey));
+  }, [setShowSpinner, dispatch, activeDocumentViewerKey]);
+
+  const resetFields = () => {
+    setFields([]);
+    addNonSignedFields();
+  };
+
+  const checkDocument = useCallback(() => {
+    const doc = core.getDocument();
+    if (doc) {
+      onDocumentLoaded();
+      resetFields();
+    } else {
+      onDocumentUnloaded();
+    }
+  }, [core, onDocumentUnloaded]);
 
   const onAnnotationChanged = ((annotations, action) => {
     const isInFormCreationMode = core.getAnnotationManager().getFormFieldCreationManager().isInFormFieldCreationMode();
@@ -81,23 +92,27 @@ const SignaturePanel = () => {
   };
 
   const removeMatchingWidget = (annotation) => {
-    const annot = annotation;
-    const widgetFieldName = annot.getCustomData('trn-form-field-name');
-    const isRectanglePlaceholder = annotation instanceof window.Core.Annotations.RectangleAnnotation && widgetFieldName;
-    if (isRectanglePlaceholder) {
+    const isWidget = annotation instanceof window.Core.Annotations.WidgetAnnotation;
+    if (isWidget) {
       const annotationManager = core.getAnnotationManager();
       const annotationList = annotationManager.getAnnotationsList();
-      const widgetToDelete = annotationList.filter((annotation) => {
-        return annotation.getCustomData('trn-editing-rectangle-id') === annot.Id;
+      const widgetToDelete = annotationList.filter((annotationToFilter) => {
+        return annotationToFilter.getCustomData('trn-editing-rectangle-id') === annotation.Id;
       });
       annotationManager.deleteAnnotations(widgetToDelete);
     }
   };
+  const digitalSignatureHandlerThrottleDelay = 800;
 
-  const resetFields = () => {
-    setFields([]);
-    addNonSignedFields();
-  };
+  // Throttle the digitalSignatureApplied handler to avoid rapid panel refreshes
+  const onDigitalSignatureApplied = useMemo(
+    () => throttle(
+      () => setSignatureVersion((v) => v + 1),
+      digitalSignatureHandlerThrottleDelay,
+      { leading: true, trailing: true },
+    ),
+    [],
+  );
 
   useEffect(() => {
     // This ensures that when the document loads, the state of this component is
@@ -105,16 +120,66 @@ const SignaturePanel = () => {
     core.addEventListener('documentLoaded', onDocumentLoaded);
     core.addEventListener('documentUnloaded', onDocumentUnloaded);
     core.addEventListener('annotationChanged', onAnnotationChanged);
+    core.addEventListener('digitalSignatureApplied', onDigitalSignatureApplied);
     core.addEventListener('formFieldCreationModeStarted', resetFields);
     core.addEventListener('formFieldCreationModeEnded', resetFields);
+    checkDocument();
     return () => {
       core.removeEventListener('documentLoaded', onDocumentLoaded);
       core.removeEventListener('documentUnloaded', onDocumentUnloaded);
       core.removeEventListener('annotationChanged', onAnnotationChanged);
+      core.removeEventListener('digitalSignatureApplied', onDigitalSignatureApplied);
+      onDigitalSignatureApplied.cancel();
       core.removeEventListener('formFieldCreationModeStarted', resetFields);
       core.removeEventListener('formFieldCreationModeEnded', resetFields);
     };
-  }, [onDocumentUnloaded]);
+  }, [onDocumentUnloaded, checkDocument, onDigitalSignatureApplied]);
+
+  const onDBRequestSucceeded = (request, resolve, reject) => {
+    const db = request.result;
+
+    const isTrustListStoreAvailable = db.objectStoreNames.contains('trustList');
+    if (!isTrustListStoreAvailable) {
+      db.close();
+      resolve(null);
+      return;
+    }
+
+    const transaction = db.transaction('trustList', 'readonly');
+    const store = transaction.objectStore('trustList');
+
+    let getReq = store.get(trustListKey);
+    getReq.onsuccess = async () => {
+      const value = getReq.result;
+
+      if (!value) {
+        resolve(null);
+      } else if (value instanceof ArrayBuffer) {
+        resolve(value.slice(0));
+      } else {
+        resolve(value);
+      }
+    };
+
+    getReq.onerror = () => reject(getReq.error);
+
+    transaction.onerror = () => {
+      reject(transaction.error);
+    };
+    transaction.oncomplete = () => db.close();
+  };
+
+  const getTrustList = async () => {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('WebViewerTrustList', 1);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        onDBRequestSucceeded(request, resolve, reject);
+      };
+    });
+  };
+
 
   useEffect(() => {
     // Need certificates for PDFNet to verify against, and for the document
@@ -123,9 +188,10 @@ const SignaturePanel = () => {
     if (document) {
       // We need to wait for the annotationsLoaded event, otherwise the
       // Field will not exist in the document
-      core.getAnnotationsLoadedPromise().then(() => {
+      core.getAnnotationsLoadedPromise().then(async () => {
         setShowSpinner(true);
-        setVerificationResult(document, certificate, trustLists, currentLanguage, revocationChecking, revocationProxyPrefix, dispatch)
+        const trustList = trustListKey ? (await getTrustList() || []) : [];
+        setVerificationResult(document, certificate, trustList, currentLanguage, revocationChecking, revocationProxyPrefix, dispatch, activeDocumentViewerKey)
           .then(async (verificationResult) => {
             const fieldManager = core.getAnnotationManager().getFieldManager();
             setFields(Object.keys(verificationResult).map((fieldName) => fieldManager.getField(fieldName)));
@@ -148,7 +214,7 @@ const SignaturePanel = () => {
     } else {
       setShowSpinner(true);
     }
-  }, [certificate, document, dispatch, currentLanguage]);
+  }, [certificate, document, dispatch, currentLanguage, trustListKey, core, signatureVersion]);
 
   if (isDisabled) {
     return null;
@@ -162,7 +228,7 @@ const SignaturePanel = () => {
   const renderLoadingOrErrors = () => {
     let result;
     if (showSpinner) {
-      result = <Spinner />;
+      result = <Spinner inPanel width={'40px'} height={'40px'} />;
     } else if (certificateErrorMessage === 'Error reading the local certificate') {
       result = translate('digitalSignatureVerification.panelMessages.localCertificateError');
     } else if (certificateErrorMessage === 'Download Failed') {
@@ -179,7 +245,7 @@ const SignaturePanel = () => {
 
     return (
       <div className="empty-panel-container">
-        <Icon className="empty-icon" glyph={panelData[panelNames.SIGNATURE].icon}/>
+        <Icon className="empty-icon" glyph={panelData[panelNames.SIGNATURE].icon} />
         <div className="empty-message">{result}</div>
       </div>
     );
@@ -194,6 +260,9 @@ const SignaturePanel = () => {
       {
         !showSpinner && fields.length > 0 && (
           fields.map((field, index) => {
+            if (!field) {
+              return null;
+            }
             return (
               <WidgetInfo
                 key={index}

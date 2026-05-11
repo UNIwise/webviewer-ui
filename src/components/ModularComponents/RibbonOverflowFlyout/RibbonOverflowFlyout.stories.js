@@ -3,19 +3,19 @@ import RibbonOverflowFlyout from './RibbonOverflowFlyout';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import Flyout from '../Flyout/Flyout';
+import i18next from 'i18next';
+import { I18nextProvider } from 'react-i18next';
+import { oePartialState } from 'src/helpers/storybookHelper';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'ModularComponents/RibbonGroup',
   component: RibbonOverflowFlyout,
-  parameters: {
-    customizableUI: true,
-  },
 };
 
 const item1 = {
   dataElement: 'Ribbon Item1',
   img: 'icon-header-pan',
-  title: 'icon only',
   type: 'ribbonItem',
 };
 
@@ -38,7 +38,31 @@ const item4 = {
   type: 'ribbonItem',
 };
 
+const translatedItem1 = {
+  'dataElement': 'toolbarGroup-Forms',
+  'title': 'Forms',
+  'type': 'ribbonItem',
+  'label': 'Forms',
+  'groupedItems': [
+    'formsGroupedItems'
+  ],
+  'toolbarGroup': 'toolbarGroup-Forms',
+};
+
+const translatedItem2 = {
+  'dataElement': 'toolbarGroup-FillAndSign',
+  'title': 'Fill and Sign',
+  'type': 'ribbonItem',
+  'label': 'Fill and Sign',
+  'groupedItems': [
+    'fillAndSignGroupedItems'
+  ],
+  'toolbarGroup': 'toolbarGroup-FillAndSign',
+  'sortIndex': 8
+};
+
 const initialState = {
+  ...oePartialState,
   viewer: {
     modularComponents: {},
     customHeadersAdditionalProperties: {},
@@ -49,6 +73,7 @@ const initialState = {
     },
     customPanels: [],
     genericPanels: [],
+    activeGroupedItems: [],
     canUndo: {
       1: false,
       2: false,
@@ -67,14 +92,20 @@ const initialState = {
         'dataElement': 'RibbonOverflowFlyoutNoIcons',
         className: 'RibbonOverflowFlyoutNoIcons',
         items: [item2, item4],
+      },
+      'RibbonOverflowFlyoutTranslated': {
+        'dataElement': 'RibbonOverflowFlyoutTranslated',
+        className: 'RibbonOverflowFlyoutTranslated',
+        items: [translatedItem1, translatedItem2],
       }
     },
     flyoutPosition: { x: 0, y: 0 },
     activeFlyout: 'RibbonOverflowFlyout',
-    activeCustomPanel: '',
+    activeTabInPanel: {},
     headers: {},
     lastPickedToolForGroup: {},
     lastPickedToolGroup: {},
+    lastActiveToolForRibbon: {},
     toolButtonObjects: {},
     toolbarGroup: 'toolbarGroup-View',
     modularHeaders: {},
@@ -83,7 +114,6 @@ const initialState = {
       bottomHeaders: 40
     },
     activeCustomRibbon: 'Ribbon Item1',
-    lastPickedToolForGroupedItems: {},
   },
 };
 
@@ -98,6 +128,7 @@ export const OverflowFlyout = (props) => {
     </Provider>
   );
 };
+OverflowFlyout.parameters = disableRtlModeParameters;
 
 const noIconsStore = configureStore({
   reducer: () => {
@@ -109,7 +140,7 @@ const noIconsStore = configureStore({
           RibbonOverflowFlyoutNoIcons: true,
         },
         activeFlyout: 'RibbonOverflowFlyoutNoIcons',
-        activeCustomPanel: '',
+        activeTabInPanel: {},
         modularHeaders: {},
         modularHeadersHeight: {
           topHeaders: 40,
@@ -125,6 +156,44 @@ export const NoIconsOverflowFlyout = (props) => {
   return (
     <Provider store={noIconsStore}>
       <Flyout {...props} className={'overflowFlyout'} />
+    </Provider>
+  );
+};
+NoIconsOverflowFlyout.parameters = disableRtlModeParameters;
+
+const translatedStore = configureStore({
+  reducer: () => {
+    return {
+      ...initialState,
+      viewer: {
+        ...initialState.viewer,
+        openElements: {
+          RibbonOverflowFlyoutTranslated: true,
+        },
+        activeFlyout: 'RibbonOverflowFlyoutTranslated',
+        activeTabInPanel: {},
+        modularHeaders: {},
+        modularHeadersHeight: {
+          topHeaders: 40,
+          bottomHeaders: 40
+        },
+        customHeadersAdditionalProperties: {},
+        currentLanguage: 'bn'
+      }
+    };
+  }
+});
+
+export const TranslatedFlyout = (props) => {
+  i18next.init({
+    nsSeparator: false,
+  });
+  i18next.changeLanguage('bn');
+  return (
+    <Provider store={translatedStore}>
+      <I18nextProvider i18n={i18next}>
+        <Flyout {...props} className={'overflowFlyout'}/>
+      </I18nextProvider>
     </Provider>
   );
 };

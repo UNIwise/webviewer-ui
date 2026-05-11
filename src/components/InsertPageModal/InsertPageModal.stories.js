@@ -2,6 +2,7 @@ import React from 'react';
 import InsertPageModalComponent from './InsertPageModal';
 import { configureStore } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
+import { mobileStoryParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/InsertPageModal',
@@ -86,5 +87,5 @@ export const InsertUploadedPageModalInMobile = () => (
   </Provider>
 );
 
-InsertBlankPageModalInMobile.parameters = window.storybook?.MobileParameters;
-InsertUploadedPageModalInMobile.parameters = window.storybook?.MobileParameters;
+InsertBlankPageModalInMobile.parameters = mobileStoryParameters;
+InsertUploadedPageModalInMobile.parameters = mobileStoryParameters;

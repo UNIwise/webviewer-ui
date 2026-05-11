@@ -82,11 +82,13 @@ module.exports = {
 
   // A map from regular expressions to module names or to arrays of module names that allow to stub out resources with a single module
   moduleNameMapper: {
+    "^jest/(.*)$": "<rootDir>/jest/$1",
     "^src/(.*)$": "<rootDir>/src/$1",
     "^components/(.*)$": "<rootDir>/src/components/$1",
     "^constants/(.*)$": "<rootDir>/src/constants/$1",
     "^helpers/(.*)$": "<rootDir>/src/helpers/$1",
     "^hooks/(.*)$": "<rootDir>/src/hooks/$1",
+    "^core/(.*)$": "<rootDir>/src/core/$1",
     "^core$": "<rootDir>/src/core",
     "^actions$": "<rootDir>/src/redux/actions",
     "^actions(.*)$": "<rootDir>/src/redux/actions/$1",
@@ -200,10 +202,11 @@ module.exports = {
   },
 
   // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
-  // transformIgnorePatterns: [
-  //   "/node_modules/",
-  //   "\\.pnp\\.[^\\/]+$"
-  // ],
+  transformIgnorePatterns: [
+    "node_modules/(?!@ngrx|(?!deck.gl)|ng-dynamic)",
+    // "/node_modules/",
+    // "\\.pnp\\.[^\\/]+$"
+  ],
 
   // An array of regexp pattern strings that are matched against all modules before the module loader will automatically return a mock for them
   // unmockedModulePathPatterns: undefined,

@@ -3,7 +3,7 @@ import FormFieldEditPopup from './FormFieldEditPopup';
 import { configureStore } from '@reduxjs/toolkit';
 
 import { Provider } from 'react-redux';
-
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/FormFieldEditPopup',
@@ -62,7 +62,11 @@ const annotation = {
   Width: 100,
   Height: 100,
   getCustomData: () => { },
-  getFormFieldPlaceholderType: () => { },
+  getField: () => {
+    return {
+      getFieldType: () => 'TextFormField',
+    };
+  }
 };
 
 const indicator = {
@@ -89,3 +93,5 @@ export function Basic() {
     </Provider>
   );
 }
+
+Basic.parameters = disableRtlModeParameters;

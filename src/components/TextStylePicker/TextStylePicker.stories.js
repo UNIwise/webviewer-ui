@@ -5,7 +5,7 @@ import i18n from 'i18next';
 import { I18nextProvider } from 'react-i18next';
 import { Provider } from 'react-redux';
 import TextStylePicker from './TextStylePicker';
-import core from 'core';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/TextStylePicker',
@@ -28,19 +28,7 @@ const store = configureStore({
 
 const BasicComponent = (props) => {
   return (
-    <I18nextProvider i18n={i18n.cloneInstance({ lng: 'ja', fallbackLng: 'ja' })}>
-      <Provider store={store}>
-        <div style={ { width: '220px', padding: '12px 12px' } }>
-          <TextStylePicker {...props}/>
-        </div>
-      </Provider>
-    </I18nextProvider>
-  );
-};
-
-const DisabledFontSelectorComponent = (props) => {
-  return (
-    <I18nextProvider i18n={i18n.cloneInstance({ lng: 'ja', fallbackLng: 'ja' })}>
+    <I18nextProvider i18n={i18n.cloneInstance({ lng: 'en', fallbackLng: 'en' })}>
       <Provider store={store}>
         <div style={ { width: '220px', padding: '12px 12px' } }>
           <TextStylePicker {...props}/>
@@ -58,8 +46,9 @@ TextStylePickerSection.args = {
   isRedaction: false,
   onPropertyChange: noop
 };
+TextStylePickerSection.parameters = disableRtlModeParameters;
 
-export const TextStylePickerFreeTextDisabled = DisabledFontSelectorComponent.bind({});
+export const TextStylePickerFreeTextDisabled = BasicComponent.bind({});
 TextStylePickerFreeTextDisabled.args = {
   properties: {
     FontSize: '128'
@@ -69,8 +58,9 @@ TextStylePickerFreeTextDisabled.args = {
   isRedaction: false,
   onPropertyChange: noop
 };
+TextStylePickerFreeTextDisabled.parameters = disableRtlModeParameters;
 
-export const TextStylePickerFreeTextEnabled = DisabledFontSelectorComponent.bind({});
+export const TextStylePickerFreeTextEnabled = BasicComponent.bind({});
 TextStylePickerFreeTextEnabled.args = {
   properties: {
     FontSize: '128'
@@ -80,3 +70,41 @@ TextStylePickerFreeTextEnabled.args = {
   isRedaction: false,
   onPropertyChange: noop
 };
+TextStylePickerFreeTextEnabled.parameters = disableRtlModeParameters;
+
+export const WidgetLayoutEnabled = BasicComponent.bind({});
+WidgetLayoutEnabled.args = {
+  properties: {
+    FontSize: '32'
+  },
+  isFreeText: false,
+  isFreeTextAutoSize: false,
+  isRedaction: false,
+  onPropertyChange: noop,
+  isWidget: true
+};
+WidgetLayoutEnabled.parameters = disableRtlModeParameters;
+
+export const RedactionLayoutEnabled = BasicComponent.bind({});
+RedactionLayoutEnabled.args = {
+  properties: {
+    FontSize: '32'
+  },
+  isFreeText: false,
+  isFreeTextAutoSize: false,
+  isRedaction: true,
+  onPropertyChange: noop,
+};
+RedactionLayoutEnabled.parameters = disableRtlModeParameters;
+
+export const ContentEditLayoutEnabled = BasicComponent.bind({});
+ContentEditLayoutEnabled.args = {
+  properties: {
+    FontSize: '32'
+  },
+  isFreeText: false,
+  isFreeTextAutoSize: false,
+  isContentEditing: true,
+  onPropertyChange: noop,
+};
+ContentEditLayoutEnabled.parameters = disableRtlModeParameters;

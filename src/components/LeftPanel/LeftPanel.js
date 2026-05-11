@@ -1,7 +1,6 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import classNames from 'classnames';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
-import { useTranslation } from 'react-i18next';
 
 import LeftPanelTabs from 'components/LeftPanelTabs';
 import PortfolioPanel from 'components/PortfolioPanel';
@@ -16,7 +15,7 @@ import ResizeBar from 'components/ResizeBar';
 import Icon from 'components/Icon';
 import NotesPanel from 'components/NotesPanel';
 
-import core from 'core';
+import useCore from 'hooks/useCore';
 import selectors from 'selectors';
 import actions from 'actions';
 import { isMobileSize, isTabletAndMobileSize } from 'helpers/getDeviceSize';
@@ -26,6 +25,7 @@ import DataElements from 'constants/dataElement';
 import './LeftPanel.scss';
 
 const LeftPanel = () => {
+  const { core } = useCore();
   const isMobile = isMobileSize();
   const isTabletAndMobile = isTabletAndMobileSize();
 
@@ -41,9 +41,6 @@ const LeftPanel = () => {
     currentWidth,
     notesInLeftPanel,
     isInDesktopOnlyMode,
-    bookmarks,
-    isBookmarkPanelEnabled,
-    isBookmarkIconShortcutVisible,
     isMultiTabActive,
     isLogoBarEnabled,
     featureFlags,
@@ -64,15 +61,12 @@ const LeftPanel = () => {
       selectors.getLeftPanelWidth(state),
       selectors.getNotesInLeftPanel(state),
       selectors.isInDesktopOnlyMode(state),
-      selectors.getBookmarks(state),
-      !selectors.isElementDisabled(state, DataElements.BOOKMARK_PANEL),
-      selectors.isBookmarkIconShortcutVisible(state),
       selectors.getIsMultiTab(state),
       !selectors.isElementDisabled(state, DataElements.LOGO_BAR),
       selectors.getFeatureFlags(state),
       selectors.getTopHeadersHeight(state),
       selectors.getBottomHeadersHeight(state),
-      selectors.getPortfolio(state),
+      selectors.getPortfolio(state, selectors.getActiveDocumentViewerKey(state)),
       selectors.getIsOfficeEditorMode(state),
     ],
     shallowEqual,
@@ -80,7 +74,6 @@ const LeftPanel = () => {
 
   const minWidth = 264;
   const dispatch = useDispatch();
-  const [t] = useTranslation();
 
   const onDrop = (e) => {
     // this is mainly for the thumbnail panel, to prevent the broswer from loading a document that dropped in
@@ -100,26 +93,6 @@ const LeftPanel = () => {
   }
 
   const isVisible = !(!isOpen || isDisabled);
-
-  useEffect(() => {
-    if (isBookmarkPanelEnabled) {
-      core.setBookmarkShortcutToggleOnFunction((pageIndex) => {
-        dispatch(actions.addBookmark(pageIndex, t('message.untitled')));
-      });
-      core.setBookmarkShortcutToggleOffFunction((pageIndex) => {
-        dispatch(actions.removeBookmark(pageIndex));
-      });
-      core.setUserBookmarks(Object.keys(bookmarks).map((pageIndex) => parseInt(pageIndex, 10)));
-    }
-  }, [isBookmarkPanelEnabled, bookmarks]);
-
-  useEffect(() => {
-    if (isBookmarkPanelEnabled && isBookmarkIconShortcutVisible) {
-      core.setBookmarkIconShortcutVisibility(true);
-    } else {
-      core.setBookmarkIconShortcutVisibility(false);
-    }
-  }, [isBookmarkPanelEnabled, isBookmarkIconShortcutVisible]);
 
   // TODO: For whoever is refactoring the LeftPanel to make it generic, review if this is the best approach
   // Once we move to the new UI we can remove the legacy stuff
@@ -149,7 +122,7 @@ const LeftPanel = () => {
         'outlines-panel-active': activePanel === 'outlinesPanel',
         'multi-tab-active': isMultiTabActive,
         'logo-bar-enabled': isLogoBarEnabled,
-        'tracked-change-active': isOfficeEditorMode,
+        'office-editor': isOfficeEditorMode,
       })}
       onDrop={onDrop}
       onDragOver={onDragOver}
@@ -178,14 +151,13 @@ const LeftPanel = () => {
           </div>
         }
         {isOfficeEditorMode ?
-          <NotesPanel currentLeftPanelWidth={currentWidth} />
+          <NotesPanel currentLeftPanelWidth={currentWidth} dataElement={DataElements.OFFICE_EDITOR_REVIEW_PANEL} />
           :
           <>
             <div className="left-panel-header">
               <LeftPanelTabs showPortfolio={portfolioFiles.length > 0} />
             </div>
             {activePanel === DataElements.PORTFOLIO_PANEL
-              && core.isFullPDFEnabled()
               && portfolioFiles.length > 0
               && <PortfolioPanel />}
             {activePanel === 'thumbnailsPanel' && <ThumbnailsPanel />}

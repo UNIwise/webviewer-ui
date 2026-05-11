@@ -17,8 +17,9 @@ const DocumentCropPopupMobile = ({
   selectedPages,
   handlePageNumbersChanged,
   handlePageNumberError,
-  pageNumberError,
-  handleButtonPressed,
+  hasPageNumberError,
+  handleApply,
+  handleCancel,
   isCropping,
   yOffset,
   height,
@@ -54,7 +55,6 @@ const DocumentCropPopupMobile = ({
                 selectedPages={selectedPages}
                 handlePageNumbersChanged={handlePageNumbersChanged}
                 handlePageNumberError={handlePageNumberError}
-                pageNumberError={pageNumberError}
               />
             </div>
           </CollapsibleSection>
@@ -89,14 +89,14 @@ const DocumentCropPopupMobile = ({
             <Button
               className="cancel-button"
               dataElement="cropCancelButton"
-              onClick={() => handleButtonPressed('cancel')}
+              onClick={handleCancel}
               label={t('action.cancel')}
             />
             <Button
               className="save-button"
               dataElement="cropApplyButton"
-              onClick={() => handleButtonPressed('apply')}
-              disabled={!isCropping || pageNumberError}
+              onClick={handleApply}
+              disabled={!isCropping || hasPageNumberError}
               label={t('action.apply')}
             />
           </div>
@@ -111,7 +111,7 @@ export default DocumentCropPopupMobile;
 DocumentCropPopupMobile.propTypes = {
   cropAnnotation: PropTypes.object,
   isCropping: PropTypes.bool,
-  pageNumberError: PropTypes.string,
+  hasPageNumberError: PropTypes.bool,
   yOffset: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   height: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   xOffset: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
@@ -125,7 +125,8 @@ DocumentCropPopupMobile.propTypes = {
   autoTrimActive: PropTypes.bool,
   setAutoTrimActive: PropTypes.func,
   onAutoTrimChange: PropTypes.func,
-  handleButtonPressed: PropTypes.func,
+  handleApply: PropTypes.func,
+  handleCancel: PropTypes.func,
   className: PropTypes.string,
   cropMode: PropTypes.string,
   onCropModeChange: PropTypes.func,

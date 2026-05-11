@@ -2,7 +2,6 @@ import onBeforeDocumentLoaded from './onBeforeDocumentLoaded';
 import onCheckStampAnnotationAdded from './onCheckStampAnnotationAdded';
 import onCrossStampAnnotationAdded from './onCrossStampAnnotationAdded';
 import onDisplayModeUpdated from './onDisplayModeUpdated';
-import onDocumentLoaded from './onDocumentLoaded';
 import onDocumentUnloaded from './onDocumentUnloaded';
 import onFitModeUpdated from './onFitModeUpdated';
 import onRotationUpdated from './onRotationUpdated';
@@ -31,7 +30,6 @@ import onSignatureSaved from './onSignatureSaved';
 import onSignatureDeleted from './onSignatureDeleted';
 import onFormFieldCreationModeStarted from './onFormFieldCreationModeStarted';
 import onFormFieldCreationModeEnded from './onFormFieldCreationModeEnded';
-import onDigitalSignatureAvailable from './onDigitalSignatureAvailable';
 import onLayersUpdated from './onLayersUpdated';
 import onImageContentAdded from './onImageContentAdded';
 import onInitialSaved from './onInitialSaved';
@@ -42,6 +40,35 @@ import onContentBoxEditEnded from './onContentBoxEditEnded';
 import onContentBoxEditStarted from './onContentBoxEditStarted';
 import onContentEditDocumentDigitalSigned from './onContentEditDocumentDigitalSigned';
 import onContentEditPasswordRequired from './onContentEditPasswordRequired';
+import onCompareAnnotationsLoaded from './onCompareAnnotationsLoaded';
+import onAccessibleReadingOrderModeStarted from './onAccessibleReadingOrderModeStarted';
+import onAccessibleReadingOrderModeReady from './onAccessibleReadingOrderModeReady';
+import onAccessibleReadingOrderModeEnded from './onAccessibleReadingOrderModeEnded';
+import onAccessibleReadingOrderModeNoStructure from './onAccessibleReadingOrderModeNoStructure';
+import onUserBookmarksChanged from './onUserBookmarksChanged';
+import onDocumentLoaded, {
+  enableRedactionElements,
+  syncDisplayModeMultiviewer,
+  addPageLabelsToRedux,
+  handlePasswordModal,
+  showProgressModal,
+  setPrintHandler,
+  toggleAnnotations,
+  setServerProperties,
+  checkDocumentForTools,
+  updateOutlines,
+  updatePortfolio,
+  configureEditorMode,
+  setupCompositionInput,
+  initializeLayersVisibility,
+} from './onDocumentLoaded';
+import onSpreadsheetEditorSelectionChanged from './onSpreadsheetEditorSelectionChanged';
+import onSpreadsheetEditorEditModeChanged from './onSpreadsheetEditorEditModeChanged';
+import { openSpreadsheetEditorLoadingModal } from './onSpreadsheetEditorLoaded';
+import { closeSpreadsheetEditorLoadingModal } from './onSpreadsheetEditorReady';
+import onWidgetHighlightingChanged from './onWidgetHighlightingChanged';
+import onSelectedRangeStyleChanged from './onSelectedRangeStyleChanged';
+import onOfficeEditorCommentAdded from './onOfficeEditorCommentAdded';
 
 export {
   onSignatureSaved,
@@ -77,7 +104,6 @@ export {
   onFileAttachmentDataAvailable,
   onFormFieldCreationModeStarted,
   onFormFieldCreationModeEnded,
-  onDigitalSignatureAvailable,
   onLayersUpdated,
   onImageContentAdded,
   onInitialSaved,
@@ -88,4 +114,31 @@ export {
   onContentBoxEditEnded,
   onContentEditDocumentDigitalSigned,
   onContentEditPasswordRequired,
+  onCompareAnnotationsLoaded,
+  onAccessibleReadingOrderModeStarted,
+  onAccessibleReadingOrderModeReady,
+  onAccessibleReadingOrderModeEnded,
+  onAccessibleReadingOrderModeNoStructure,
+  onUserBookmarksChanged,
+  enableRedactionElements,
+  syncDisplayModeMultiviewer,
+  addPageLabelsToRedux,
+  handlePasswordModal,
+  showProgressModal,
+  setPrintHandler,
+  toggleAnnotations,
+  setServerProperties,
+  checkDocumentForTools,
+  updateOutlines,
+  updatePortfolio,
+  configureEditorMode,
+  setupCompositionInput,
+  onSpreadsheetEditorSelectionChanged,
+  onSpreadsheetEditorEditModeChanged,
+  openSpreadsheetEditorLoadingModal,
+  closeSpreadsheetEditorLoadingModal,
+  onWidgetHighlightingChanged,
+  onSelectedRangeStyleChanged,
+  initializeLayersVisibility,
+  onOfficeEditorCommentAdded,
 };

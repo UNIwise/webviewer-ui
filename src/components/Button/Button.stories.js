@@ -3,6 +3,7 @@ import { createStore } from 'redux';
 import { Provider } from 'react-redux';
 import ButtonComponent from './Button';
 import { initialColors } from 'helpers/initialColorStates';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 const initialState = {
   viewer: {
@@ -17,12 +18,29 @@ function rootReducer(state = initialState, action) {
 const store = createStore(rootReducer);
 
 const BasicComponent = (props) => {
+
   return (
     <Provider store={store}>
-      <ButtonComponent {...props} />
+      <ButtonComponent {...props}/>
     </Provider>
   );
 };
+
+export function BasicButton(props) {
+  const [isActive, setIsActive] = React.useState(false);
+
+  const toggleButton = () => {
+    setIsActive(!isActive);
+  };
+
+  return (
+    <Provider store={store}>
+      <ButtonComponent {...props} img='icon-tool-pen-line' ariaCurrent={isActive} ariaPressed={isActive} ariaExpanded={isActive} ariaSelected={isActive} isActive={isActive} onClick={toggleButton}/>
+    </Provider>
+  );
+}
+
+BasicButton.parameters = disableRtlModeParameters;
 
 export default {
   title: 'Components/Buttons',
@@ -39,3 +57,4 @@ Button.args = {
   strokeColor: initialColors[0],
   dataElement: 'test',
 };
+Button.parameters = disableRtlModeParameters;

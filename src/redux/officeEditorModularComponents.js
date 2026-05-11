@@ -1,4 +1,5 @@
 import DataElements from 'constants/dataElement';
+import { ITEM_TYPE, PRESET_BUTTON_TYPES } from 'constants/customizationVariables';
 
 /**
  * A namespace which contains APIs Modular UI components.
@@ -25,11 +26,9 @@ const defaultOfficeEditorModularHeaders = {
     },
     style: {},
     items: [
-      'groupedLeftHeaderButtons',
+      'mainMenuAndZoom',
       'office-editor-default-ribbon-group',
-      'officeEditorModeDropdown',
-      'divider-0.3',
-      'searchPanelToggle',
+      'editorModeAndSearch',
     ]
   },
   'tools-header': {
@@ -49,12 +48,13 @@ const defaultOfficeEditorModularHeaders = {
     style: {},
     items: [
       'officeEditorHomeGroupedItems',
+      'officeEditorLayoutGroupedItems',
       'officeEditorInsertGroupedItems',
       // 'officeEditorReviewGroupedItems'
     ]
   },
-  'page-nav-floating-header': {
-    dataElement: 'page-nav-floating-header',
+  [DataElements.PAGE_NAV_FLOATING_HEADER]: {
+    dataElement: DataElements.PAGE_NAV_FLOATING_HEADER,
     placement: 'bottom',
     grow: 0,
     gap: 12,
@@ -82,21 +82,67 @@ const defaultOfficeEditorModularHeaders = {
 };
 
 const defaultOfficeEditorModularComponents = {
+  officeEditorFileName: {
+    dataElement: DataElements.OFFICE_EDITOR_FILE_NAME,
+    type: 'officeEditorFileName',
+  },
   fontSizeDropdown: {
     dataElement: 'fontSizeDropdown',
     type: 'fontSizeDropdown',
   },
-  fontFaceDropdown: {
-    dataElement: 'fontFaceDropdown',
-    type: 'fontFaceDropdown',
+  fontFamilyDropdown: {
+    dataElement: 'fontFamilyDropdown',
+    type: 'fontFamilyDropdown',
   },
   stylePresetDropdown: {
     dataElement: 'stylePresetDropdown',
     type: 'stylePresetDropdown',
   },
+  increaseIndentButton: {
+    dataElement: 'increaseIndentButton',
+    type: 'presetButton',
+    buttonType: 'increaseIndentButton',
+  },
+  decreaseIndentButton: {
+    dataElement: 'decreaseIndentButton',
+    type: 'presetButton',
+    buttonType: 'decreaseIndentButton',
+  },
+  toggleNonPrintingCharactersButton: {
+    dataElement: PRESET_BUTTON_TYPES.OE_TOGGLE_NON_PRINTING_CHARACTERS,
+    type: 'presetButton',
+    buttonType: PRESET_BUTTON_TYPES.OE_TOGGLE_NON_PRINTING_CHARACTERS,
+  },
+  officeEditorMarginDropdown: {
+    dataElement: DataElements.OFFICE_EDITOR_MARGIN_DROPDOWN,
+    type: ITEM_TYPE.OFFICE_EDITOR_MARGIN_DROPDOWN,
+    icon: 'icon-office-editor-margin',
+    title: 'officeEditor.margins',
+  },
+  officeEditorColumnDropdown: {
+    dataElement: DataElements.OFFICE_EDITOR_COLUMN_DROPDOWN,
+    type: ITEM_TYPE.OFFICE_EDITOR_COLUMN_DROPDOWN,
+    icon: 'icon-office-editor-column',
+    title: 'officeEditor.columns',
+  },
+  officeEditorBreakDropdown: {
+    dataElement: DataElements.OFFICE_EDITOR_BREAK_DROPDOWN,
+    type: ITEM_TYPE.OFFICE_EDITOR_BREAK_DROPDOWN,
+    icon: 'icon-office-editor-page-break',
+    title: 'officeEditor.breaks',
+  },
   createTableDropdown: {
     dataElement: 'createTableDropdown',
-    type: 'createTableDropdown',
+    type: ITEM_TYPE.CREATE_TABLE_DROPDOWN,
+    title: 'officeEditor.table',
+    icon: 'ic-table',
+  },
+  officeEditorInsertImageButton: {
+    dataElement: PRESET_BUTTON_TYPES.INSERT_IMAGE,
+    type: ITEM_TYPE.PRESET_BUTTON,
+    buttonType: PRESET_BUTTON_TYPES.INSERT_IMAGE,
+    icon: 'icon-tool-image-line',
+    title: 'officeEditor.image',
   },
   boldButton: {
     dataElement: 'boldButton',
@@ -113,28 +159,73 @@ const defaultOfficeEditorModularComponents = {
     type: 'presetButton',
     buttonType: 'underlineButton'
   },
+  strikeoutButton: {
+    dataElement: 'strikeoutButton',
+    type: 'presetButton',
+    buttonType: 'strikeoutButton'
+  },
   officeEditorModeDropdown: {
     dataElement: 'officeEditorModeDropdown',
     type: 'officeEditorModeDropdown',
   },
+  lineSpacingButton: {
+    dataElement: 'lineSpacingButton',
+    type: 'lineSpacingButton',
+  },
   orderedListButton: {
     dataElement: 'orderedListButton',
-    type: 'presetButton',
-    buttonType: 'orderedListButton',
+    type: 'orderedListButton',
   },
   unorderedListButton: {
     dataElement: 'unorderedListButton',
-    type: 'presetButton',
-    buttonType: 'unorderedListButton',
+    type: 'unorderedListButton',
   },
-  undefined: {},
+  alignLeftButton: {
+    dataElement: 'alignLeftButton',
+    type: 'presetButton',
+    buttonType: 'alignLeftButton'
+  },
+  alignCenterButton: {
+    dataElement: 'alignCenterButton',
+    type: 'presetButton',
+    buttonType: 'alignCenterButton'
+  },
+  alignRightButton: {
+    dataElement: 'alignRightButton',
+    type: 'presetButton',
+    buttonType: 'alignRightButton'
+  },
+  justifyBothButton: {
+    dataElement: 'justifyBothButton',
+    type: 'presetButton',
+    buttonType: 'justifyBothButton'
+  },
+  officeEditorColorPicker: {
+    dataElement: DataElements.OFFICE_EDITOR_FLYOUT_COLOR_PICKER,
+    type: 'presetButton',
+    buttonType: DataElements.OFFICE_EDITOR_FLYOUT_COLOR_PICKER,
+  },
+  undoButton: {
+    dataElement: 'undoButton',
+    type: 'presetButton',
+    buttonType: 'undoButton'
+  },
+  redoButton: {
+    dataElement: 'redoButton',
+    type: 'presetButton',
+    buttonType: 'redoButton'
+  },
   'divider-0.1': {
     dataElement: 'divider-0.1',
     type: 'divider'
   },
-  'left-panel-toggle': {
-    dataElement: 'left-panel-toggle',
-    title: 'Left Panel',
+  'divider-0.2': {
+    dataElement: 'divider-0.2',
+    type: 'divider'
+  },
+  'leftPanelButton': {
+    dataElement: DataElements.LEFT_PANEL_BUTTON,
+    title: 'component.leftPanel',
     type: 'toggleButton',
     img: 'icon-header-sidebar-line',
     toggleElement: 'tabPanel'
@@ -147,32 +238,70 @@ const defaultOfficeEditorModularComponents = {
     dataElement: 'divider-0.3',
     type: 'divider'
   },
+  'divider-0.4': {
+    dataElement: 'divider-0.4',
+    type: 'divider'
+  },
+  'divider-0.5': {
+    dataElement: 'divider-0.5',
+    type: 'divider'
+  },
+  'divider-0.6': {
+    dataElement: 'divider-0.6',
+    type: 'divider'
+  },
+  'divider-0.7': {
+    dataElement: 'divider-0.7',
+    type: 'divider'
+  },
   'zoom-container': {
     dataElement: 'zoom-container',
     type: 'zoom'
   },
-  'divider-0.2': {
-    dataElement: 'divider-0.2',
+  'divider-0.8': {
+    dataElement: 'divider-0.8',
     type: 'divider'
   },
-  'menu-toggle-button': {
-    dataElement: 'menu-toggle-button',
+  'divider-0.9': {
+    dataElement: 'divider-0.9',
+    type: 'divider'
+  },
+  'divider-1.0': {
+    dataElement: 'divider-1.0',
+    type: 'divider'
+  },
+  'menuButton': {
+    dataElement: DataElements.MENU_OVERLAY_BUTTON,
     img: 'ic-hamburger-menu',
     title: 'component.menuOverlay',
     toggleElement: 'MainMenuFlyout',
     type: 'toggleButton',
   },
-  groupedLeftHeaderButtons: {
-    dataElement: 'groupedLeftHeaderButtons',
+  mainMenuAndZoom: {
+    dataElement: 'mainMenuAndZoom',
     items: [
-      'menu-toggle-button',
+      'menuButton',
       'divider-0.1',
       'zoom-container',
       'divider-0.2',
-      // add document name component here, https://apryse.atlassian.net/browse/WVR-6323
+      'officeEditorFileName',
     ],
     type: 'groupedItems',
     grow: 1,
+    gap: 12,
+    alwaysVisible: true,
+    style: {}
+  },
+  editorModeAndSearch: {
+    dataElement: 'editorModeAndSearch',
+    items: [
+      'officeEditorModeDropdown',
+      'divider-0.3',
+      'searchPanelToggle',
+      'commentPanelToggle',
+    ],
+    type: 'groupedItems',
+    grow: 0,
     gap: 12,
     alwaysVisible: true,
     style: {}
@@ -185,6 +314,16 @@ const defaultOfficeEditorModularComponents = {
     toolbarGroup: 'toolbarGroup-oe-Home',
     groupedItems: [
       'officeEditorHomeGroupedItems',
+    ],
+  },
+  'toolbarGroup-oe-Layout': {
+    dataElement: 'toolbarGroup-oe-Layout',
+    title: 'Layout',
+    type: 'ribbonItem',
+    label: 'Layout',
+    toolbarGroup: 'toolbarGroup-oe-Layout',
+    groupedItems: [
+      'officeEditorLayoutGroupedItems',
     ],
   },
   'toolbarGroup-oe-Insert': {
@@ -211,6 +350,7 @@ const defaultOfficeEditorModularComponents = {
     dataElement: 'office-editor-default-ribbon-group',
     items: [
       'toolbarGroup-oe-Home',
+      'toolbarGroup-oe-Layout',
       'toolbarGroup-oe-Insert',
       // 'toolbarGroup-oe-Review',
     ],
@@ -228,19 +368,43 @@ const defaultOfficeEditorModularComponents = {
     img: 'icon-header-search',
     toggleElement: 'searchPanel'
   },
-  officeEditorHomeToolsGroupedItems: {
-    dataElement: 'officeEditorHomeToolsGroupedItems',
+  commentPanelToggle: {
+    dataElement: 'commentPanelToggle',
+    title: 'component.notesPanel',
+    type: 'toggleButton',
+    img: 'icon-header-chat-line',
+    toggleElement: DataElements.OFFICE_EDITOR_COMMENT_PANEL,
+  },
+  officeEditorHomeGroupedItems: {
+    dataElement: 'officeEditorHomeGroupedItems',
     items: [
       'stylePresetDropdown',
-      'fontFaceDropdown',
+      'fontFamilyDropdown',
       'fontSizeDropdown',
       'divider-0.2',
       'boldButton',
       'italicButton',
       'underlineButton',
+      'strikeoutButton',
       'divider-0.3',
+      'officeEditorColorPicker',
+      'divider-0.4',
+      'lineSpacingButton',
+      'divider-0.5',
       'unorderedListButton',
       'orderedListButton',
+      'divider-0.6',
+      'alignLeftButton',
+      'alignCenterButton',
+      'alignRightButton',
+      'justifyBothButton',
+      'divider-0.7',
+      'decreaseIndentButton',
+      'increaseIndentButton',
+      'toggleNonPrintingCharactersButton',
+      'divider-0.8',
+      'undoButton',
+      'redoButton',
     ],
     type: 'groupedItems',
     grow: 0,
@@ -248,22 +412,14 @@ const defaultOfficeEditorModularComponents = {
     alwaysVisible: false,
     style: {}
   },
-  officeEditorHomeGroupedItems: {
-    dataElement: 'officeEditorHomeGroupedItems',
+  officeEditorLayoutGroupedItems: {
+    dataElement: 'officeEditorLayoutGroupedItems',
     items: [
-      'officeEditorHomeToolsGroupedItems',
-      'divider-0.4',
-    ],
-    type: 'groupedItems',
-    grow: 0,
-    gap: 12,
-    alwaysVisible: false,
-    style: {}
-  },
-  officeEditorInsertToolsGroupedItems: {
-    dataElement: 'officeEditorInsertToolsGroupedItems',
-    items: [
-      'createTableDropdown',
+      ITEM_TYPE.OFFICE_EDITOR_MARGIN_DROPDOWN,
+      ITEM_TYPE.OFFICE_EDITOR_COLUMN_DROPDOWN,
+      'divider-1.0',
+      'undoButton',
+      'redoButton',
     ],
     type: 'groupedItems',
     grow: 0,
@@ -274,8 +430,10 @@ const defaultOfficeEditorModularComponents = {
   officeEditorInsertGroupedItems: {
     dataElement: 'officeEditorInsertGroupedItems',
     items: [
-      'officeEditorInsertToolsGroupedItems',
-      'divider-0.4',
+      ITEM_TYPE.OFFICE_EDITOR_BREAK_DROPDOWN,
+      'divider-0.9',
+      'createTableDropdown',
+      ITEM_TYPE.OFFICE_EDITOR_INSERT_IMAGE_BUTTON,
     ],
     type: 'groupedItems',
     grow: 0,
@@ -298,7 +456,6 @@ const defaultOfficeEditorModularComponents = {
     dataElement: 'officeEditorReviewGroupedItems',
     items: [
       'officeEditorReviewToolsGroupedItems',
-      'divider-0.4',
     ],
     type: 'groupedItems',
     grow: 0,
@@ -313,13 +470,18 @@ const defaultOfficeEditorModularComponents = {
 };
 const defaultOfficeEditorPanels = [
   {
-    dataElement: DataElements.LEFT_PANEL,
+    dataElement: DataElements.OFFICE_EDITOR_REVIEW_PANEL,
     render: 'notesPanel',
     location: 'left'
   },
   {
-    dataElement: 'searchPanel',
+    dataElement: DataElements.SEARCH_PANEL,
     render: 'searchPanel',
+    location: 'right'
+  },
+  {
+    dataElement: DataElements.OFFICE_EDITOR_COMMENT_PANEL,
+    render: 'notesPanel',
     location: 'right'
   },
 ];

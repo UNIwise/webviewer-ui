@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import RedactionSearchOverlay from './RedactionSearchOverlay';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 
 export default {
@@ -50,3 +51,5 @@ export function Basic() {
     />
   );
 }
+
+Basic.parameters = disableRtlModeParameters;

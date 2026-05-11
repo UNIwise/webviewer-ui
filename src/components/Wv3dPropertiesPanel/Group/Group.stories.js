@@ -5,10 +5,14 @@ import RightPanel from 'components/RightPanel';
 import Group from './Group';
 import '../Wv3dPropertiesPanel.scss';
 import '../../Panel/Panel.scss';
+import { disableChromaticParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/Wv3dPropertiesPanel/Group/Group',
   component: Group,
+  parameters: {
+    legacyUI: true,
+  }
 };
 
 const initialState = {
@@ -122,3 +126,5 @@ Default.args = {
     handle: '29081',
   },
 };
+
+Default.parameters = disableChromaticParameters;

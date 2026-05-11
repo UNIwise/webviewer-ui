@@ -2,7 +2,7 @@ import { useCallback, useEffect } from 'react';
 
 const useOnFocusOutside = (ref, callback) => {
   const callbackOnFocusOut = useCallback(
-    e => {
+    (e) => {
       if (!ref.current || ref.current.contains(e.relatedTarget)) {
         return;
       }

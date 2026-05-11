@@ -1,67 +1,138 @@
-import React, { useContext, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState, lazy } from 'react';
 import { useTranslation } from 'react-i18next';
 import { shallowEqual, useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import selectors from 'selectors';
-import classNames from 'classnames';
-import ToggleElementButton from 'components/ModularComponents/ToggleElementButton';
+import { Virtuoso } from 'react-virtuoso';
 import Button from '../Button';
-import MoreOptionsContextMenuFlyout, { menuTypes } from '../MoreOptionsContextMenuFlyout/MoreOptionsContextMenuFlyout';
+import TextButton from '../TextButton';
+import { menuTypes } from 'helpers/outlineFlyoutHelper';
 import OutlineContext from '../Outline/Context';
 import './OutlineContent.scss';
 import '../../constants/bookmarksOutlinesShared.scss';
 import DataElements from 'constants/dataElement';
+import PanelListItem from '../PanelListItem';
+import outlineUtils from 'helpers/OutlineUtils';
+
+const Outline = lazy(() => import('../Outline'));
+
+export const createOutlineVirtuosoComponents = (scrollParent) => {
+  const List = React.forwardRef(({ className = '', style, ...listProps }, ref) => (
+    <ul
+      {...listProps}
+      ref={ref}
+      className={className ? `${className} panel-list-children` : 'panel-list-children'}
+      style={{ ...style, margin: 0 }}
+    />
+  ));
+  List.displayName = 'OutlineChildrenList';
+  List.propTypes = {
+    className: PropTypes.string,
+    style: PropTypes.object,
+  };
+
+  const Item = React.forwardRef(({ children: itemChildren, style, ...itemProps }, ref) => (
+    <li {...itemProps} ref={ref} style={style}>
+      {itemChildren}
+    </li>
+  ));
+  Item.displayName = 'OutlineChildrenItem';
+  Item.propTypes = {
+    children: PropTypes.node,
+    style: PropTypes.object,
+  };
+
+  const Scroller = React.forwardRef(({ style, ...scrollerProps }, ref) => {
+    const scrollerStyle = {
+      ...style,
+      overflowY: 'hidden',
+      overflowX: 'visible',
+    };
+    if (scrollerStyle.height === 0 || scrollerStyle.height === '0px') {
+      scrollerStyle.height = scrollParent?.clientHeight || style?.height || '100%';
+    }
+    return (
+      <div
+        {...scrollerProps}
+        ref={ref}
+        style={scrollerStyle}
+      />
+    );
+  });
+  Scroller.displayName = 'OutlineChildrenScroller';
+  Scroller.propTypes = {
+    style: PropTypes.object,
+  };
+
+  return { List, Item, Scroller };
+};
 
 const propTypes = {
   text: PropTypes.string.isRequired,
   outlinePath: PropTypes.string,
   isAdding: PropTypes.bool,
-  isOutlineRenaming: PropTypes.bool,
-  setOutlineRenaming: PropTypes.func,
-  isOutlineChangingDest: PropTypes.bool,
-  setOutlineChangingDest: PropTypes.func,
+  isExpanded: PropTypes.bool,
+  updateIsExpanded: PropTypes.func,
+  isRenaming: PropTypes.bool,
+  updateIsRenaming: PropTypes.func,
+  isChangingDest: PropTypes.bool,
+  updateIsChangingDest: PropTypes.func,
   onCancel: PropTypes.func,
   textColor: PropTypes.string,
-  isAnyOutlineRenaming: PropTypes.bool,
+  children: PropTypes.array,
+  setMultiSelected: PropTypes.func,
+  moveOutlineInward: PropTypes.func,
+  moveOutlineBeforeTarget: PropTypes.func,
+  moveOutlineAfterTarget: PropTypes.func,
 };
 
 const OutlineContent = ({
   text,
   outlinePath,
   isAdding,
-  isOutlineRenaming,
-  setOutlineRenaming,
-  isOutlineChangingDest,
-  setOutlineChangingDest,
+  isExpanded,
+  updateIsExpanded,
+  isRenaming,
+  updateIsRenaming,
+  isChangingDest,
+  updateIsChangingDest,
   onCancel,
   textColor,
-  isAnyOutlineRenaming
+  children,
+  setMultiSelected,
+  moveOutlineInward,
+  moveOutlineBeforeTarget,
+  moveOutlineAfterTarget
 }) => {
+  const outlineContext = useContext(OutlineContext);
+
   const {
     currentDestPage,
     currentDestText,
-    editingOutlines,
-    setEditingOutlines,
     isMultiSelectMode,
     isOutlineEditable,
     addNewOutline,
     renameOutline,
     updateOutlineDest,
+    selectedOutlines,
     updateOutlines,
     removeOutlines,
-  } = useContext(OutlineContext);
+  } = outlineContext || {};
 
+  const { core } = useCore();
+  const [t] = useTranslation();
+  const inputRef = useRef();
+  const outlineScrollParentRef = outlineContext?.outlineScrollParentRef;
+
+  const activeDocumentViewerKey = useSelector((state) => selectors.getActiveDocumentViewerKey(state));
   const featureFlags = useSelector((state) => selectors.getFeatureFlags(state), shallowEqual);
   const customizableUI = featureFlags.customizableUI;
-
-  const [t] = useTranslation();
   const TOOL_NAME = 'OutlineDestinationCreateTool';
 
-  const [isDefault, setIsDefault] = useState(false);
   const [outlineText, setOutlineText] = useState(text);
-  const [isRenaming, setIsRenaming] = useState(false);
-  const inputRef = useRef();
+  const isDefault = !isAdding && !isRenaming && !isChangingDest;
+  const isSelected = selectedOutlines?.includes(outlinePath) || false;
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
@@ -69,7 +140,7 @@ const OutlineContent = ({
       if (isAdding) {
         onAddOutline();
       }
-      if (isOutlineRenaming && !isRenameButtonDisabled()) {
+      if (isRenaming && !isRenameButtonDisabled()) {
         onRenameOutline();
       }
     }
@@ -79,24 +150,22 @@ const OutlineContent = ({
   };
 
   const onAddOutline = () => {
-    addNewOutline(outlineText.trim() === '' ? '' : outlineText);
+    addNewOutline(outlineText.trim() === '' ? '' : outlineText, activeDocumentViewerKey);
   };
 
   const onRenameOutline = () => {
-    setOutlineRenaming(false);
-    setIsRenaming(false);
     renameOutline(outlinePath, outlineText);
+    updateIsRenaming(false);
   };
 
   const onCancelOutline = () => {
     updateOutlines();
-    if (isOutlineRenaming) {
-      setOutlineRenaming(false);
-      setIsRenaming(false);
+    if (isRenaming) {
+      updateIsRenaming(false);
       setOutlineText(text);
     }
-    if (isOutlineChangingDest) {
-      setOutlineChangingDest(false);
+    if (isChangingDest) {
+      updateIsChangingDest(false);
     }
     if (isAdding) {
       onCancel();
@@ -114,50 +183,123 @@ const OutlineContent = ({
   }, [text]);
 
   useEffect(() => {
-    if (isAdding || isOutlineRenaming) {
+    if (isAdding || isRenaming) {
       inputRef.current.focus();
       inputRef.current.select();
     }
-
-    setIsDefault(!isAdding && !isOutlineRenaming && !isOutlineChangingDest);
-  }, [isOutlineRenaming, isOutlineChangingDest]);
-
-  useEffect(() => {
-    const editingOutlinesClone = { ...editingOutlines };
-    const isOutlineEditing = isOutlineRenaming || isOutlineChangingDest;
-    if (isOutlineEditing) {
-      editingOutlinesClone[outlinePath] = (isOutlineEditing);
-    } else {
-      delete editingOutlinesClone[outlinePath];
-    }
-    setEditingOutlines({ ...editingOutlinesClone });
-  }, [isOutlineRenaming, isOutlineChangingDest]);
+  }, [isRenaming, isChangingDest]);
 
   const textStyle = {
     color: textColor || 'auto'
   };
 
-  const handleOnClick = (val) => {
+  const handleOnClick = async (val) => {
     switch (val) {
       case menuTypes.RENAME:
-        setOutlineRenaming(true);
-        setIsRenaming(true);
+        updateIsRenaming(true);
         break;
       case menuTypes.SETDEST:
-        setOutlineChangingDest(true);
+        updateIsChangingDest(true);
         core.setToolMode(TOOL_NAME);
         break;
       case menuTypes.DELETE:
         removeOutlines([outlinePath]);
         break;
+      case menuTypes.MOVE_UP: {
+        await outlineUtils.moveOutlineUp(outlinePath, activeDocumentViewerKey);
+        updateOutlines();
+        break;
+      }
+      case menuTypes.MOVE_DOWN: {
+        await outlineUtils.moveOutlineDown(outlinePath, activeDocumentViewerKey);
+        updateOutlines();
+        break;
+      }
+      case menuTypes.MOVE_LEFT: {
+        await outlineUtils.moveOutlineOutward(outlinePath, activeDocumentViewerKey);
+        updateOutlines();
+        break;
+      }
+      case menuTypes.MOVE_RIGHT: {
+        await outlineUtils.moveOutlineInward(outlinePath, activeDocumentViewerKey);
+        updateOutlines();
+        break;
+      }
       default:
         break;
     }
   };
 
-  const flyoutSelector = `${DataElements.BOOKMARK_OUTLINE_FLYOUT}-${outlinePath}`;
+  const flyoutSelector = DataElements.BOOKMARK_OUTLINE_FLYOUT;
   const currentFlyout = useSelector((state) => selectors.getFlyout(state, flyoutSelector));
   const type = 'outline';
+
+  const contentMenuFlyoutOptions = {
+    shouldHideDeleteButton: false,
+    currentFlyout: currentFlyout,
+    flyoutSelector: flyoutSelector,
+    type: type,
+    handleOnClick: handleOnClick
+  };
+
+  const contextMenuMoreButtonOptions = {
+    flyoutToggleElement: 'bookmarkOutlineFlyout',
+    moreOptionsDataElement: `outline-more-button-${outlinePath}`,
+  };
+
+  const checkboxOptions = {
+    id:`outline-checkbox-${outlinePath}`,
+    checked: isSelected,
+    onChange: (e) => {
+      setMultiSelected(outlinePath, e.target.checked);
+    },
+    ariaLabel: text,
+    disabled: !isMultiSelectMode
+  };
+
+  const onDoubleClick = () => {
+    if (isOutlineEditable) {
+      updateIsRenaming(true);
+    }
+  };
+
+  const childOutlines = Array.isArray(children) ? children : [];
+  const [scrollParent, setScrollParent] = useState(null);
+
+  useEffect(() => {
+    if (outlineScrollParentRef?.current) {
+      setScrollParent(outlineScrollParentRef.current);
+    }
+  }, [outlineScrollParentRef]);
+
+  const renderContent = useCallback((outline) => (
+    <Outline
+      key={outlineUtils.getOutlineId(outline)}
+      outline={outline}
+      setMultiSelected={setMultiSelected}
+      moveOutlineInward={moveOutlineInward}
+      moveOutlineBeforeTarget={moveOutlineBeforeTarget}
+      moveOutlineAfterTarget={moveOutlineAfterTarget}
+    />
+  ), [moveOutlineAfterTarget, moveOutlineBeforeTarget, moveOutlineInward, setMultiSelected]);
+
+  const virtuosoComponents = useMemo(
+    () => createOutlineVirtuosoComponents(scrollParent),
+    [scrollParent]
+  );
+
+  const virtuosoScrollParent = scrollParent ?? null;
+
+  const renderVirtualizedChildren = useCallback(() => (
+    <Virtuoso
+      data={childOutlines}
+      computeItemKey={(index, outline) => outlineUtils.getOutlineId(outline)}
+      components={virtuosoComponents}
+      {...(virtuosoScrollParent ? { customScrollParent: virtuosoScrollParent } : {})}
+      itemContent={(index, outline) => renderContent(outline)}
+    />
+  ), [childOutlines, renderContent, virtuosoComponents, virtuosoScrollParent]);
+
 
   return (
     <div className="bookmark-outline-label-row">
@@ -173,44 +315,25 @@ const OutlineContent = ({
       }
 
       {isDefault &&
-        <>
-          <div
-            className="bookmark-outline-text outline-text"
-            onDoubleClick={() => {
-              if (isOutlineEditable) {
-                setOutlineRenaming(true);
-                setIsRenaming(true);
-              }
-            }}
-            style={textStyle}
-          >
-            {text}
-          </div>
-
-          {isOutlineEditable && !isAnyOutlineRenaming &&
-            <>
-              <ToggleElementButton
-                className={classNames({
-                  'bookmark-outline-more-button': true,
-                })}
-                dataElement={`outline-more-button-${outlinePath}`}
-                img="icon-tool-more"
-                toggleElement={flyoutSelector}
-                disabled={false}
-              />
-              <MoreOptionsContextMenuFlyout
-                shouldHideDeleteButton={isMultiSelectMode}
-                currentFlyout={currentFlyout}
-                flyoutSelector={flyoutSelector}
-                type={type}
-                handleOnClick={handleOnClick}
-              />
-            </>
-          }
-        </>
+        <PanelListItem
+          key={outlinePath}
+          labelHeader={text}
+          textColor={textColor}
+          enableMoreOptionsContextMenuFlyout={isOutlineEditable}
+          onDoubleClick={onDoubleClick}
+          checkboxOptions={checkboxOptions}
+          contentMenuFlyoutOptions={contentMenuFlyoutOptions}
+          contextMenuMoreButtonOptions={contextMenuMoreButtonOptions}
+          expanded={isExpanded}
+          setIsExpandedHandler={updateIsExpanded}
+          virtualizedChildrenCount={childOutlines.length}
+          virtualizedChildrenRenderer={childOutlines.length ? renderVirtualizedChildren : null}
+        >
+          {!childOutlines.length && null}
+        </PanelListItem>
       }
 
-      {isOutlineChangingDest &&
+      {isChangingDest &&
         <div
           className="bookmark-outline-text outline-text"
           style={textStyle}
@@ -219,7 +342,7 @@ const OutlineContent = ({
         </div>
       }
 
-      {(isAdding || isOutlineRenaming) &&
+      {(isAdding || isRenaming) &&
         <input
           type="text"
           name="outline"
@@ -233,18 +356,19 @@ const OutlineContent = ({
         />
       }
 
-      {(isAdding || isRenaming || isOutlineChangingDest) &&
+      {(isAdding || isChangingDest) &&
         <div className="outline-destination">
           {t('component.destination')}: {t('component.bookmarkPage')} {currentDestPage},
           <span style={{ fontStyle: 'italic' }}> “{currentDestText}”</span>
         </div>
       }
 
-      {(isAdding || isOutlineRenaming || isOutlineChangingDest) &&
+      {(isAdding || isRenaming || isChangingDest) &&
         <div className="bookmark-outline-editing-controls">
-          <Button
+          <TextButton
             className="bookmark-outline-cancel-button"
             label={t('action.cancel')}
+            ariaLabel={`${t('action.cancel')} ${t('component.outlineTitle')}`}
             onClick={onCancelOutline}
           />
           {isAdding &&
@@ -255,7 +379,7 @@ const OutlineContent = ({
               onClick={onAddOutline}
             />
           }
-          {isOutlineRenaming &&
+          {isRenaming &&
             <Button
               className="bookmark-outline-save-button"
               label={t('action.save')}
@@ -264,13 +388,13 @@ const OutlineContent = ({
               onClick={onRenameOutline}
             />
           }
-          {isOutlineChangingDest &&
+          {isChangingDest &&
             <Button
               className="bookmark-outline-save-button"
               label={t('action.save')}
               isSubmitType={true}
               onClick={() => {
-                setOutlineChangingDest(false);
+                updateIsChangingDest(false);
                 updateOutlineDest(outlinePath);
               }}
             />

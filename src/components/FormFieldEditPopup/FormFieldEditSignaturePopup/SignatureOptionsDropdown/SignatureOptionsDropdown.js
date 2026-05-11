@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import Select from 'react-select';
 import { useTranslation } from 'react-i18next';
 import DataElementWrapper from 'components/DataElementWrapper';
@@ -52,8 +53,12 @@ const getStyles = () => ({
   }),
 });
 
-const SignatureOptionsDropdown = (props) => {
-  const { onChangeHandler, initialOption } = props;
+const propTypes = {
+  onChangeHandler: PropTypes.func.isRequired,
+  initialOption: PropTypes.string,
+};
+
+const SignatureOptionsDropdown = ({ onChangeHandler, initialOption }) => {
   const { t } = useTranslation();
   const styles = getStyles();
   const signatureOptions = [
@@ -63,15 +68,32 @@ const SignatureOptionsDropdown = (props) => {
 
   const init = signatureOptions.find((option) => option.value === initialOption);
   const [value, setValue] = useState(init);
+  const [menuIsOpen, setMenuIsOpen] = useState(false);
 
   const onChange = (option) => {
     setValue(option);
     onChangeHandler(option);
+    setMenuIsOpen(false);
+  };
+
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      setMenuIsOpen((prev) => !prev);
+    }
+  };
+
+  const handleMenuOpen = () => {
+    setMenuIsOpen(true);
+  };
+
+  const handleMenuClose = () => {
+    setMenuIsOpen(false);
   };
 
   return (
     <DataElementWrapper className="signature-options-container" dataElement="signatureOptionsDropdown">
-      <label>{t('formField.type')}:</label>
+      <label id="form-field-type-label">{t('formField.type')}:</label>
       <ReactSelectWebComponentProvider>
         <Select
           value={value}
@@ -81,11 +103,17 @@ const SignatureOptionsDropdown = (props) => {
           isSearchable={false}
           isClearable={false}
           components={{ IndicatorsContainer: ReactSelectCustomArrowIndicator }}
-          aria-label={t('formField.type')}
+          aria-labelledby="form-field-type-label"
+          onKeyDown={handleKeyDown}
+          menuIsOpen={menuIsOpen}
+          onMenuOpen={handleMenuOpen}
+          onMenuClose={handleMenuClose}
         />
       </ReactSelectWebComponentProvider>
     </DataElementWrapper>
   );
 };
+
+SignatureOptionsDropdown.propTypes = propTypes;
 
 export default SignatureOptionsDropdown;

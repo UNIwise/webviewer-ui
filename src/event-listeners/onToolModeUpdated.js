@@ -2,7 +2,6 @@ import core from 'core';
 import actions from 'actions';
 import selectors from 'selectors';
 import DataElements from 'constants/dataElement';
-import defaultTool from 'constants/defaultTool';
 
 export default (dispatch, store) => (newTool, oldTool) => {
   const { ToolNames } = window.Core.Tools;
@@ -17,26 +16,31 @@ export default (dispatch, store) => (newTool, oldTool) => {
   const activeToolGroup = selectors.getActiveToolGroup(state);
   const activeToolName = selectors.getActiveToolName(state);
   const selectedStampIndex = selectors.getSelectedStampIndex(state);
-  // If we are in the modular UI and switch out of the rubber stamp tool, we need to re-set the active stamp index
+
   const isCustomizableUI = state.featureFlags.customizableUI;
-
   if (isCustomizableUI) {
-    const activeGroupedItems = state.viewer.activeGroupedItems;
-    const isLastPickedGroupUndefined = activeGroupedItems?.every((group) => group === undefined);
+    const activeCustomRibbon = selectors.getActiveCustomRibbon(state);
+    const toolsAssociatedWithRibbon = selectors.getToolsAssociatedWithRibbon(state, activeCustomRibbon);
 
+    // If we are in the modular UI and switch out of the rubber stamp tool, we need to re-set the active stamp index
     if (oldTool.name === ToolNames.RUBBER_STAMP) {
       dispatch(actions.setLastSelectedStampIndex(selectedStampIndex));
       dispatch(actions.setSelectedStampIndex(null));
     }
-    if (oldTool.name === ToolNames.RUBBER_STAMP || oldTool.name === ToolNames.SIGNATURE) {
-      if (newTool.name === defaultTool) {
-        return;
-      }
+
+    const isAssociatedWithRibbon = toolsAssociatedWithRibbon.includes(newTool.name);
+    const isCalibrationMeasurementTool = newTool.name === ToolNames.CALIBRATION_MEASUREMENT;
+
+    // If the tool is associated with the current ribbon or it is the calibration tool, set it as the
+    // last selected tool. The calibration tool is not directly associated with any ribbon. It is used
+    // when creating a new scale for a measurement tool.
+    if (isAssociatedWithRibbon || isCalibrationMeasurementTool) {
+      dispatch(actions.setLastActiveToolForRibbon({
+        toolName: newTool.name,
+        ribbon: activeCustomRibbon,
+      }));
     }
-    if (newTool.name === ToolNames.EDIT || isLastPickedGroupUndefined) {
-      return;
-    }
-    dispatch(actions.setActiveGroupedItemWithTool(newTool.name));
+    return;
   }
 
   if (activeToolName === ToolNames.EDIT && (activeToolGroup === 'signatureTools' || activeToolGroup === 'rubberStampTools')) {

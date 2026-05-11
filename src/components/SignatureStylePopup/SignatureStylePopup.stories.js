@@ -5,6 +5,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
 import SignatureModes from 'constants/signatureModes';
 import { mockSavedSignatures, mockSavedInitials } from './mockedSignatures';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/SavedSignaturesOverlay',
@@ -45,6 +46,7 @@ export const SavedFullSignaturesTab = () => (
   </Provider>
 );
 
+SavedFullSignaturesTab.parameters = disableRtlModeParameters;
 const savedInitialsStore = configureStore({
   reducer: () => ({
     viewer: {
@@ -64,12 +66,14 @@ export const SavedInitialsTab = () => (
   </Provider>
 );
 
+SavedInitialsTab.parameters = disableRtlModeParameters;
 export const SelectedSignature = () => (
   <Provider store={savedInitialsStore}>
     <SelectedSignatureRow />
   </Provider>
 );
 
+SelectedSignature.parameters = disableRtlModeParameters;
 const intialStateInitialsMode = {
   viewer: {
     ...initialState.viewer,
@@ -86,3 +90,5 @@ export const SelectedInitials = () => (
     <SelectedSignatureRow />
   </Provider>
 );
+
+SelectedInitials.parameters = disableRtlModeParameters;

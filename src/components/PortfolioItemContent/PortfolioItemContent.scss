@@ -1,21 +1,19 @@
+@import '../../constants/styles';
+
 .PortfolioPanel {
   .bookmark-outline-single-container {
-    margin-top: 6px;
-    margin-bottom: 6px;
-
-    &:focus-within:not(.editing) {
-      background-color: var(--outline-selected);
-      outline: 1px solid var(--bookmark-outline-hover-border);
-    }
-
     .bookmark-outline-label-row {
       align-items: center;
-    }
 
-    .bookmark-outline-text {
-      flex-basis: calc(100% - 42px); // icon + margin-right + more-button width + margin-left
-    }
+      &.editing {
+        background-color: var(--faded-component-background);
+        padding: var(--padding-medium) 20px;
 
+        &:focus-visible {
+          outline: var(--focus-visible-outline);
+        }
+      }
+    }
 
     .portfolio-input-label {
       font-weight: 600;
@@ -28,15 +26,15 @@
       .ui__input {
         border-color: var(--border);
 
-        &.ui__input--message-error {
+        &.ui__input--message-warning {
           border-color: var(--error-border-color);
 
           &.ui__input--focused {
             box-shadow: none;
           }
 
-          .ui__input__icon {
-            display: none;
+          .ui__input__icon svg {
+            fill: var(--error-border-color);
           }
         }
 
@@ -63,24 +61,6 @@
         margin-top: var(--padding-small);
         font-size: inherit;
       }
-    }
-
-    .portfolio-item-icon {
-      margin-right: 5px;
-
-      .Icon {
-        color: var(--icon-color) !important;
-        width: 15px;
-        height: 15px;
-      }
-    }
-  }
-
-  .bookmark-outline-more-button.active {
-    display: flex;
-    box-shadow: none !important;
-    .Icon {
-      color: var(--blue-5);
     }
   }
 }

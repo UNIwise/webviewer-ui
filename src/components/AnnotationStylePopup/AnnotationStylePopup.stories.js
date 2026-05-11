@@ -6,6 +6,7 @@ import viewerReducer from 'reducers/viewerReducer';
 import initialState from 'src/redux/initialState';
 import getAnnotationStyles from 'helpers/getAnnotationStyles';
 import { mapAnnotationToKey } from 'constants/map';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/AnnotationStylePopup',
@@ -24,6 +25,9 @@ export default {
         disable: true
       }
     }
+  },
+  parameters: {
+    legacyUI: true,
   },
 };
 
@@ -58,6 +62,8 @@ Basic.args = {
   colorMapKey: mapAnnotationToKey(lineAnnot),
   hasBackToMenu: true,
 };
+
+Basic.parameters = disableRtlModeParameters;
 
 const distanceMeasurementAnnot = new window.Core.Annotations.LineAnnotation();
 distanceMeasurementAnnot['Measure'] = {
@@ -119,6 +125,8 @@ const measurementProperties = {
   StrokeStyle: 'solid'
 };
 
+DistanceMeasurement.parameters = disableRtlModeParameters;
+
 DistanceMeasurement.args = {
   annotations: [distanceMeasurementAnnot],
   style: getAnnotationStyles(distanceMeasurementAnnot),
@@ -142,6 +150,8 @@ const freeTextProperties = {
   StrokeStyle: 'solid',
 };
 
+FreeText.parameters = disableRtlModeParameters;
+
 FreeText.args = {
   annotations: [freeTextAnnot],
   style: getAnnotationStyles(freeTextAnnot),
@@ -150,17 +160,18 @@ FreeText.args = {
   isFreeText: true,
 };
 
-const widgetPlaceHolderAnnot = new window.Core.Annotations.RectangleAnnotation();
-widgetPlaceHolderAnnot.isFormFieldPlaceholder = () => true;
-widgetPlaceHolderAnnot.getCustomData = () => 'TextFormField';
+const dummyField = new window.Core.Annotations.Forms.Field('MyTextField', { type: 'Tx', value: 'Value' });
+const textWidgetAnnotation = new window.Core.Annotations.TextWidgetAnnotation(dummyField, {});
 
-export const WidgetPlaceHolder = BasicTemplate.bind({});
-WidgetPlaceHolder.args = {
-  annotations: [widgetPlaceHolderAnnot],
-  style: getAnnotationStyles(widgetPlaceHolderAnnot),
+export const WidgetAnnotation = BasicTemplate.bind({});
+WidgetAnnotation.args = {
+  annotations: [textWidgetAnnotation],
+  style: getAnnotationStyles(textWidgetAnnotation),
   closeElement: () => { },
   properties: {
     StrokeStyle: 'solid'
   },
-  colorMapKey: mapAnnotationToKey(widgetPlaceHolderAnnot),
+  colorMapKey: mapAnnotationToKey(textWidgetAnnotation),
 };
+
+WidgetAnnotation.parameters = disableRtlModeParameters;

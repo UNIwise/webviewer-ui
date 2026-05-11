@@ -4,6 +4,7 @@ import { createStore } from 'redux';
 import { Provider } from 'react-redux';
 import { redactionTypeMap, defaultRedactionTypes } from 'constants/redactionTypes';
 import { initialColors } from 'helpers/initialColorStates';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 const initialState = {
   viewer: {
@@ -46,7 +47,7 @@ const getMockRedactionAnnotation = () => ({
 export function TextRedactionItem() {
   const mockTextRedactionAnnotation = getMockRedactionAnnotation();
   mockTextRedactionAnnotation.redactionType = redactionTypeMap['TEXT'];
-  mockTextRedactionAnnotation.icon = 'icon-form-field-text';
+  mockTextRedactionAnnotation.icon = 'icon-text-redaction';
   const textRedactionItemProps = {
     iconColor: initialColors[0],
     annotation: mockTextRedactionAnnotation,
@@ -60,6 +61,8 @@ export function TextRedactionItem() {
     <RedactionItemWithRedux {...textRedactionItemProps} />
   );
 }
+
+TextRedactionItem.parameters = disableRtlModeParameters;
 
 export function RegionRedactionItem() {
   const { icon, label } = defaultRedactionTypes[redactionTypeMap['REGION']];
@@ -80,6 +83,8 @@ export function RegionRedactionItem() {
   );
 }
 
+RegionRedactionItem.parameters = disableRtlModeParameters;
+
 export function FullPageRedactionItem() {
   const { icon, label } = defaultRedactionTypes[redactionTypeMap['FULL_PAGE']];
   const mockFullPageRedactionAnnotation = getMockRedactionAnnotation();
@@ -98,6 +103,8 @@ export function FullPageRedactionItem() {
     <RedactionItemWithRedux {...regionRedactionItemProps} />
   );
 }
+
+FullPageRedactionItem.parameters = disableRtlModeParameters;
 
 export function CreditCardRedactionItem() {
   const mockCreditCardRedaction = getMockRedactionAnnotation();
@@ -118,6 +125,8 @@ export function CreditCardRedactionItem() {
   );
 }
 
+CreditCardRedactionItem.parameters = disableRtlModeParameters;
+
 export function PhoneNumberRedactionItem() {
   const mockPhoneNumberRedaction = getMockRedactionAnnotation();
   mockPhoneNumberRedaction.redactionType = redactionTypeMap['PHONE'];
@@ -137,6 +146,8 @@ export function PhoneNumberRedactionItem() {
   );
 }
 
+PhoneNumberRedactionItem.parameters = disableRtlModeParameters;
+
 export function EmailRedactionItem() {
   const mockEmailRedaction = getMockRedactionAnnotation();
   mockEmailRedaction.redactionType = redactionTypeMap['EMAIL'];
@@ -154,6 +165,8 @@ export function EmailRedactionItem() {
     <RedactionItemWithRedux {...regionRedactionItemProps} />
   );
 }
+
+EmailRedactionItem.parameters = disableRtlModeParameters;
 
 export function RedactionItemWithLabelText() {
   const labelTextRedaction = getMockRedactionAnnotation();
@@ -174,3 +187,5 @@ export function RedactionItemWithLabelText() {
     <RedactionItemWithRedux {...textRedactionItemProps} />
   );
 }
+
+RedactionItemWithLabelText.parameters = disableRtlModeParameters;

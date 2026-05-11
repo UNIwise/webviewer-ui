@@ -5,10 +5,14 @@ import RightPanel from 'components/RightPanel';
 import GeneralValuesSection from './GeneralValuesSection';
 import '../Wv3dPropertiesPanel.scss';
 import '../../Panel/Panel.scss';
+import { disableChromaticParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/Wv3dPropertiesPanel/GeneralValuesSection/GeneralValuesSection',
   component: GeneralValuesSection,
+  parameters: {
+    legacyUI: true,
+  }
 };
 
 const initialState = {
@@ -120,3 +124,5 @@ Default.args = {
     handle: '29081',
   },
 };
+
+Default.parameters = disableChromaticParameters;

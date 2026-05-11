@@ -4,10 +4,14 @@ import { Provider } from 'react-redux';
 import RightPanel from 'components/RightPanel';
 
 import Wv3dPropertiesPanel from './Wv3dPropertiesPanel';
+import { disableChromaticParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/Wv3dPropertiesPanel',
   component: Wv3dPropertiesPanel,
+  parameters: {
+    legacyUI: true,
+  }
 };
 
 const baseSchema = {
@@ -271,7 +275,11 @@ export function DefaultStandard() {
   return <Default {...defaultArgs} />;
 }
 
+DefaultStandard.parameters = disableChromaticParameters;
+
 export const DefaultWide = WideTemplate.bind({});
+
+DefaultWide.parameters = disableChromaticParameters;
 
 DefaultWide.args = {
   modelData: oneElement,
@@ -299,6 +307,8 @@ export function MultiplePropertiesElements() {
   return <MultipleElements {...multipleElementsArgs} />;
 }
 
+MultiplePropertiesElements.parameters = disableChromaticParameters;
+
 const NoElementsSelected = StandardTemplate.bind({});
 
 const noElementsSelectedArgs = {
@@ -315,6 +325,8 @@ NoElementsSelected.args = noElementsSelectedArgs;
 export function EmptyPanel() {
   return <NoElementsSelected {...noElementsSelectedArgs} />;
 }
+
+EmptyPanel.parameters = disableChromaticParameters;
 
 const GroupOrderDefined = StandardTemplate.bind({});
 
@@ -336,6 +348,8 @@ export function GroupOrderSpecified() {
   return <GroupOrderDefined {...groupOrderDefinedArgs} />;
 }
 
+GroupOrderSpecified.parameters = disableChromaticParameters;
+
 const EmptyRowsRemoved = StandardTemplate.bind({});
 
 const rowsRemovedSchema = JSON.parse(JSON.stringify(baseSchema));
@@ -355,6 +369,8 @@ EmptyRowsRemoved.args = emptyRowsRemovedArgs;
 export function RemoveEmptyRows() {
   return <EmptyRowsRemoved {...emptyRowsRemovedArgs} />;
 }
+
+RemoveEmptyRows.parameters = disableChromaticParameters;
 
 const EmptyGroupsRemoved = StandardTemplate.bind({});
 
@@ -377,6 +393,8 @@ export function RemoveEmptyGroups() {
   return <EmptyGroupsRemoved {...emptyRowsRemovedArgs} />;
 }
 
+RemoveEmptyGroups.parameters = disableChromaticParameters;
+
 const NoRawValues = StandardTemplate.bind({});
 
 const NoRawValuesSchema = JSON.parse(JSON.stringify(baseSchema));
@@ -396,3 +414,5 @@ NoRawValues.args = noRawValuesArgs;
 export function RemoveRawValues() {
   return <NoRawValues {...noRawValuesArgs} />;
 }
+
+RemoveRawValues.parameters = disableChromaticParameters;

@@ -3,7 +3,10 @@ import RedactionSearchResults from './RedactionSearchResults';
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import selectors from 'selectors';
 import applyRedactions from 'helpers/applyRedactions';
+// Helper function createRedactionAnnotations()
+// eslint-disable-next-line custom/use-core-hook-in-components
 import core from 'core';
+import useCore from 'hooks/useCore';
 
 const { ToolNames } = window.Core.Tools;
 
@@ -22,6 +25,7 @@ export function createRedactionAnnotations(searchResults, activeToolStyles = def
     Font = 'Helvetica',
     TextColor,
     FontSize,
+    TextAlign,
   } = activeToolStyles;
   const redactionAnnotations = searchResults.map((result) => {
     const redaction = new window.Core.Annotations.RedactionAnnotation();
@@ -32,7 +36,11 @@ export function createRedactionAnnotations(searchResults, activeToolStyles = def
     redaction.FillColor = FillColor;
     redaction.Font = Font;
     redaction.FontSize = FontSize;
+    if (window.Core.Annotations.Utilities.calculateAutoFontSize) {
+      redaction.FontSize = window.Core.Annotations.Utilities.calculateAutoFontSize(redaction);
+    }
     redaction.TextColor = TextColor;
+    redaction.TextAlign = TextAlign;
     redaction.setContents(result.result_str);
     redaction.type = result.type;
     redaction.Author = core.getCurrentUser();
@@ -51,6 +59,7 @@ export function createRedactionAnnotations(searchResults, activeToolStyles = def
 
 function RedactionSearchResultsContainer(props) {
   const { onCancelSearch } = props;
+  const { core } = useCore();
   const dispatch = useDispatch();
   // activeToolStyles is an object so we do a shallowEqual to check equality
   const [activeToolStyles, activeToolName] = useSelector(

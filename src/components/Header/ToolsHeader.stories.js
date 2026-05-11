@@ -5,10 +5,14 @@ import { createStore, combineReducers } from 'redux';
 import { Provider } from 'react-redux';
 import viewerReducer from 'src/redux/reducers/viewerReducer';
 import featureFlagsReducer from 'src/redux/reducers/featureFlagsReducer';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/Header/ToolsHeader',
   component: ToolsHeaderComponent,
+  parameters: {
+    legacyUI: true
+  }
 };
 
 const store = createStore(combineReducers({
@@ -29,6 +33,8 @@ export const ToolsHeaderNoPreset = () => {
   return (<BasicComponent store={store} />);
 };
 
+ToolsHeaderNoPreset.parameters = disableRtlModeParameters;
+
 const mockInitialViewerState = {
   ...initialState.viewer,
   activeToolGroup: 'freeHandTools',
@@ -46,3 +52,5 @@ const storeWithToolSelected = createStore(reducer);
 export const ToolsHeaderToolActive = () => {
   return (<BasicComponent store={storeWithToolSelected} />);
 };
+
+ToolsHeaderToolActive.parameters = disableRtlModeParameters;

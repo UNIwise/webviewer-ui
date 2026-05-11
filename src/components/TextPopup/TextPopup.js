@@ -8,7 +8,7 @@ import classNames from 'classnames';
 import ActionButton from 'components/ActionButton';
 import CustomizablePopup from 'components/CustomizablePopup';
 
-import core from 'core';
+import useCore from 'hooks/useCore';
 import { getTextPopupPositionBasedOn } from 'helpers/getPopupPosition';
 import createTextAnnotationAndSelect from 'helpers/createTextAnnotationAndSelect';
 import copyText from 'helpers/copyText';
@@ -21,6 +21,7 @@ import DataElements from 'src/constants/dataElement';
 import './TextPopup.scss';
 
 const TextPopup = ({ t, selectedTextQuads }) => {
+  const { core } = useCore();
   const [
     isDisabled,
     isOpen,
@@ -85,9 +86,8 @@ const TextPopup = ({ t, selectedTextQuads }) => {
       })}
       data-element={DataElements.TEXT_POPUP}
       ref={popupRef}
-      style={{ ...position }}
+      css={position}
       onClick={onClose}
-      role="listbox"
       aria-label={t('component.textPopup')}
     >
       <FocusTrap locked={isOpen && position.top !== 0 && position.left !== 0}>
@@ -103,7 +103,6 @@ const TextPopup = ({ t, selectedTextQuads }) => {
               title={!isRightClickAnnotationPopupEnabled ? 'action.copy' : ''}
               img="ic_copy_black_24px"
               onClick={() => copyText(activeDocumentViewerKey)}
-              role="option"
             />
             <ActionButton
               className="main-menu-button"
@@ -112,7 +111,6 @@ const TextPopup = ({ t, selectedTextQuads }) => {
               title={!isRightClickAnnotationPopupEnabled ? 'annotation.highlight' : ''}
               img="icon-tool-highlight"
               onClick={() => createTextAnnotationAndSelect(dispatch, window.Core.Annotations.TextHighlightAnnotation, activeDocumentViewerKey)}
-              role="option"
             />
             <ActionButton
               className="main-menu-button"
@@ -121,7 +119,6 @@ const TextPopup = ({ t, selectedTextQuads }) => {
               title={!isRightClickAnnotationPopupEnabled ? 'annotation.underline' : ''}
               img="icon-tool-text-manipulation-underline"
               onClick={() => createTextAnnotationAndSelect(dispatch, window.Core.Annotations.TextUnderlineAnnotation, activeDocumentViewerKey)}
-              role="option"
             />
             <ActionButton
               className="main-menu-button"
@@ -130,16 +127,14 @@ const TextPopup = ({ t, selectedTextQuads }) => {
               title={!isRightClickAnnotationPopupEnabled ? 'annotation.squiggly' : ''}
               img="icon-tool-text-manipulation-squiggly"
               onClick={() => createTextAnnotationAndSelect(dispatch, window.Core.Annotations.TextSquigglyAnnotation, activeDocumentViewerKey)}
-              role="option"
             />
             <ActionButton
               className="main-menu-button"
               label={isRightClickAnnotationPopupEnabled ? 'annotation.strikeout' : ''}
               title={!isRightClickAnnotationPopupEnabled ? 'annotation.strikeout' : ''}
-              img="icon-tool-text-manipulation-strikethrough"
+              img="icon-text-strikeout"
               onClick={() => createTextAnnotationAndSelect(dispatch, window.Core.Annotations.TextStrikeoutAnnotation, activeDocumentViewerKey)}
               dataElement="textStrikeoutToolButton"
-              role="option"
             />
             <ActionButton
               className="main-menu-button"
@@ -148,7 +143,6 @@ const TextPopup = ({ t, selectedTextQuads }) => {
               img="icon-tool-link"
               onClick={() => dispatch(actions.openElement(DataElements.LINK_MODAL))}
               dataElement="linkButton"
-              role="option"
             />
             {core.isCreateRedactionEnabled() && (
               <ActionButton
@@ -159,7 +153,6 @@ const TextPopup = ({ t, selectedTextQuads }) => {
                 fillColor="868E96"
                 img="icon-tool-select-area-redaction"
                 onClick={() => createTextAnnotationAndSelect(dispatch, window.Core.Annotations.RedactionAnnotation, activeDocumentViewerKey)}
-                role="option"
               />
             )}
           </CustomizablePopup>

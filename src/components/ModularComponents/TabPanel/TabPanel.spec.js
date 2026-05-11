@@ -2,7 +2,7 @@ import React from 'react';
 import TabPanel from './TabPanel';
 import initialState from 'src/redux/initialState';
 import rootReducer from 'reducers/rootReducer';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 
@@ -13,6 +13,7 @@ const mockDocumentViewer = {
   getPageSearchResults: () => [],
   addEventListener: noop,
   removeEventListener: noop,
+  setBookmarkIconShortcutVisibility: noop,
 };
 
 jest.mock('core', () => ({
@@ -37,6 +38,7 @@ jest.mock('core', () => ({
   clearSearchResults: noop,
   getSelectedAnnotations: () => [],
   getAnnotationsList: () => [],
+  getType: noop,
 }));
 
 describe('TabPanel', () => {
@@ -154,6 +156,10 @@ describe('TabPanel', () => {
         }
       ],
       activeCustomPanel: 'layersPanel',
+      openElements: {
+        ...initialState.viewer.openElements,
+        stylePanel: true,
+      },
     }
   };
 
@@ -165,6 +171,21 @@ describe('TabPanel', () => {
     });
   };
 
+  beforeEach(() => {
+    // Give the TabPanelHeader a wide enough bounding rect so the overflow logic
+    // doesn't move tabs into the "More" menu (JSDOM returns 0 for all dimensions).
+    jest.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function() {
+      if (this.classList && this.classList.contains('TabPanelHeader')) {
+        return { width: 1000, height: 40, top: 0, left: 0, bottom: 40, right: 1000, x: 0, y: 0, toJSON: () => ({}) };
+      }
+      return { width: 0, height: 0, top: 0, left: 0, bottom: 0, right: 0, x: 0, y: 0, toJSON: () => ({}) };
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   const panelsToCheck = [
     { name: 'Thumbnails', className: 'ThumbnailsPanel' },
     { name: 'Outlines', className: 'OutlinesPanel' },
@@ -172,7 +193,7 @@ describe('TabPanel', () => {
     { name: 'Layers', className: 'LayersPanel' },
     { name: 'Style', className: 'StylePanel' },
     { name: 'Search', className: 'SearchPanel' },
-    { name: 'Annotations', className: 'NotesPanel' }, // WISEflow term change
+    { name: 'Comments', className: 'NotesPanel' }, // WISEflow term change
     { name: 'Signatures', className: 'SignaturePanel' },
     { name: 'Attachments', className: 'fileAttachmentPanel' },
   ];
@@ -196,7 +217,7 @@ describe('TabPanel', () => {
     const { container } = render(<TabPanelWithRedux initialState={mockInitialState}/>);
     for (const panel of panelsToCheck) {
       const button = screen.getByRole('button', { name: panel.name });
-      button.click();
+      fireEvent.click(button);
       expect(container.querySelector(`.${panel.className}`)).toBeInTheDocument();
     }
   });

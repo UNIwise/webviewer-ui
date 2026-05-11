@@ -3,10 +3,10 @@ import AnnotationPopup from './AnnotationPopup';
 import { configureStore } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
 import getAnnotationStyles from 'src/helpers/getAnnotationStyles';
-import DataElements from 'constants/dataElement';
 import core from 'core';
 import { BASIC_PALETTE } from 'constants/commonColors';
-
+import initialState from 'src/redux/initialState';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 const noop = () => { };
 
 export default {
@@ -14,29 +14,11 @@ export default {
   component: AnnotationPopup,
 };
 
-const initialState = {
+const mockInitialState = {
   viewer: {
     disabledElements: {},
     customElementOverrides: {},
-    annotationPopup: [
-      { dataElement: 'viewFileButton' },
-      { dataElement: 'annotationCommentButton' },
-      { dataElement: 'annotationStyleEditButton' },
-      { dataElement: 'annotationDateEditButton' },
-      { dataElement: 'annotationRedactButton' },
-      { dataElement: 'annotationCropButton' },
-      { dataElement: 'annotationContentEditButton' },
-      { dataElement: 'annotationGroupButton' },
-      { dataElement: 'annotationUngroupButton' },
-      { dataElement: 'formFieldEditButton' },
-      { dataElement: DataElements.CALIBRATION_POPUP_BUTTON },
-      { dataElement: 'linkButton' },
-      { dataElement: 'fileAttachmentDownload' },
-      { dataElement: 'annotationDeleteButton' },
-      { dataElement: 'shortCutKeysFor3D' },
-      { dataElement: 'playSoundButton' },
-      { dataElement: 'annotationClearSignatureButton' }
-    ],
+    modularPopups: initialState.viewer.modularPopups,
     customPanels: [],
     unreadAnnotationIdSet: new Set(),
     colorMap: [{ colorMapKey: () => BASIC_PALETTE[0] }],
@@ -45,11 +27,13 @@ const initialState = {
     },
     activeDocumentViewerKey: 1,
   },
+  featureFlags: {
+    customizableUI: true,
+  },
 };
 
 const mockAnnotation = {
   Author: 'Mikel Landa',
-  isFormFieldPlaceholder: () => false,
   getReplies: () => [],
   getStatus: () => '',
   isReply: () => false,
@@ -81,7 +65,7 @@ const basicHorizontalProps = {
 
 export const BasicHorizontal = () => {
   return (
-    <Provider store={configureStore({ reducer: () => initialState })}>
+    <Provider store={configureStore({ reducer: () => mockInitialState })}>
       <AnnotationPopup {...basicHorizontalProps} />
     </Provider>
   );
@@ -94,11 +78,13 @@ const basicVerticalProps = {
 
 export const BasicVertical = () => {
   return (
-    <Provider store={configureStore({ reducer: () => initialState })}>
+    <Provider store={configureStore({ reducer: () => mockInitialState })}>
       <AnnotationPopup {...basicVerticalProps} />
     </Provider>
   );
 };
+
+BasicVertical.parameters = disableRtlModeParameters;
 
 export const IsReadOnlyMode = (props) => {
   core.getIsReadOnly = () => true;
@@ -110,11 +96,13 @@ export const IsReadOnlyMode = (props) => {
   }
 
   return (
-    <Provider store={configureStore({ reducer: () => initialState })}>
+    <Provider store={configureStore({ reducer: () => mockInitialState })}>
       <AnnotationPopup {...annotationProps} />
     </Provider>
   );
 };
+
+IsReadOnlyMode.parameters = disableRtlModeParameters;
 
 const readOnlySignatureAnnotationProps = {
   isOpen: true,
@@ -128,27 +116,88 @@ const readOnlySignatureAnnotationProps = {
   showLinkButton: false,
   linkAnnotationToURL: () => console.log('Link'),
   showDeleteButton: false,
+  showClearSignatureButton: true,
   onDeleteAnnotation: () => console.log('Delete'),
   isAppearanceSignature: true
 };
 
 export const SignatureReadOnlyPopUp = () => {
   return (
-    <Provider store={configureStore({ reducer: () => initialState })}>
+    <Provider store={configureStore({ reducer: () => mockInitialState })}>
       <AnnotationPopup {...readOnlySignatureAnnotationProps} />
     </Provider>
   );
 };
+
+SignatureReadOnlyPopUp.parameters = disableRtlModeParameters;
 
 const readOnlySignatureAnnotationPropsDisabled = {
   ...readOnlySignatureAnnotationProps,
   isRightClickMenu: true,
 };
 
-export const SignatureReadOnlyDiablePopUp = () => {
+export const SignatureReadOnlyDisablePopUp = () => {
   return (
-    <Provider store={configureStore({ reducer: () => initialState })}>
+    <Provider store={configureStore({ reducer: () => mockInitialState })}>
       <AnnotationPopup {...readOnlySignatureAnnotationPropsDisabled} />
     </Provider>
   );
 };
+
+SignatureReadOnlyDisablePopUp.parameters = disableRtlModeParameters;
+
+export const CustomizedAnnotationPopup = () => {
+  const stateWithMockedPopups = {
+    viewer: {
+      disabledElements: {},
+      customElementOverrides: {},
+      modularPopups: {
+        ...initialState.viewer.modularPopups,
+        annotationPopup: [
+          { dataElement: 'viewFileButton', type: 'customButton', onClick: () => {}, img: 'icon-view', title: 'View File' },
+          { dataElement: 'commentcustomButton', type: 'customButton', onClick: () => {}, img: 'icon-unposted-comment', title: 'Comment' },
+          { dataElement: 'stylePanelToggle', type: 'toggleButton', img: 'icon-style-panel-toggle', title: 'Edit Style' },
+          { dataElement: 'statefulButton',
+            type: 'statefulButton',
+            mount: () =>{},
+            initialState: 'SinglePage',
+            className: 'stateful-button',
+            states: {
+              SinglePage: {
+                img: 'icon-header-page-manipulation-page-layout-single-page-line',
+                onClick: (update) => {
+                  update('DoublePage');
+                },
+                title: 'Single Page',
+              },
+              DoublePage: {
+                img: 'icon-header-page-manipulation-page-layout-double-page-line',
+                onClick: (update) => {
+                  update('SinglePage');
+                },
+                title: 'Double Page',
+              },
+            },
+          },
+        ]
+      },
+      customPanels: [],
+      unreadAnnotationIdSet: new Set(),
+      colorMap: [{ colorMapKey: () => BASIC_PALETTE[0] }],
+      openElements: {
+        stylePopupTextStyleContainer: false,
+      },
+      activeDocumentViewerKey: 1,
+    },
+    featureFlags: {
+      customizableUI: true,
+    },
+  };
+  return (
+    <Provider store={configureStore({ reducer: () => stateWithMockedPopups })}>
+      <AnnotationPopup {...basicHorizontalProps} />
+    </Provider>
+  );
+};
+
+CustomizedAnnotationPopup.parameters = disableRtlModeParameters;

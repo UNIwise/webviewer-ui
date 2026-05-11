@@ -1,16 +1,39 @@
 import core from 'core';
+import { useSelector, useDispatch } from 'react-redux';
+import DataElements from 'constants/dataElement';
+import selectors from 'selectors';
+import actions from 'actions';
 
-const Tools = window.Core.Tools;
+const { Tools, Annotations } = window.Core;
+const { ToolNames } = Tools;
+
+export const shouldHideSharedStyleOptions = (toolName) => {
+  const toolsWithNoSharedStyles = [
+    Tools.RedactionCreateTool,
+  ];
+
+  return toolsWithNoSharedStyles.some((tool) => core.getTool(toolName) instanceof tool);
+};
+
+export const shouldHideStrokeDropdowns = (toolName) => {
+  const toolsWithNoStrokeDropdowns = [
+    Tools.CountMeasurementCreateTool,
+    Tools.FreeHandCreateTool,
+    Tools.FreeHandHighlightCreateTool,
+    Tools.ArcCreateTool,
+    Tools.ArcMeasurementCreateTool,
+    Tools.TextAnnotationCreateTool,
+  ];
+
+  return toolsWithNoStrokeDropdowns.some((tool) => core.getTool(toolName) instanceof tool);
+};
 
 export const shouldHideStylePanelOptions = (toolName) => {
   const toolsNoStylePanelOptions = [
-    Tools.CheckBoxFormFieldCreateTool,
-    Tools.RadioButtonFormFieldCreateTool,
     Tools.AddParagraphTool,
     Tools.AddImageContentTool,
     Tools.CropCreateTool,
     Tools.SnippingCreateTool,
-    Tools.SignatureFormFieldCreateTool,
   ];
 
   return toolsNoStylePanelOptions.some((tool) => core.getTool(toolName) instanceof tool);
@@ -27,6 +50,12 @@ export const hasFillColorAndCollapsablePanelSections = (toolName) => {
     Tools.FreeTextCreateTool,
     Tools.CalloutCreateTool,
     Tools.RedactionCreateTool,
+    // ... form builder
+    Tools.TextFormFieldCreateTool,
+    Tools.RadioButtonFormFieldCreateTool,
+    Tools.CheckBoxFormFieldCreateTool,
+    Tools.ListBoxFormFieldCreateTool,
+    Tools.ComboBoxFormFieldCreateTool
   ];
 
   return toolsWithCollapsedStylePanels.some((tool) => core.getTool(toolName) instanceof tool);
@@ -34,7 +63,6 @@ export const hasFillColorAndCollapsablePanelSections = (toolName) => {
 
 export const shouldHideFillColorAndCollapsablePanelSections = (toolName) => {
   const toolsWithHiddenFillColorSections = [
-    Tools.SignatureFormFieldCreateTool,
     Tools.RubberStampCreateTool,
     Tools.StampCreateTool,
     Tools.EraserTool,
@@ -68,6 +96,14 @@ export const shouldHideStrokeStyle = (toolName) => {
   return toolsWithHiddenStrokeStyle.some((tool) => core.getTool(toolName) instanceof tool);
 };
 
+export const shouldHideCloudyLineStyle = (toolName) => {
+  const toolsWithHiddenCloudyLineStyle = [
+    Tools.EllipseCreateTool,
+    Tools.LineCreateTool,
+  ];
+  return toolsWithHiddenCloudyLineStyle.some((tool) => core.getTool(toolName) instanceof tool);
+};
+
 export const shouldShowTextStyle = (toolName) => {
   const toolsWithHiddenStrokeSlider = [
     Tools.FreeTextCreateTool,
@@ -88,6 +124,8 @@ export const shouldHideOpacitySlider = (toolName) => {
     Tools.ListBoxFormFieldCreateTool,
     Tools.ComboBoxFormFieldCreateTool,
     Tools.SignatureFormFieldCreateTool,
+    Tools.CheckBoxFormFieldCreateTool,
+    Tools.RadioButtonFormFieldCreateTool
   ];
   return toolsWithHiddenOpacitySlider.some((tool) => core.getTool(toolName) instanceof tool);
 };
@@ -142,12 +180,94 @@ export const stylePanelSectionTitles = (toolName, section) => {
   return toolTitles[toolName] && toolTitles[toolName][section];
 };
 
-export const shouldHideTextStylePicker = (toolName) => {
-  const { ToolNames } = window.Core.Tools;
+export const shouldRenderWidgetLayout = (toolName) => {
   const toolsWithHiddenTextStylePicker = [
     ToolNames.TEXT_FORM_FIELD,
     ToolNames.LIST_BOX_FIELD,
     ToolNames.COMBO_BOX_FIELD,
   ];
   return toolsWithHiddenTextStylePicker.includes(toolName);
+};
+
+export const isInstanceOfAny = (annotation, types) => {
+  return types.some((type) => annotation instanceof type);
+};
+
+export const shouldShowNoStyles = (annotations, filteredTypes) => {
+  return annotations.length === 1 && isInstanceOfAny(annotations[0], filteredTypes);
+};
+
+export const getAnnotationTypes = (selectedAnnotations) => {
+  return selectedAnnotations.length >= 1
+    ? Array.from(new Set(selectedAnnotations.map((annotation) => annotation.ToolName)))
+    : null;
+};
+
+export const parseToolType = (selectedAnnotations, currentTool) => {
+  const annotationTypes = getAnnotationTypes(selectedAnnotations);
+  const toolName = annotationTypes?.length > 0 ? annotationTypes[0] : currentTool.name;
+
+  const isRedaction =
+    annotationTypes?.length === 1 && annotationTypes[0] === ToolNames.REDACTION ||
+    toolName === ToolNames.REDACTION;
+  const isStamp = annotationTypes?.includes(ToolNames.STAMP) || toolName === ToolNames.STAMP;
+  const isWidget = selectedAnnotations.some((annotation) => annotation instanceof Annotations.WidgetAnnotation) || shouldRenderWidgetLayout(currentTool.name);
+  const isInFormFieldCreationMode = core.getFormFieldCreationManager().isInFormFieldCreationMode();
+  const isFreeText = toolName === ToolNames.FREETEXT;
+
+  return {
+    toolName,
+    isRedaction,
+    isStamp,
+    isWidget,
+    isInFormFieldCreationMode,
+    isFreeText,
+    activeTool: toolName,
+    annotationTypes,
+  };
+};
+
+export const useStylePanelSections = () => {
+  const dispatch = useDispatch();
+  const isSnapModeEnabled = useSelector(selectors.isSnapModeEnabled);
+  const isStyleOptionDisabled = useSelector((state) => selectors.isElementDisabled(state, DataElements.STYLE_OPTION));
+  const isStrokeStyleContainerActive = useSelector((state) => selectors.isElementOpen(state, DataElements.STROKE_STYLE_CONTAINER));
+  const isFillColorContainerActive = useSelector((state) => selectors.isElementOpen(state, DataElements.FILL_COLOR_CONTAINER));
+  const isOpacityContainerActive = useSelector((state) => selectors.isElementOpen(state, DataElements.OPACITY_CONTAINER));
+  const isTextStyleContainerActive = useSelector((state) => selectors.isElementOpen(state, DataElements.RICH_TEXT_STYLE_CONTAINER));
+
+  const panelItems = {
+    [DataElements.STROKE_STYLE_CONTAINER]: isStrokeStyleContainerActive,
+    [DataElements.FILL_COLOR_CONTAINER]: isFillColorContainerActive,
+    [DataElements.OPACITY_CONTAINER]: isOpacityContainerActive,
+    [DataElements.RICH_TEXT_STYLE_CONTAINER]: isTextStyleContainerActive,
+  };
+
+  const togglePanelItem = (dataElement) => {
+    if (!panelItems[dataElement]) {
+      dispatch(actions.openElement(dataElement));
+    } else {
+      dispatch(actions.closeElement(dataElement));
+    }
+  };
+  const openTextStyleContainer = () => {
+    dispatch(actions.openElements(DataElements.RICH_TEXT_EDITOR));
+    togglePanelItem(DataElements.RICH_TEXT_STYLE_CONTAINER);
+  };
+  const openStrokeStyleContainer = () => togglePanelItem(DataElements.STROKE_STYLE_CONTAINER);
+  const openFillColorContainer = () => togglePanelItem(DataElements.FILL_COLOR_CONTAINER);
+  const openOpacityContainer = () => togglePanelItem(DataElements.OPACITY_CONTAINER);
+
+  return {
+    isSnapModeEnabled,
+    isStyleOptionDisabled,
+    isStrokeStyleContainerActive,
+    isFillColorContainerActive,
+    isOpacityContainerActive,
+    isTextStyleContainerActive,
+    openTextStyleContainer,
+    openStrokeStyleContainer,
+    openFillColorContainer,
+    openOpacityContainer,
+  };
 };

@@ -7,6 +7,7 @@ import Choice from 'components/Choice';
 import PropTypes from 'prop-types';
 import PageNumberInput from 'components/PageReplacementModal/PageNumberInput';
 import ModalWrapper from 'components/ModalWrapper';
+import useFocusOnClose from 'hooks/useFocusOnClose';
 
 import './PageRedactionModal.scss';
 
@@ -44,7 +45,7 @@ const PageRedactionModal = ({
 
   const [selectionType, setSelectionType] = useState(SelectionTypes.CURRENT);
   const [pages, setPages] = useState();
-  const [pageNumberError, setPageNumberError] = useState('');
+  const [hasPageNumberError, setHasPageNumberError] = useState(false);
 
   useEffect(() => {
     setPages(selectedPages);
@@ -72,6 +73,8 @@ const PageRedactionModal = ({
 
   const onMark = () => markPages(getSelectedPages());
   const onRedact = () => redactPages(getSelectedPages());
+  const onRedactWithFocusTransfer = useFocusOnClose(onRedact);
+  const onMarktWithFocusTransfer = useFocusOnClose(onMark);
 
   const canvasContainer = useRef();
   useEffect(() => {
@@ -98,20 +101,18 @@ const PageRedactionModal = ({
   const onSelectionChange = (e) => {
     if (!e.target.classList.contains('page-number-input')) {
       setSelectionType(e.target.value);
-      setPageNumberError('');
+      setHasPageNumberError(false);
     }
   };
   const onPagesChanged = (pageNumbers) => {
     if (pageNumbers.length > 0) {
-      setPageNumberError('');
+      setHasPageNumberError(false);
       setPages(pageNumbers);
     }
   };
 
-  const handlePageNumberError = (pageNumber) => {
-    if (pageNumber) {
-      setPageNumberError(`${t('message.errorPageNumber')} ${pageLabels.length}`);
-    }
+  const handlePageNumberError = () => {
+    setHasPageNumberError(true);
   };
 
   const specifyPagesLabelElement = (
@@ -125,7 +126,7 @@ const PageRedactionModal = ({
         )}
       </label>
       {selectionType === 'specify' && (
-        <div className={classNames('page-number-input-container', { error: !!pageNumberError })}>
+        <div className={classNames('page-number-input-container', { error: hasPageNumberError })}>
           <PageNumberInput
             selectedPageNumbers={pages}
             pageCount={pageLabels.length}
@@ -133,7 +134,6 @@ const PageRedactionModal = ({
             onSelectedPageNumbersChange={onPagesChanged}
             onBlurHandler={setPages}
             onError={handlePageNumberError}
-            pageNumberError={pageNumberError}
           />
         </div>
       )}
@@ -161,38 +161,42 @@ const PageRedactionModal = ({
       >
         <div className="body">
           <div className="canvas-container" ref={canvasContainer} />
-          <form className="selection-options" onChange={onSelectionChange} onSubmit={(e) => e.preventDefault()}>
-            <strong>{t('option.pageRedactModal.pageSelection')}</strong>
-            <Choice
-              checked={selectionType === SelectionTypes.CURRENT}
-              radio
-              name="page-redaction-option"
-              label={t('option.pageRedactModal.current')}
-              value={SelectionTypes.CURRENT}
-            />
-            <Choice
-              checked={selectionType === SelectionTypes.SPECIFY}
-              radio
-              name="page-redaction-option"
-              className="specify-pages-choice"
-              label={specifyPagesLabelElement}
-              value={SelectionTypes.SPECIFY}
-            />
-            <Choice
-              checked={selectionType === SelectionTypes.ODD}
-              radio
-              name="page-redaction-option"
-              label={t('option.pageRedactModal.odd')}
-              value={SelectionTypes.ODD}
-            />
-            <Choice
-              checked={selectionType === SelectionTypes.EVEN}
-              radio
-              name="page-redaction-option"
-              label={t('option.pageRedactModal.even')}
-              value={SelectionTypes.EVEN}
-              disabled={evenDisabled}
-            />
+          <form className="selection-options" role="group" aria-labelledby={t('option.pageRedactModal.pageSelection')} onChange={onSelectionChange} onSubmit={(e) => e.preventDefault()}>
+            <fieldset>
+              <legend>
+                <strong>{t('option.pageRedactModal.pageSelection')}</strong>
+              </legend>
+              <Choice
+                checked={selectionType === SelectionTypes.CURRENT}
+                radio
+                name="page-redaction-option"
+                label={t('option.pageRedactModal.current')}
+                value={SelectionTypes.CURRENT}
+              />
+              <Choice
+                checked={selectionType === SelectionTypes.SPECIFY}
+                radio
+                name="page-redaction-option"
+                className="specify-pages-choice"
+                label={specifyPagesLabelElement}
+                value={SelectionTypes.SPECIFY}
+              />
+              <Choice
+                checked={selectionType === SelectionTypes.ODD}
+                radio
+                name="page-redaction-option"
+                label={t('option.pageRedactModal.odd')}
+                value={SelectionTypes.ODD}
+              />
+              <Choice
+                checked={selectionType === SelectionTypes.EVEN}
+                radio
+                name="page-redaction-option"
+                label={t('option.pageRedactModal.even')}
+                value={SelectionTypes.EVEN}
+                disabled={evenDisabled}
+              />
+            </fieldset>
           </form>
         </div>
         <div className="footer">
@@ -200,15 +204,15 @@ const PageRedactionModal = ({
             className="cancel modal-button secondary-button"
             dataElement="modalRedactButton"
             label="annotation.redact"
-            disabled={pageNumberError}
-            onClick={onRedact}
+            disabled={hasPageNumberError}
+            onClick={onRedactWithFocusTransfer}
           />
           <Button
             className="confirm modal-button"
             dataElement="modalMarkRedactButton"
             label="option.pageRedactModal.addMark"
-            disabled={pageNumberError}
-            onClick={onMark}
+            disabled={hasPageNumberError}
+            onClick={onMarktWithFocusTransfer}
           />
         </div>
       </ModalWrapper>

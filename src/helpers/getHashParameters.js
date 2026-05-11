@@ -18,26 +18,24 @@ const paramCorrections = {
   'did': 'documentId',
   'toolbar': 'showToolbarControl',
 };
-const paramsToStringify = ['initialDoc'];
+
+const paramsRequiringJSONFormat = new Set(['initialDoc']);
+
+const getAttributeValue = (param) => {
+  const correctedParam = paramCorrections[param] ? paramCorrections[param] : param;
+  const instanceNode = getInstanceNode();
+  if (!instanceNode) {
+    return undefined;
+  }
+
+  const attributeValue = instanceNode.getAttribute(correctedParam);
+
+  return normalizeAttributeValue(attributeValue, correctedParam);
+};
 
 export default window.isApryseWebViewerWebComponent ? (param, defaultValue = false) => {
   const defaultType = typeof defaultValue;
-
-  const correctedParam = paramCorrections[param] ? paramCorrections[param] : param;
-
-  let val = getInstanceNode().getAttribute(correctedParam);
-  if (correctedParam === 'initialDoc' && val) {
-    val = val.split(',');
-    // If initialDoc is string with commas,
-    // we will split it and turn it to array
-    if (val && val.length === 1) {
-      val = val[0];
-    }
-  }
-  // Need to stringify because the Core function returns a string as well
-  if (val && paramsToStringify.includes(correctedParam)) {
-    return JSON.stringify(val);
-  }
+  let val = getAttributeValue(param);
 
   if (defaultType === 'boolean' && !isUndefined(val)) {
     const value = val;
@@ -48,6 +46,36 @@ export default window.isApryseWebViewerWebComponent ? (param, defaultValue = fal
       return false;
     }
   }
-
   return val || defaultValue;
 } : window.Core.getHashParameter;
+
+function normalizeAttributeValue(value, param) {
+  if (isUndefined(value) || value === null) {
+    return undefined;
+  }
+
+  if (Array.isArray(value)) {
+    return JSON.stringify(value);
+  }
+
+  const stringValue = `${value}`.trim();
+  if (!stringValue) {
+    return stringValue;
+  }
+
+  try {
+    const parsed = JSON.parse(stringValue);
+    if (paramsRequiringJSONFormat.has(param)) {
+      return JSON.stringify(parsed);
+    }
+    if (Array.isArray(parsed)) {
+      return parsed.join(',');
+    }
+    return stringValue;
+  } catch (error) {
+    if (paramsRequiringJSONFormat.has(param)) {
+      return JSON.stringify(stringValue);
+    }
+    return stringValue;
+  }
+}

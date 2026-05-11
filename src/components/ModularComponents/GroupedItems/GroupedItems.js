@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
 import './GroupedItems.scss';
@@ -9,9 +9,10 @@ import sizeManager, { useSizeStore } from 'helpers/responsivenessHelper';
 import { itemToFlyout } from 'helpers/itemToFlyoutHelper';
 import selectors from 'selectors';
 import ToggleElementButton from '../ToggleElementButton';
-import core from 'core';
+import useCore from 'hooks/useCore';
 
 const GroupedItems = (props) => {
+  const { core } = useCore();
   const {
     dataElement,
     items,
@@ -24,19 +25,23 @@ const GroupedItems = (props) => {
   } = props;
   const dispatch = useDispatch();
   const [itemsGap, setItemsGap] = useState(gap);
-  const itemValidTypes = Object.values(ITEM_TYPE);
-  const validItems = items?.filter((item) => {
-    const itemType = item.type || item.props.type;
-    return itemValidTypes.includes(itemType);
-  });
+
+  const validItems = useMemo(() => {
+    const itemValidTypes = Object.values(ITEM_TYPE);
+    return items?.filter((item) => {
+      const itemType = item.type || item.props.type;
+      return itemValidTypes.includes(itemType);
+    });
+  }, [items]);
 
   const flyoutDataElement = `${dataElement}Flyout`;
-  const lastPickedToolForGroupedItems = useSelector((state) => selectors.getLastPickedToolForGroupedItems(state, dataElement));
-  const activeGroupedItems = useSelector((state) => selectors.getActiveGroupedItems(state));
-  const alwaysVisibleGroupedItems = useSelector((state) => selectors.getAlwaysVisibleGroupedItems(state));
+  const activeGroupedItems = useSelector(selectors.getActiveGroupedItems);
+  const activeToolName = useSelector(selectors.getActiveToolName);
+  const alwaysVisibleGroupedItems = useSelector(selectors.getAlwaysVisibleGroupedItems);
   const flyoutItems = useSelector((state) => selectors.getFlyoutMap(state)[flyoutDataElement]?.items);
 
   const moreButtonDefaultIcon = 'icon-tools-more';
+  const moreButtonActiveIcon = 'icon-tools-more-active';
   const [moreButtonIcon, setMoreButtonIcon] = useState(moreButtonDefaultIcon);
 
   const findActiveToolInFlyout = (flyoutItems) => {
@@ -44,7 +49,6 @@ const GroupedItems = (props) => {
     if (!flyoutItems) {
       return;
     }
-
     for (const item of flyoutItems) {
       if (item.toolName && item.toolName === activeTool?.name) {
         return item;
@@ -62,7 +66,7 @@ const GroupedItems = (props) => {
     const isActiveToolInFlyout = findActiveToolInFlyout(flyoutItems);
     const isGroupedItemsActive = activeGroupedItems?.includes(dataElement) || alwaysVisibleGroupedItems?.includes(dataElement);
     if (size > 0 && isActiveToolInFlyout && isGroupedItemsActive) {
-      setMoreButtonIcon('icon-tools-more-active');
+      setMoreButtonIcon(moreButtonActiveIcon);
     } else {
       setMoreButtonIcon(moreButtonDefaultIcon);
     }
@@ -71,13 +75,6 @@ const GroupedItems = (props) => {
   useEffect(() => {
     if (alwaysVisible) {
       dispatch(actions.setFixedGroupedItems(dataElement));
-    }
-    if (!lastPickedToolForGroupedItems && activeGroupedItems?.includes(dataElement)) {
-      const firstToolButton = validItems?.find((item) => item.type === ITEM_TYPE.TOOL_BUTTON);
-      if (firstToolButton) {
-        dispatch(actions.setLastPickedToolForGroupedItems(dataElement, firstToolButton.toolName));
-        core.setToolMode(firstToolButton.toolName);
-      }
     }
   }, []);
 
@@ -99,9 +96,9 @@ const GroupedItems = (props) => {
       size: size,
     };
     handleMoreButtonIcon();
-  }, [size, items]);
+  }, [size, items, activeToolName]);
 
-  useSizeStore(dataElement, size, elementRef, headerDirection);
+  useSizeStore({ dataElement, elementRef, headerDirection });
 
   useEffect(() => {
     const flyout = {
@@ -109,7 +106,6 @@ const GroupedItems = (props) => {
       className: 'GroupedItemsFlyout',
       items: [],
     };
-
     if (size > 0) {
       const indexToExclude = validItems.length - size;
       for (let i = 0; i < validItems.length; i++) {
@@ -123,13 +119,27 @@ const GroupedItems = (props) => {
         }
       }
     }
-
-    dispatch(actions.updateFlyout(flyoutDataElement, flyout));
-  }, [size, validItems.length]);
+    flyout.items.length > 0 ? dispatch(actions.updateFlyout(flyoutDataElement, flyout)) : dispatch(actions.removeFlyout(flyoutDataElement));
+  }, [size, validItems]);
 
   useEffect(() => {
     setItemsGap(gap);
   }, [gap]);
+
+  const renderedItems = useMemo(() => {
+    return validItems.map((item, index) => {
+      const hasToShrink = size > 0;
+      const indexesToExclude = validItems.length - size;
+      const isLastIndexAndDivider = index === indexesToExclude - 1 && item.type === ITEM_TYPE.DIVIDER;
+      const shouldExcludeIndex = index >= indexesToExclude || isLastIndexAndDivider;
+      if (hasToShrink && shouldExcludeIndex) {
+        return null;
+      }
+      const itemProps = item.props || item;
+      return <InnerItem key={`${dataElement}-${itemProps.dataElement}`} {...itemProps} headerDirection={headerDirection}
+        groupedItem={dataElement}/>;
+    });
+  }, [validItems, size]);
 
   if (validItems && validItems.length) {
     return (
@@ -143,19 +153,7 @@ const GroupedItems = (props) => {
           flexGrow: grow,
           ...style,
         }}>
-        {
-          validItems.map((item, index) => {
-            const hasToShrink = size > 0;
-            const indexesToExclude = validItems.length - size;
-            const isLastIndexAndDivider = index === indexesToExclude - 1 && item.type === ITEM_TYPE.DIVIDER;
-            const shouldExcludeIndex = index >= indexesToExclude || isLastIndexAndDivider;
-            if (hasToShrink && shouldExcludeIndex) {
-              return null;
-            }
-            const itemProps = item.props || item;
-            return <InnerItem key={`${dataElement}-${itemProps.dataElement}`} {...itemProps} headerDirection={headerDirection} groupedItem={dataElement} />;
-          })
-        }
+        {renderedItems}
         {size > 0 &&
           <ToggleElementButton
             dataElement={`${flyoutDataElement}Toggle`}

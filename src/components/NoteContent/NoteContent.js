@@ -1,18 +1,19 @@
 import React, { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { shallowEqual, useDispatch, useSelector, useStore } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import Autolinker from 'autolinker';
 import dayjs from 'dayjs';
 import classNames from 'classnames';
 import LocalizedFormat from 'dayjs/plugin/localizedFormat';
 import isString from 'lodash/isString';
-
+import escape from 'lodash/escape';
 import NoteTextarea from 'components/NoteTextarea';
 import NoteContext from 'components/Note/Context';
 import NoteHeader from 'components/NoteHeader';
 import NoteTextPreview from 'components/NoteTextPreview';
 import ReplyAttachmentList from 'components/ReplyAttachmentList';
+import getLinkDestination from 'helpers/getLinkDestination';
 
 import mentionsManager from 'helpers/MentionsManager';
 import getLatestActivityDate from 'helpers/getLatestActivityDate';
@@ -20,9 +21,9 @@ import setAnnotationRichTextStyle from 'helpers/setAnnotationRichTextStyle';
 import setReactQuillContent from 'helpers/setReactQuillContent';
 import { isDarkColorHex, isLightColorHex } from 'helpers/color';
 import { setAnnotationAttachments } from 'helpers/ReplyAttachmentManager';
+import { updateOfficeEditorCommentMessage } from 'helpers/officeEditorCommentHelper';
 import { isMobile } from 'helpers/device';
-
-import core from 'core';
+import useCore from 'hooks/useCore';
 import { getDataWithKey, mapAnnotationToKey, annotationMapKeys } from 'constants/map';
 import Theme from 'constants/theme';
 import useDidUpdate from 'hooks/useDidUpdate';
@@ -46,7 +47,7 @@ const propTypes = {
   annotation: PropTypes.object.isRequired,
   isEditing: PropTypes.bool,
   setIsEditing: PropTypes.func,
-  noteIndex: PropTypes.number,
+  editingKey: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   isUnread: PropTypes.bool,
   isNonReplyNoteRead: PropTypes.bool,
   onReplyClicked: PropTypes.func,
@@ -54,13 +55,14 @@ const propTypes = {
   isMultiSelectMode: PropTypes.bool,
   handleMultiSelect: PropTypes.func,
   isGroupMember: PropTypes.bool,
+  handleNoteClick: PropTypes.func,
 };
 
 const NoteContent = ({
   annotation,
   isEditing,
   setIsEditing,
-  noteIndex,
+  editingKey,
   isUnread,
   isNonReplyNoteRead,
   onReplyClicked,
@@ -68,7 +70,10 @@ const NoteContent = ({
   isMultiSelectMode,
   handleMultiSelect,
   isGroupMember,
+  handleNoteClick = () => {},
 }) => {
+
+  const { core } = useCore();
   const noteDateFormat = useSelector((state) => selectors.getNoteDateFormat(state));
   const iconColor = useSelector((state) => selectors.getIconColor(state, mapAnnotationToKey(annotation), shallowEqual));
   const isNoteStateDisabled = useSelector((state) => selectors.isElementDisabled(state, 'noteStateFlyout'));
@@ -93,6 +98,7 @@ const NoteContent = ({
 
   const dispatch = useDispatch();
   const [t] = useTranslation();
+  const store = useStore();
 
   const isReply = annotation.isReply();
   const isTrackedChange = mapAnnotationToKey(annotation) === annotationMapKeys.TRACKED_CHANGE;
@@ -147,6 +153,12 @@ const NoteContent = ({
 
   const skipAutoLink = annotation.getSkipAutoLink && annotation.getSkipAutoLink();
 
+  const trackedChangeLabels = {
+    1: t('officeEditor.added'),
+    2: t('officeEditor.deleted'),
+    3: t('officeEditor.formatted'),
+  };
+
   const renderContents = useCallback(
     (contents, richTextStyle, fontColor, skipAutoLink) => {
       const autolinkerContent = [];
@@ -188,8 +200,11 @@ const NoteContent = ({
             if (!isTrackedChange) {
               return null;
             }
-            const text = annotation['TrackedChangeType'] === 1 ? t('officeEditor.added') : t('officeEditor.deleted');
-            return <span style={{ color: annotation.FillColor.toString(), fontWeight: 700 }}>{text}</span>;
+
+            const text = trackedChangeLabels[annotation['TrackedChangeType']];
+            return text && (
+              <span style={{ color: annotation.FillColor.toString(), fontWeight: 700 }}>{text}</span>
+            );
           };
 
           return (
@@ -238,15 +253,23 @@ const NoteContent = ({
     [searchInput],
   );
 
-  const icon = getDataWithKey(mapAnnotationToKey(annotation)).icon;
+  const icon = isTrackedChange && annotation['TrackedChangeType'] === 3 ?
+    'ic-format-page' :
+    getDataWithKey(mapAnnotationToKey(annotation)).icon;
+
   let customData;
   try {
     customData = JSON.parse(annotation.getCustomData('trn-mention'));
   } catch (e) {
     customData = annotation.getCustomData('trn-mention');
   }
-  const contents = customData?.contents || annotation.getContents();
-  const contentsToRender = annotation.getContents();
+
+  let contents = customData?.contents || annotation.getContents();
+  contents = sanitizeContent(contents);
+
+  // for link annotations we want to get their URL. We are unable to use "getContents" to get that data, need to use "getLinkDestination" instead
+  const contentsToRender = annotation instanceof window.Core.Annotations.Link ? getLinkDestination(annotation, store) : annotation.getContents();
+
   const richTextStyle = annotation.getRichTextStyle();
   let textColor = annotation['TextColor'];
 
@@ -296,17 +319,11 @@ const NoteContent = ({
         // already editing, do nothing
       } else if (isSelected && setIsEditing && core.canModifyContents(annotation)) {
         // if already selected, enter edit mode on click
-        setIsEditing(true, noteIndex);
+        setIsEditing(true, editingKey);
       } else {
         // collapse expanded note when top noteContent is clicked if it's not being edited
         onTopNoteContentClicked();
       }
-    }
-  };
-
-  const handleContentsClicked = (e) => {
-    if (window.getSelection()?.toString()) {
-      e?.stopPropagation();
     }
   };
 
@@ -329,7 +346,7 @@ const NoteContent = ({
         {isEditing && isSelected ? (
           <ContentArea
             annotation={annotation}
-            noteIndex={noteIndex}
+            noteIndex={editingKey}
             setIsEditing={setIsEditing}
             textAreaValue={textAreaValue}
             onTextAreaValueChange={setPendingEditText}
@@ -337,7 +354,7 @@ const NoteContent = ({
           />
         ) : (
           contentsToRender && (
-            <div className={classNames('container', { 'reply-content': isReply })} onClick={handleContentsClicked}>
+            <div className={classNames('container', { 'reply-content': isReply })} onClick={handleNoteClick}>
               {isReply && attachments.length > 0 && <ReplyAttachmentList files={attachments} isEditing={false} />}
               {renderContents(contentsToRender, richTextStyle, contentStyle, skipAutoLink)}
             </div>
@@ -381,6 +398,7 @@ const NoteContent = ({
       </div>
     );
   }, [text, searchInput]);
+  void textPreview;
 
   const header = useMemo(() => {
     return (
@@ -399,7 +417,7 @@ const NoteContent = ({
         renderAnnotationReference={renderAnnotationReference}
         isNoteStateDisabled={isNoteStateDisabled}
         isEditing={isEditing}
-        noteIndex={noteIndex}
+        editingKey={editingKey}
         sortStrategy={sortStrategy}
         activeTheme={activeTheme}
         handleMultiSelect={handleMultiSelect}
@@ -426,7 +444,7 @@ const NoteContent = ({
     core.getDisplayAuthor(annotation['Author']),
     isNoteStateDisabled,
     isEditing,
-    noteIndex,
+    editingKey,
     getLatestActivityDate(annotation),
     sortStrategy,
     handleMultiSelect,
@@ -517,15 +535,15 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
       window.removeEventListener(AnnotationCustomEvents.ANNOTATION_SAVED_STATE_CHANGED, handleAnnotationStateChange);
     };
   }, [annotation]);
-
   const [
-    autoFocusNoteOnAnnotationSelection,
+    autoFocusNoteOnAnnotationSelectionEnabled,
     isMentionEnabled,
     isInlineCommentDisabled,
     isInlineCommentOpen,
     isNotesPanelOpen,
     activeDocumentViewerKey,
     isAnyCustomPanelOpen,
+    isNoteEditingTriggeredByAnnotationPopup,
   ] = useSelector((state) => [
     selectors.getAutoFocusNoteOnAnnotationSelection(state),
     selectors.getIsMentionEnabled(state),
@@ -534,14 +552,24 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
     selectors.isElementOpen(state, DataElements.NOTES_PANEL),
     selectors.getActiveDocumentViewerKey(state),
     selectors.isAnyCustomPanelOpen(state),
+    selectors.getIsNoteEditing(state),
   ]);
   const [t] = useTranslation();
   const textareaRef = useRef();
   const isReply = annotation.isReply();
-  const { setCurAnnotId, pendingAttachmentMap, deleteAttachment, clearAttachments, addAttachments } =
-    useContext(NoteContext);
+  const {
+    setCurAnnotId,
+    pendingAttachmentMap,
+    deleteAttachment,
+    clearAttachments,
+    addAttachments,
+    isOfficeEditorCommentAnnotation,
+  } = useContext(NoteContext);
 
   const shouldNotFocusOnInput = !isInlineCommentDisabled && isInlineCommentOpen && isMobile();
+  const autoFocusNoteOnAnnotationSelection =
+    autoFocusNoteOnAnnotationSelectionEnabled && (!isOfficeEditorCommentAnnotation || isNoteEditingTriggeredByAnnotationPopup);
+  const { core } = useCore();
 
   const debouncedSetContents = useRef(
     debounce(() => {
@@ -597,7 +625,7 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
             }
           }
 
-          if (shouldNotFocusOnInput) {
+          if (shouldNotFocusOnInput || !autoFocusNoteOnAnnotationSelection) {
             return;
           }
 
@@ -614,7 +642,7 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
       const lastNewLineCharacterLength = 1;
       const textLength = editor.getLength() - lastNewLineCharacterLength;
 
-      if (shouldNotFocusOnInput) {
+      if (shouldNotFocusOnInput || !autoFocusNoteOnAnnotationSelection) {
         return;
       }
 
@@ -624,7 +652,7 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
         }
       }, 100);
     }
-  }, [isNotesPanelOpen, isInlineCommentOpen, shouldNotFocusOnInput]);
+  }, [isNotesPanelOpen, isInlineCommentOpen, shouldNotFocusOnInput, autoFocusNoteOnAnnotationSelection]);
 
   useEffect(() => {
     if (isReply && pendingAttachments.length === 0) {
@@ -644,12 +672,28 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
     }
     setAnnotationRichTextStyle(editor, annotation);
 
+    const hasTrailingNewlineToRemove = textAreaValue.length > 1 && textAreaValue[textAreaValue.length - 1] === '\n';
+    if (hasTrailingNewlineToRemove) {
+      textAreaValue = textAreaValue.slice(0, textAreaValue.length - 1);
+    }
+
     const skipAutoLink = annotation.getSkipAutoLink && annotation.getSkipAutoLink();
     if (skipAutoLink) {
       annotation.disableSkipAutoLink();
     }
 
-    if (isMentionEnabled) {
+    if (isOfficeEditorCommentAnnotation) {
+      const didUpdate = await updateOfficeEditorCommentMessage({
+        annotation,
+        text: textAreaValue,
+        core,
+      });
+      if (!didUpdate) {
+        return;
+      }
+    }
+
+    if (isMentionEnabled && !isOfficeEditorCommentAnnotation) {
       const { plainTextValue, ids } = mentionsManager.extractMentionDataFromStr(textAreaValue);
 
       // If modified, double check for ids
@@ -771,7 +815,7 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
 };
 
 ContentArea.propTypes = {
-  noteIndex: PropTypes.number.isRequired,
+  noteIndex: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
   annotation: PropTypes.object.isRequired,
   setIsEditing: PropTypes.func.isRequired,
   textAreaValue: PropTypes.string,
@@ -887,3 +931,15 @@ const highlightSearchInput = (fullText, searchInput, richTextStyle, start = 0, e
   });
   return contentToRender;
 };
+
+/**
+ * @ignore
+ * Sanitizes the given content to prevent XSS attacks by converting HTML characters
+ * into their encoded equivalents.
+ *
+ * @param {string} content - The content to sanitize.
+ * @returns {string} The sanitized content, or the original content if no changes are needed.
+ */
+function sanitizeContent(content) {
+  return content ? escape(content) : content;
+}

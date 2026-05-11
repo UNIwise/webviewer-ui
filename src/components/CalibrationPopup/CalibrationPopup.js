@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import selectors from 'selectors';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import actions from 'actions';
-import { Choice } from '@pdftron/webviewer-react-toolkit';
+import Choice from 'components/Choice';
 import Dropdown from '../Dropdown';
 import Tooltip from '../Tooltip';
 import PropTypes from 'prop-types';
@@ -58,6 +58,7 @@ const CalibrationPropType = {
 
 const CalibrationPopup = ({ annotation }) => {
   const [t] = useTranslation();
+  const { core } = useCore();
   const dispatch = useDispatch();
 
   const [
@@ -195,7 +196,7 @@ const CalibrationPopup = ({ annotation }) => {
 
   return (
     <div className="CalibrationPopup" data-element="calibrationPopup">
-      <label className="calibration-popup-label" htmlFor='calibration-popup-value'>{t('option.measurement.scaleModal.units')}</label>
+      <label className="calibration-popup-label" id='calibration-popup-label' htmlFor='calibration-popup-value'>{t('option.measurement.scaleModal.units')}</label>
       <div className="input-container">
         <input
           id='calibration-popup-value'
@@ -211,10 +212,12 @@ const CalibrationPopup = ({ annotation }) => {
         <Tooltip content={'option.measurement.scaleModal.displayUnits'}>
           <div className="input-field">
             <Dropdown
+              id="calibration-popup-units"
               dataElement="calibrationUnits"
               items={unitToOptions}
               currentSelectionKey={unitTo}
               onClickItem={setUnitTo}
+              labelledById='calibration-popup-label'
             />
           </div>
         </Tooltip>

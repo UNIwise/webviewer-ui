@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import actions from 'actions';
 import selectors from 'selectors';
-import core from 'core';
 import DocumentCropPopup from './DocumentCropPopup';
 import './DocumentCropPopup.scss';
 import Draggable from 'react-draggable';
@@ -11,22 +10,26 @@ import { isMobileSize } from 'helpers/getDeviceSize';
 import getRootNode from 'helpers/getRootNode';
 import DataElements from 'constants/dataElement';
 import MobilePopupWrapper from '../MobilePopupWrapper';
+import useDraggablePosition from '../../hooks/useDraggablePosition';
+import useCore from 'hooks/useCore';
+
+export function focusActiveIcon(e) {
+  if (e && e.nativeEvent.pointerType === '') {
+    const activeToolBtn = getRootNode().querySelector('.active.ToolButton');
+    activeToolBtn.focus();
+  }
+}
 
 function DocumentCropPopupContainer() {
+  const { core, documentViewer } = useCore();
   const cropCreateTool = core.getTool(window.Core.Tools.ToolNames['CROP']);
-  const [
-    isOpen,
-    isInDesktopOnlyMode,
-    shouldShowApplyCropWarning,
-    presetCropDimensions,
-  ] = useSelector((state) => [
-    selectors.getActiveToolName(state) === window.Core.Tools.ToolNames['CROP'] &&
-    selectors.isElementOpen(state, DataElements.DOCUMENT_CROP_POPUP),
-    selectors.isInDesktopOnlyMode(state),
-    selectors.shouldShowApplyCropWarning(state),
-    selectors.getPresetCropDimensions(state),
-  ]);
+  const activeToolName = useSelector(selectors.getActiveToolName);
+  const isDocumentCropPopupOpen = useSelector((state) => selectors.isElementOpen(state, DataElements.DOCUMENT_CROP_POPUP));
+  const isInDesktopOnlyMode = useSelector(selectors.isInDesktopOnlyMode);
+  const shouldShowApplyCropWarning = useSelector(selectors.shouldShowApplyCropWarning);
+  const presetCropDimensions = useSelector(selectors.getPresetCropDimensions);
 
+  const isOpen = activeToolName === window.Core.Tools.ToolNames['CROP'] && isDocumentCropPopupOpen;
   const dispatch = useDispatch();
   const [isCropping, setIsCropping] = useState(cropCreateTool.getIsCropping());
 
@@ -34,7 +37,7 @@ function DocumentCropPopupContainer() {
 
   const openDocumentCropPopup = () => {
     dispatch(actions.openElement(DataElements.DOCUMENT_CROP_POPUP));
-    setSelectedPages(cropCreateTool.getPagesToCrop());
+    setSelectedPages(cropCreateTool.getPagesToCrop() || []);
     // eslint-disable-next-line no-undef
     dispatch(actions.closeElements(elementsToClose));
     setIsCropping(cropCreateTool.getIsCropping());
@@ -61,7 +64,7 @@ function DocumentCropPopupContainer() {
       cropCreateTool.removeEventListener('cropModeChanged', handleCropModeChange);
       core.removeEventListener('toolModeUpdated', handleToolModeChange);
     };
-  });
+  }, [core]);
 
   const disableHeader = () => {
     const header = getRootNode().querySelector('[data-element=header]');
@@ -105,9 +108,10 @@ function DocumentCropPopupContainer() {
   const [cropMode, setCropMode] = useState(null);
 
   useEffect(() => {
-    cropCreateTool.setCropMode('ALL_PAGES');
-    setCropMode('ALL_PAGES');
-  }, []);
+    const modeToSet = cropMode || 'ALL_PAGES';
+    cropCreateTool.setCropMode(modeToSet);
+    setCropMode(modeToSet);
+  }, [cropCreateTool]);
 
   const onCropModeChange = (cropName) => {
     cropCreateTool.setCropMode(cropName);
@@ -129,42 +133,11 @@ function DocumentCropPopupContainer() {
   };
 
   const cropPopupRef = useRef();
-  const DEFAULT_POPUP_WIDTH = 250;
-  const DEFAULT_POPUP_HEIGHT = 250;
-  const documentContainerElement = core.getScrollViewElement();
-  const popupWidth = cropPopupRef.current?.getBoundingClientRect().width || DEFAULT_POPUP_WIDTH;
-  const popupHeight = cropPopupRef.current?.getBoundingClientRect().height || DEFAULT_POPUP_HEIGHT;
-  const documentViewer = core.getDocumentViewer(1);
-
-  const docContainer = getRootNode().querySelector('.DocumentContainer');
-  const xOffset = docContainer?.getBoundingClientRect().width || 0;
-
-  const cropPopupOffset = () => {
-    const offset = {
-      x: xOffset - popupWidth - 20,
-      y: documentContainerElement?.offsetTop + 10,
-    };
-    if (cropAnnotation && cropPopupRef?.current) {
-      offset.x = Math.min(offset.x, documentContainerElement.offsetWidth - popupWidth);
-    }
-    return offset;
-  };
-
-  const cropPopupBounds = () => {
-    const bounds = {
-      top: 0,
-      bottom: documentContainerElement.offsetHeight - popupHeight,
-      left: 0 - cropPopupOffset()['x'],
-      right: documentContainerElement.offsetWidth - cropPopupOffset()['x'] - popupWidth,
-    };
-    return bounds;
-  };
+  const { position, handleDrag, handleStop, containerRef, setOverlayRef, initialOffset, dragBounds } = useDraggablePosition('top-right');
 
   const closeAndReset = () => {
     cropCreateTool.reset();
     if (cropMode === 'MULTI_PAGE') {
-      // eslint-disable-next-line no-undef
-      setPagesToCrop([]);
       cropCreateTool.setPagesToCrop([]);
     }
     dispatch(actions.closeElement(DataElements.DOCUMENT_CROP_POPUP));
@@ -172,19 +145,24 @@ function DocumentCropPopupContainer() {
     core.setToolMode(window.Core.Tools.ToolNames.CROP);
   };
 
-  const closeDocumentCropPopup = useCallback(() => {
-    closeAndReset();
-  }, []);
+  const closeDocumentCropPopup = useCallback(
+    (e) => {
+      closeAndReset();
+      focusActiveIcon(e);
+    },
+    [core, cropCreateTool, dispatch, closeAndReset, focusActiveIcon],
+  );
 
   // disable/enable the 'apply' button when cropping
   useEffect(() => {
     setIsCropping(cropCreateTool.getIsCropping());
   }, [cropAnnotation]);
 
-  const applyCrop = () => {
+  const applyCrop = (e) => {
     cropCreateTool.applyCrop();
     cropCreateTool.reset();
     reenableHeader();
+    focusActiveIcon(e);
   };
 
   const getPageHeight = useCallback((pageNumber) => {
@@ -192,29 +170,26 @@ function DocumentCropPopupContainer() {
       return core.getPageWidth(pageNumber);
     }
     return core.getPageHeight(pageNumber);
-  }, []);
+  }, [core]);
 
   const getPageWidth = useCallback((pageNumber) => {
     if (isPageRotated(pageNumber)) {
       return core.getPageHeight(pageNumber);
     }
     return core.getPageWidth(pageNumber);
-  }, []);
+  }, [core]);
 
   const isPageRotated = useCallback((pageNumber) => {
-    // eslint-disable-next-line no-undef
     return documentViewer?.getDocument().getPageRotation(pageNumber) % 180 !== 0;
-  });
+  }, [documentViewer]);
 
   const getPageCount = useCallback(() => {
-    // eslint-disable-next-line no-undef
     return documentViewer?.getPageCount();
-  });
+  }, [documentViewer]);
 
   const getCurrentPage = useCallback(() => {
-    // eslint-disable-next-line no-undef
     return documentViewer?.getCurrentPage();
-  });
+  }, [documentViewer]);
 
   const redrawCropAnnotations = useCallback((rect) => {
     const cropAnnotations = core
@@ -227,7 +202,9 @@ function DocumentCropPopupContainer() {
       annot.setRect(rect);
       core.getAnnotationManager().drawAnnotationsFromList([annot]);
     });
-  }, []);
+  }, [core]);
+
+  const isMobile = isMobileSize();
 
   const props = {
     cropAnnotation,
@@ -247,9 +224,8 @@ function DocumentCropPopupContainer() {
     onSelectedPagesChange,
     shouldShowApplyCropWarning,
     presetCropDimensions,
+    isMobile,
   };
-
-  const isMobile = isMobileSize();
 
   if (isOpen && core.getDocument()) {
     if (isMobile && !isInDesktopOnlyMode) {
@@ -265,10 +241,20 @@ function DocumentCropPopupContainer() {
     return (
       <Draggable
         cancel={'input, button, .collapsible-menu, .ui__choice__label'}
-        positionOffset={cropPopupOffset()}
-        bounds={cropPopupBounds()}
+        position={position}
+        bounds={dragBounds}
+        onDrag={handleDrag}
+        onStop={handleStop}
       >
-        <div className="DocumentCropPopupContainer" ref={cropPopupRef}>
+        <div
+          className="DocumentCropPopupContainer"
+          ref={(el) => {
+            cropPopupRef.current = el;
+            containerRef.current = el;
+            setOverlayRef(el);
+          }}
+          style={initialOffset}
+        >
           <DocumentCropPopup {...props} />
         </div>
       </Draggable>

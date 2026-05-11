@@ -25,8 +25,9 @@ export const LIST_OPTIONS = {
 };
 
 export const DEFAULT_POINT_SIZE = 11;
+export const DEFAULT_COLOR = new window.Core.Annotations.Color(0, 0, 0, 1);
 
-const OfficeEditorListStylePresets = window.Core.Document.OfficeEditorListStylePresets;
+const OfficeEditorListStylePresets = window.Core.Document.OfficeEditor.ListStylePresets;
 export const OFFICE_BULLET_OPTIONS = [
   { enum: OfficeEditorListStylePresets.BULLET, img: 'icon-office-editor-list-style-bullet' },
   { enum: OfficeEditorListStylePresets.BULLET_SQUARE, img: 'icon-office-editor-list-style-square' },
@@ -45,13 +46,15 @@ export const OFFICE_NUMBER_OPTIONS = [
 ];
 
 export const OFFICE_EDITOR_TRACKED_CHANGE_KEY = 'officeEditorTrackedChangeUID';
+export const OFFICE_EDITOR_COMMENT_KEY = 'officeEditorCommentUID';
 
-export const OFFICE_EDITOR_EDIT_MODE = {
-  EDITING: 'editing',
-  REVIEWING: 'reviewing',
-  VIEW_ONLY: 'viewOnly',
-  PREVIEW: 'preview'
-};
+export const OfficeEditorEditMode = window.Core.Document.OfficeEditor.EditMode;
+
+export const EditingStreamType = window.Core.Document.OfficeEditor.EditingStreamType;
+
+export const EditOperationSource = window.Core.Document.OfficeEditor.EditOperationSource;
+
+export const DocElementType = window.Core.Document.OfficeEditor.DocumentElementType;
 
 export const OFFICE_EDITOR_SCOPE = 'office-editor';
 
@@ -61,19 +64,22 @@ export const ELEMENTS_TO_DISABLE_IN_OFFICE_EDITOR = [
   'viewControlsButton',
   'textPopup',
   'marqueeToolButton',
-  'outlinesPanelButton',
-  'outlinesPanel',
-  'leftPanelButton',
-  'annotationPopup',
+  DataElements.OUTLINE_PANEL_BUTTON,
+  DataElements.OUTLINE_PANEL,
+  DataElements.LEFT_PANEL_BUTTON,
+  DataElements.ANNOTATION_POPUP,
   DataElements.NotesPanel.DefaultHeader.FILTER_ANNOTATION_BUTTON,
   DataElements.ANNOTATION_NOTE_CONNECTOR_LINE,
   DataElements.ANNOTATION_CONTENT_OVERLAY,
+  DataElements.NOTE_STATE_FLYOUT,
 ];
 
 export const ELEMENTS_TO_ENABLE_IN_OFFICE_EDITOR = [
   DataElements.OFFICE_EDITOR_TOOLS_HEADER,
-  DataElements.INLINE_COMMENT_POPUP
+  DataElements.INLINE_COMMENT_POPUP,
+  DataElements.SEARCH_PANEL_REPLACE_CONTAINER
 ];
+
 
 export const AVAILABLE_POINT_SIZES = ['8', '9', '10', '11', '12', '14', '18', '24', '30', '36', '48', '60', '72'];
 
@@ -113,3 +119,54 @@ export const AVAILABLE_STYLE_PRESET_MAP = {
   },
 };
 /* eslint-enable custom/no-hex-colors */
+
+export const HEADER_FOOTER_BAR_DEFAULT_POSITION = 100;
+
+export const LAYOUT_UNITS = window.Core.Document.OfficeEditor.LayoutUnits;
+
+export const EDIT_OPERATION_SOURCE = window.Core.Document.OfficeEditor.EditOperationSource;
+
+export const MARGIN_UNIT_LABELS = {
+  CM: 'cm',
+  MM: 'mm',
+  INCH: '"',
+  PHYSICAL_POINT: 'pt',
+};
+
+// MARGIN_VALUES in centimeters
+export const MARGIN_VALUES = {
+  NORMAL: 2.54,
+  NARROW: 1.27,
+  MODERATE: 1.905,
+  WIDE: 5.08,
+};
+
+export const COLUMN_INPUT_TYPES = {
+  WIDTH: 'width',
+  SPACING: 'spacing',
+};
+
+export const MARGIN_SIDES = {
+  TOP: 'top',
+  BOTTOM: 'bottom',
+  LEFT: 'left',
+  RIGHT: 'right'
+};
+
+export const PAGE_LAYOUT_WARNING_TYPE = {
+  COLUMN: 'column',
+  MARGIN: 'margin',
+};
+
+export const VERTICAL_MARGIN_LIMIT = window.Core.Document.OfficeEditor.VERTICAL_MARGIN_LIMIT; // 0.4
+
+export const DEFAULT_COLUMN_SPACING_IN_POINTS = window.Core.Document.OfficeEditor.DEFAULT_COLUMN_SPACING_IN_POINTS; // 36
+
+export const MINIMUM_COLUMN_WIDTH_IN_POINTS = window.Core.Document.OfficeEditor.MINIMUM_COLUMN_WIDTH_IN_POINTS; // 36
+
+export const OFFICE_EDITOR_TRANSLATION_PREFIX = 'officeEditor.';
+
+// TODO: Can we accept any other image formats?
+export const OFFICE_EDITOR_ACCEPTED_IMAGE_FORMATS = ['jpg', 'jpeg', 'png', 'bmp'].map(
+  (format) => `.${format}`,
+).join(', ');

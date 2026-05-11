@@ -1,13 +1,11 @@
-@import "../../constants/styles";
-@import "../../constants/modal";
-@import "../../constants/tabs";
+@import '../../constants/styles';
+@import '../../constants/modal';
+@import '../../constants/tabs';
 
 .CreatePortfolioModal {
   @extend %modal;
 
-  .container {
-    @extend %modal-shared-container-style;
-    @extend %modal-shared-container-style-mobile;
+  .content-container {
     @extend %tab-list;
     @extend %tab-panel;
 
@@ -18,8 +16,12 @@
     height: 604px;
     padding: 0px;
     border-radius: 4px;
-    box-shadow: 0px 0px 3px var(--document-box-shadow);
+    overflow-y: visible;
     background: var(--component-background);
+
+    @include mobile {
+      width: 100%;
+    }
 
     .header {
       display: flex;
@@ -88,8 +90,27 @@
           height: 1px;
           visibility: hidden;
           position: absolute;
-          left: 100px;
-          top: 30px;
+          inset-inline-start: 100px;
+          inset-block-start: 30px;
+        }
+      }
+
+      .create-portfolio {
+        @extend %default-button-selected;
+        min-width: 72px;
+        width: fit-content;
+        padding: var(--padding-tiny);
+
+        @include mobile {
+          font-size: 13px;
+        }
+
+        &:enabled:hover {
+          background: var(--primary-button-hover);
+        }
+
+        &:disabled {
+          @extend %default-button-disabled;
         }
       }
 
@@ -110,11 +131,11 @@
         }
       }
     }
+
     @include tab-border-defaults;
   }
 
-  &.is-editing .container {
-
+  &.is-editing .content-container {
     .header {
       margin-bottom: 20px;
     }
@@ -128,7 +149,7 @@
         .Icon {
           width: 16px;
           height: 16px;
-          margin-right: 4px;
+          margin-inline-end: 4px;
         }
       }
     }

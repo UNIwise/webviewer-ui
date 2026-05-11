@@ -10,8 +10,8 @@
 
   @include mobile {
     position: fixed;
-    left: 0;
-    bottom: 0;
+    inset-inline-start: 0;
+    inset-block-end: 0;
     z-index: 100;
     flex-direction: column;
     justify-content: flex-end;
@@ -84,19 +84,19 @@
       box-shadow: none;
     }
 
-    &>div:not(:nth-last-child(2)) {
+    & > div:not(:nth-last-child(2)) {
       @include mobile {
         flex-grow: 0;
       }
     }
 
-    &>div:nth-last-child(2) {
+    & > div:nth-last-child(2) {
       @include mobile {
         flex-grow: 1;
       }
     }
 
-    &>.NoteContent:only-child {
+    & > .NoteContent:only-child {
       @include mobile {
         flex-grow: 1;
       }
@@ -119,10 +119,6 @@
     margin-top: 16px;
   }
 
-  .note-popup-options:not(.options-reply) {
-    top: 33px;
-  }
-
   .quill,
   .ql-container,
   .ql-editor {
@@ -133,7 +129,7 @@
 
   .Button {
     margin: 0;
-  
+
     &.add-attachment,
     &.reply-button {
       margin: 0;

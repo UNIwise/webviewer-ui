@@ -1,11 +1,14 @@
-import React, { useState, useCallback, useContext, useEffect, useLayoutEffect, forwardRef, useImperativeHandle, useRef } from 'react';
+import React, { useState, useCallback, useContext, useEffect, forwardRef, useImperativeHandle, useRef } from 'react';
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector, useDispatch, shallowEqual } from 'react-redux';
 import { DragSource, DropTarget } from 'react-dnd';
 import { getEmptyImage } from 'react-dnd-html5-backend';
 import { ItemTypes, DropLocation, BUFFER_ROOM } from 'constants/dnd';
+// For canDrag() function
+// eslint-disable-next-line custom/use-core-hook-in-components
 import core from 'core';
+import useCore from 'hooks/useCore';
 import actions from 'actions';
 import selectors from 'selectors';
 
@@ -16,8 +19,6 @@ import { isMobile, isIE } from 'helpers/device';
 import OutlineContext from './Context';
 import OutlineContent from 'src/components/OutlineContent';
 import DataElementWrapper from '../DataElementWrapper';
-import Choice from '../Choice';
-import Button from '../Button';
 
 import './Outline.scss';
 import '../../constants/bookmarksOutlinesShared.scss';
@@ -34,6 +35,12 @@ const propTypes = {
   isDragging: PropTypes.bool,
   isDraggedUpwards: PropTypes.bool,
   isDraggedDownwards: PropTypes.bool,
+};
+
+export const shouldExpandOutline = (activeOutlinePath, outlinePath) => {
+  return activeOutlinePath !== null
+    && activeOutlinePath !== outlinePath
+    && activeOutlinePath.startsWith(`${outlinePath}-`);
 };
 
 const Outline = forwardRef(
@@ -53,27 +60,30 @@ const Outline = forwardRef(
     },
     ref
   ) {
-    const outlines = useSelector((state) => selectors.getOutlines(state));
+    const { core } = useCore();
+    const activeDocumentViewerKey = useSelector((state) => selectors.getActiveDocumentViewerKey(state));
+    const outlinePath = outlineUtils.getPath(outline);
+    const outlineState = useSelector(
+      (state) => selectors.getOutlinesStateMap(state, activeDocumentViewerKey)?.[outlinePath],
+      shallowEqual
+    );
+
     const {
       setActiveOutlinePath,
       activeOutlinePath,
       isOutlineActive,
-      setAddingNewOutline,
+      setIsAddingNewOutline,
       isAddingNewOutline,
-      isAnyOutlineRenaming,
       isMultiSelectMode,
       shouldAutoExpandOutlines,
       isOutlineEditable,
-      selectedOutlines,
       updateOutlines,
     } = useContext(OutlineContext);
 
-    const outlinePath = outlineUtils.getPath(outline);
+    const isExpanded = shouldAutoExpandOutlines || outlineState?.isExpanded || false;
+    const isRenaming = outlineState?.isRenaming || false;
+    const isChangingDest = outlineState?.isChangingDest || false;
 
-    const [isExpanded, setIsExpanded] = useState(shouldAutoExpandOutlines);
-    const [isSelected, setIsSelected] = useState(selectedOutlines.includes(outlinePath));
-    const [isRenaming, setIsRenaming] = useState(false);
-    const [isChangingDest, setChangingDest] = useState(false);
     const [clearSingleClick, setClearSingleClick] = useState(undefined);
 
     const dispatch = useDispatch();
@@ -87,36 +97,26 @@ const Outline = forwardRef(
       getNode: () => elementRef.current,
     }));
 
+    const updateIsExpanded = useCallback((isExpanded) => {
+      dispatch(actions.setOutlinesStateMap(outlinePath, { isExpanded }, activeDocumentViewerKey));
+    }, [dispatch, outlinePath, activeDocumentViewerKey]);
+
+    const updateIsRenaming = useCallback((isRenaming) => {
+      dispatch(actions.setOutlinesStateMap(outlinePath, { isRenaming }, activeDocumentViewerKey));
+    }, [dispatch, outlinePath, activeDocumentViewerKey]);
+
+    const updateIsOutlineChangingDest = useCallback((isChangingDest) => {
+      dispatch(actions.setOutlinesStateMap(outlinePath, { isChangingDest }, activeDocumentViewerKey));
+    }, [dispatch, outlinePath, activeDocumentViewerKey]);
+
     useEffect(() => {
-      const shouldExpandOutline =
-        activeOutlinePath !== null
-        && activeOutlinePath !== outlinePath
-        && activeOutlinePath.startsWith(outlinePath);
-      if (shouldExpandOutline) {
-        setIsExpanded(true);
+      if (shouldExpandOutline(activeOutlinePath, outlinePath)) {
+        updateIsExpanded(true);
       }
-    }, [activeOutlinePath, isAddingNewOutline, outline]);
-
-    useLayoutEffect(() => {
-      setIsExpanded(shouldAutoExpandOutlines);
-    }, [shouldAutoExpandOutlines]);
-
-    useLayoutEffect(() => {
-      setIsRenaming(false);
-      setChangingDest(false);
-
       if (isAddingNewOutline && activeOutlinePath === outlinePath) {
-        setIsExpanded(true);
+        updateIsExpanded(true);
       }
-    }, [outlines]);
-
-    useEffect(() => {
-      setIsSelected(selectedOutlines.includes(outlinePath));
-    }, [selectedOutlines]);
-
-    const toggleOutline = useCallback(() => {
-      setIsExpanded((expand) => !expand);
-    }, []);
+    }, [activeOutlinePath, isAddingNewOutline, outlinePath, updateIsExpanded]);
 
     const onSingleClick = useCallback(() => {
       core.goToOutline(outline);
@@ -127,14 +127,14 @@ const Outline = forwardRef(
 
 
       if (isAddingNewOutline) {
-        setAddingNewOutline(false);
+        setIsAddingNewOutline(false);
         updateOutlines();
       }
 
       if (isMobile()) {
         dispatch(actions.closeElement('leftPanel'));
       }
-    }, [dispatch, setActiveOutlinePath, activeOutlinePath, isAddingNewOutline, outline]);
+    }, [dispatch, setActiveOutlinePath, activeOutlinePath, isAddingNewOutline, core, outline]);
 
     const isActive = isOutlineActive(outline);
 
@@ -147,7 +147,7 @@ const Outline = forwardRef(
 
     return (
       <div
-        ref={(!isAddingNewOutline && !isAnyOutlineRenaming && isMultiSelectMode && isOutlineEditable) ? elementRef : null}
+        ref={(!isAddingNewOutline && isMultiSelectMode && isOutlineEditable) ? elementRef : null}
         className="outline-drag-container"
         style={{ opacity }}
       >
@@ -158,11 +158,14 @@ const Outline = forwardRef(
             'editing': isRenaming || isChangingDest,
             'default': !isRenaming && !isChangingDest,
             'selected': isActive,
-            'hover': isActive,
           })}
           tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && onSingleClick()}
+          onKeyDown={(e) => {
+            e.key === 'Enter' && onSingleClick();
+            e.stopPropagation();
+          }}
           onClick={(e) => {
+            e.stopPropagation();
             if (!isRenaming && !isChangingDest && e.detail === 1) {
               setClearSingleClick(setTimeout(onSingleClick, 300));
             }
@@ -173,66 +176,27 @@ const Outline = forwardRef(
             }
           }}
         >
-          {isMultiSelectMode &&
-            <Choice
-              type="checkbox"
-              className="bookmark-outline-checkbox"
-              id={`outline-checkbox-${outlinePath}`}
-              aria-label={outline.getName()}
-              checked={isSelected}
-              onClick={(e) => e.stopPropagation()}
-              onChange={(e) => {
-                setIsSelected(e.target.checked);
-                setMultiSelected(outlinePath, e.target.checked);
-              }}
-            />
-          }
-
-          <div
-            className={classNames({
-              'outline-treeview-toggle': true,
-              expanded: isExpanded,
-            })}
-            style={{ marginLeft: outlineUtils.getNestedLevel(outline) * 12, display: isRenaming ? 'none' : 'block' }}
-          >
-            {outline.getChildren().length > 0 &&
-              <Button
-                img="icon-chevron-right"
-                tabIndex={0}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleOutline();
-                }}
-              />
-            }
-          </div>
-
           <OutlineContent
             text={outline.getName()}
             outlinePath={outlinePath}
-            isOutlineRenaming={isRenaming}
-            setOutlineRenaming={setIsRenaming}
-            isOutlineChangingDest={isChangingDest}
-            setOutlineChangingDest={setChangingDest}
+            isRenaming={isRenaming}
+            isExpanded={isExpanded}
+            updateIsExpanded={updateIsExpanded}
+            updateIsRenaming={updateIsRenaming}
+            isChangingDest={isChangingDest}
+            updateIsChangingDest={updateIsOutlineChangingDest}
             textColor={outline.color ? convertRgbObjectToRgbString(outline.color) : null}
-            isAnyOutlineRenaming={isAnyOutlineRenaming}
-          />
+            setMultiSelected={setMultiSelected}
+            moveOutlineInward={moveOutlineInward}
+            moveOutlineBeforeTarget={moveOutlineBeforeTarget}
+            moveOutlineAfterTarget={moveOutlineAfterTarget}
+          >
+            {outline.getChildren()}
+          </OutlineContent>
         </DataElementWrapper>
 
         <div className="outline-drag-line" style={{ opacity: isDraggedDownwards ? 1 : 0 }} />
 
-        {isExpanded &&
-          outline.getChildren().map((child) => (
-            <OutlineNested
-              outline={child}
-              key={outlineUtils.getOutlineId(child)}
-              setMultiSelected={setMultiSelected}
-              moveOutlineInward={moveOutlineInward}
-              moveOutlineBeforeTarget={moveOutlineBeforeTarget}
-              moveOutlineAfterTarget={moveOutlineAfterTarget}
-            />
-          ))
-        }
         {isAddingNewOutline && isActive && (
           <DataElementWrapper className="bookmark-outline-single-container editing">
             <div
@@ -242,7 +206,7 @@ const Outline = forwardRef(
             <OutlineContent
               isAdding={true}
               text={''}
-              onCancel={() => setAddingNewOutline(false)}
+              onCancel={() => setIsAddingNewOutline(false)}
             />
           </DataElementWrapper>
         )}
@@ -350,6 +314,7 @@ const OutlineNested = DropTarget(
         default:
           break;
       }
+
       dropTargetNode.classList.remove('isNesting');
       fireEvent(Events.DROP_OUTLINE,
         {

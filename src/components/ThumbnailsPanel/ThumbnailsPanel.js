@@ -1,5 +1,5 @@
 import debounce from 'lodash/debounce';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { List } from 'react-virtualized';
 import Measure from 'react-measure';
@@ -11,18 +11,19 @@ import DocumentControls from 'components/DocumentControls';
 import Button from 'components/Button';
 import Slider from 'components/Slider';
 
-import core from 'core';
+import useCore from 'hooks/useCore';
 import { extractPagesToMerge, mergeDocument, mergeExternalWebViewerDocument } from 'helpers/pageManipulation';
 import selectors from 'selectors';
 import actions from 'actions';
 import Events from 'constants/events';
 import DataElements from 'constants/dataElement';
-import { circleRadius } from 'constants/slider';
 import fireEvent from 'helpers/fireEvent';
 
 import './ThumbnailsPanel.scss';
 import getRootNode from 'helpers/getRootNode';
 import { useTranslation } from 'react-i18next';
+import useIsRTL from 'hooks/useIsRTL';
+import useDidUpdate from 'src/hooks/useDidUpdate';
 
 const dataTransferWebViewerFrameKey = 'dataTransferWebViewerFrame';
 
@@ -34,46 +35,27 @@ const MAX_COLUMNS = 16;
 const hoverAreaHeight = 25;
 
 const ThumbnailsPanel = ({ panelSelector, parentDataElement }) => {
-  const [
-    isLeftPanelOpen,
-    isDisabled,
-    totalPages,
-    currentPage,
-    selectedPageIndexes,
-    isThumbnailMergingEnabled,
-    isThumbnailReorderingEnabled,
-    isMultipleViewerMerging,
-    isThumbnailControlDisabled,
-    isThumbnailSliderDisabled,
-    isReaderMode,
-    isDocumentReadOnly,
-    totalPagesFromSecondaryDocumentViewer,
-    activeDocumentViewerKey,
-    isRightClickEnabled,
-    featureFlags,
-  ] = useSelector(
-    (state) => [
-      selectors.isElementOpen(state, 'leftPanel'),
-      selectors.isElementDisabled(state, 'thumbnailsPanel'),
-      selectors.getTotalPages(state),
-      selectors.getCurrentPage(state),
-      selectors.getSelectedThumbnailPageIndexes(state),
-      selectors.getIsThumbnailMergingEnabled(state),
-      selectors.getIsThumbnailReorderingEnabled(state),
-      selectors.getIsMultipleViewerMerging(state),
-      selectors.isElementDisabled(state, 'thumbnailControl'),
-      selectors.isElementDisabled(state, 'thumbnailsSizeSlider'),
-      selectors.isReaderMode(state),
-      selectors.isDocumentReadOnly(state),
-      selectors.getTotalPages(state, 2),
-      selectors.getActiveDocumentViewerKey(state),
-      selectors.openingPageManipulationOverlayByRightClickEnabled(state),
-      selectors.getFeatureFlags(state),
-    ],
-    shallowEqual,
-  );
+  const { core } = useCore();
+  const activeDocumentViewerKey = useSelector(selectors.getActiveDocumentViewerKey);
+  const isLeftPanelOpen = useSelector((state) => selectors.isElementOpen(state, 'leftPanel'));
+  const isDisabled = useSelector((state) => selectors.isElementDisabled(state, 'thumbnailsPanel'));
+  const totalPages = useSelector((state) => selectors.getTotalPages(state, activeDocumentViewerKey));
+  const currentPage = useSelector((state) => selectors.getCurrentPage(state, activeDocumentViewerKey));
+  const selectedPageIndexes = useSelector((state) => selectors.getSelectedThumbnailPageIndexes(state), shallowEqual);
+  const isThumbnailMergingEnabled = useSelector(selectors.getIsThumbnailMergingEnabled);
+  const isThumbnailReorderingEnabled = useSelector(selectors.getIsThumbnailReorderingEnabled);
+  const isMultipleViewerMerging = useSelector(selectors.getIsMultipleViewerMerging);
+  const isThumbnailControlDisabled = useSelector((state) => selectors.isElementDisabled(state, 'thumbnailControl'));
+  const isThumbnailSliderDisabled = useSelector((state) => selectors.isElementDisabled(state, 'thumbnailsSizeSlider'));
+  const isReaderMode = useSelector(selectors.isReaderMode);
+  const isViewOnly = useSelector(selectors.isViewOnly);
+  const isDocumentReadOnly = useSelector(selectors.isDocumentReadOnly);
+  const isRightClickEnabled = useSelector(selectors.openingPageManipulationOverlayByRightClickEnabled);
+  const featureFlags = useSelector(selectors.getFeatureFlags, shallowEqual);
+  const isContentEditingEnabled = useSelector(selectors.isContentEditingEnabled);
 
   const [t] = useTranslation();
+  const isRightToLeft = useIsRTL();
 
   const listRef = useRef();
   const pendingThumbs = useRef([]);
@@ -88,20 +70,133 @@ const ThumbnailsPanel = ({ panelSelector, parentDataElement }) => {
   const [isDraggingToPreviousPage, setDraggingToPreviousPage] = useState(false);
   const [numberOfColumns, setNumberOfColumns] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState(0);
+  const thumbnailContainerRefs = useRef([]);
+  const thumbnailRefs = useRef([]);
+  const focusedThumbnailRef = useRef(null);
 
   const [thumbnailSize, setThumbnailSize] = useState(150);
   const [lastTimeTriggered, setLastTimeTriggered] = useState(0);
   const [globalIndex, setGlobalIndex] = useState(0);
-  const pageCount = activeDocumentViewerKey === 2 ? totalPagesFromSecondaryDocumentViewer : totalPages;
   const customizableUI = featureFlags?.customizableUI;
+  const shouldShowControls = !(isReaderMode || isDocumentReadOnly || isViewOnly || isContentEditingEnabled);
 
   const dispatch = useDispatch();
 
-  // If memory becomes an issue, change this to use pageNumbers.
-  // Instead of a debounced drawAnnotations function, perhaps use
-  // a function that first checks for the pageNumber in this map
-  // before calling drawAnnotations on a page.
-  let activeThumbRenders = {};
+  const activeThumbRendersRef = useRef({});
+
+  const cancelAllAnnotationRenders = () => {
+    Object.values(activeThumbRendersRef.current).forEach((debouncedFn) => {
+      debouncedFn.cancel();
+    });
+    activeThumbRendersRef.current = {};
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (focusedThumbnailRef.current && !focusedThumbnailRef.current.contains(event.target)) {
+        removeOutline(focusedThumbnailRef.current);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const handleKeyDown = useCallback((e, currentIndex, columnCount) => {
+    e.stopPropagation();
+    let newIndex;
+    const arrowActions = {
+      ArrowLeft: () => handleArrowKey(e, currentIndex, -1),
+      ArrowRight: () => handleArrowKey(e, currentIndex, 1),
+      ArrowUp: () => handleArrowKey(e, currentIndex, -columnCount),
+      ArrowDown: () => handleArrowKey(e, currentIndex, columnCount),
+    };
+    const keyActions = {
+      Enter: () => handleEnterKey(e, currentIndex),
+      Tab: () => handleTabOutKey(currentIndex),
+    };
+
+    if (arrowActions[e.key]) {
+      newIndex = arrowActions[e.key]();
+    }
+    if (keyActions[e.key]) {
+      keyActions[e.key]();
+    }
+
+    if (newIndex !== undefined && newIndex !== currentIndex) {
+      setFocusedIndex(newIndex);
+      selectElement(thumbnailContainerRefs.current[newIndex]);
+      deselectElement(thumbnailContainerRefs.current[currentIndex]);
+    }
+  }, [thumbnailRefs, thumbnailContainerRefs]);
+
+  const selectElement = (element) => {
+    element.tabIndex = 0;
+    element.ariaCurrent = 'page';
+    element.style.outline = 'var(--focus-visible-outline)';
+    element.focus();
+    focusedThumbnailRef.current = element;
+  };
+
+  const deselectElement = (element) => {
+    element.tabIndex = -1;
+    element.ariaCurrent = undefined;
+    removeOutline(element);
+  };
+
+  const removeOutline = (element) => {
+    element.style.outline = 'none';
+  };
+
+  const handleTabOutKey = (index) => {
+    removeOutline(thumbnailContainerRefs.current[index]);
+  };
+
+  const handleArrowKey = (e, currentIndex, direction) => {
+    let newIndex = currentIndex + direction;
+    if (newIndex < 0 || newIndex >= totalPages) {
+      return currentIndex;
+    }
+    return newIndex;
+  };
+
+  const handleEnterKey = (e, index) => {
+    e.preventDefault();
+    selectElement(thumbnailContainerRefs.current[index]);
+    core.setCurrentPage(index + 1);
+    thumbnailRefs.current[index].focusInput();
+  };
+
+  const handleThumbnailKeyDown = useCallback((e, index) => {
+    e.stopPropagation();
+    const keyActions = {
+      Tab: () => handleTabKey(e, index),
+      Escape: () => handleEscapeKey(e, index)
+    };
+    if (keyActions[e.key]) {
+      keyActions[e.key]?.();
+    }
+  }, [thumbnailContainerRefs]);
+
+  const handleEscapeKey = (e, index) => {
+    e.preventDefault();
+    selectElement(thumbnailContainerRefs.current[index]);
+  };
+
+  const handleTabKey = (e, index) => {
+    let direction = e.shiftKey ? -1 : 1;
+    let newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= totalPages) {
+      newIndex = index;
+    }
+    setFocusedIndex(newIndex);
+    selectElement(thumbnailContainerRefs.current[newIndex]);
+    if (newIndex !== index) {
+      deselectElement(thumbnailContainerRefs.current[index]);
+    }
+  };
 
   const getThumbnailSize = (pageWidth, pageHeight) => {
     let width;
@@ -137,11 +232,12 @@ const ThumbnailsPanel = ({ panelSelector, parentDataElement }) => {
     const { width, height } = getThumbnailSize(pageWidth, pageHeight);
 
     const annotCanvas = thumbContainer.querySelector('.annotation-image') || document.createElement('canvas');
-    annotCanvas.className = 'annotation-image';
+    annotCanvas.className = `annotation-image ${isRightToLeft ? 'right-to-left' : ''}`;
     annotCanvas.role = 'img';
     annotCanvas.ariaLabel = `${t('action.page')} ${pageNumber}`;
     annotCanvas.style.maxWidth = `${thumbnailSize}px`;
     annotCanvas.style.maxHeight = `${thumbnailSize}px`;
+    annotCanvas.style['transform'] = `${isRightToLeft ? 'translate(50%, -50%)' : 'translate(-50%, -50%)'}`;
     const ctx = annotCanvas.getContext('2d');
 
     let zoom = 1;
@@ -184,10 +280,10 @@ const ThumbnailsPanel = ({ panelSelector, parentDataElement }) => {
       return;
     }
 
-    if (!activeThumbRenders[pageNumber]) {
-      activeThumbRenders[pageNumber] = debounce(core.drawAnnotations, 112);
+    if (!activeThumbRendersRef.current[pageNumber]) {
+      activeThumbRendersRef.current[pageNumber] = debounce(core.drawAnnotations, 112);
     }
-    const debouncedDraw = activeThumbRenders[pageNumber];
+    const debouncedDraw = activeThumbRendersRef.current[pageNumber];
     debouncedDraw(options);
   };
 
@@ -208,8 +304,8 @@ const ThumbnailsPanel = ({ panelSelector, parentDataElement }) => {
       } else {
         setIsOfficeEditor(false);
       }
-      activeThumbRenders = {};
-      dispatch(actions.setSelectedPageThumbnails([]));
+      cancelAllAnnotationRenders();
+      dispatch(actions.setSelectedPageThumbnails([], activeDocumentViewerKey));
     };
 
     const onPageComplete = () => {
@@ -219,11 +315,15 @@ const ThumbnailsPanel = ({ panelSelector, parentDataElement }) => {
       }
     };
 
+    // Reset canLoad when switching viewers — the previous viewer may have left
+    // canLoad=false (from beginRendering) and the new viewer may never fire
+    // finishedRendering if it has already finished rendering its pages.
+    setCanLoad(true);
+
     core.addEventListener('beginRendering', onBeginRendering);
     core.addEventListener('finishedRendering', onFinishedRendering);
     core.addEventListener('documentLoaded', onDocumentLoaded);
     core.addEventListener('pageComplete', onPageComplete);
-
 
     // The document might have already been loaded before this component is mounted.
     // If document is already loaded, call 'onDocumentLoaded()' manually to update the state properly.
@@ -232,12 +332,17 @@ const ThumbnailsPanel = ({ panelSelector, parentDataElement }) => {
     }
 
     return () => {
+      cancelAllAnnotationRenders();
       core.removeEventListener('beginRendering', onBeginRendering);
       core.removeEventListener('finishedRendering', onFinishedRendering);
       core.removeEventListener('documentLoaded', onDocumentLoaded);
       core.removeEventListener('pageComplete', onPageComplete);
     };
-  }, []);
+  }, [core]);
+
+  useDidUpdate(() => {
+    dispatch(actions.setThumbnailSelectingPages(false));
+  }, [core]);
 
   useEffect(() => {
     const onPagesUpdated = (changes) => {
@@ -260,13 +365,13 @@ const ThumbnailsPanel = ({ panelSelector, parentDataElement }) => {
         updatedPagesIndexes = changes.added.map((pageNumber) => pageNumber - 1);
       }
 
-      dispatch(actions.setSelectedPageThumbnails(updatedPagesIndexes));
+      dispatch(actions.setSelectedPageThumbnails(updatedPagesIndexes, activeDocumentViewerKey));
     };
 
     core.addEventListener('pagesUpdated', onPagesUpdated);
 
     return () => core.removeEventListener('pagesUpdated', onPagesUpdated);
-  }, [selectedPageIndexes]);
+  }, [core, selectedPageIndexes]);
 
   useEffect(() => {
     listRef.current?.scrollToRow(Math.floor((currentPage - 1) / numberOfColumns));
@@ -294,15 +399,16 @@ const ThumbnailsPanel = ({ panelSelector, parentDataElement }) => {
     core.addEventListener('annotationHidden', onAnnotationChanged);
 
     return () => {
+      cancelAllAnnotationRenders();
       core.removeEventListener('pageNumberUpdated', onPageNumberUpdated);
       core.removeEventListener('annotationChanged', onAnnotationChanged);
       core.removeEventListener('annotationHidden', onAnnotationChanged);
     };
-  }, [thumbnailSize, numberOfColumns]);
+  }, [core, thumbnailSize, numberOfColumns]);
 
   useEffect(() => {
     if (isReaderMode || isDocumentReadOnly) {
-      dispatch(actions.setSelectedPageThumbnails([]));
+      dispatch(actions.setSelectedPageThumbnails([], activeDocumentViewerKey));
       dispatch(actions.setThumbnailSelectingPages(false));
     }
   }, [isReaderMode, isDocumentReadOnly]);
@@ -318,7 +424,7 @@ const ThumbnailsPanel = ({ panelSelector, parentDataElement }) => {
 
   const scrollToRowHelper = (index, change, time) => {
     const now = new Date().getTime();
-    if (index < pageCount - 1 && index > 0 && now - lastTimeTriggered >= time) {
+    if (index < totalPages - 1 && index > 0 && now - lastTimeTriggered >= time) {
       listRef.current?.scrollToRow(Math.floor((index + change) / numberOfColumns));
       setLastTimeTriggered(now);
       return index + change;
@@ -360,6 +466,14 @@ const ThumbnailsPanel = ({ panelSelector, parentDataElement }) => {
     setGlobalIndex(scrollToRowHelper(globalIndex, -1, 200));
   };
 
+  const getContextElementId = () => {
+    if (window.isApryseWebViewerWebComponent) {
+      return getRootNode().host.id;
+    } else {
+      return window.frameElement.id;
+    }
+  };
+
   const onDragStart = (e, index) => {
     setGlobalIndex(index);
     setIsDragging(true);
@@ -377,8 +491,8 @@ const ThumbnailsPanel = ({ panelSelector, parentDataElement }) => {
     if (isThumbnailMergingEnabled && isMultipleViewerMerging) {
       e.dataTransfer.dropEffect = 'move';
       e.dataTransfer.effectAllowed = 'all';
-      e.dataTransfer.setData(dataTransferWebViewerFrameKey, window.frameElement.id);
-      extractPagesToMerge(pagesToMove);
+      e.dataTransfer.setData(dataTransferWebViewerFrameKey, getContextElementId());
+      extractPagesToMerge(pagesToMove, activeDocumentViewerKey);
     }
 
     if (!draggingSelectedPage) {
@@ -398,15 +512,15 @@ const ThumbnailsPanel = ({ panelSelector, parentDataElement }) => {
       externalPageWebViewerFrameId = e.dataTransfer.getData(dataTransferWebViewerFrameKey);
     }
     const mergingDocument =
-      (externalPageWebViewerFrameId && window.frameElement.id !== externalPageWebViewerFrameId) || files.length;
+      (externalPageWebViewerFrameId && getContextElementId() !== externalPageWebViewerFrameId) || files.length;
     const currentPageIndex = currentPage - 1;
 
     if (isThumbnailMergingEnabled && mergingDocument) {
-      if (externalPageWebViewerFrameId && window.frameElement.id !== externalPageWebViewerFrameId) {
-        dispatch(mergeExternalWebViewerDocument(externalPageWebViewerFrameId, insertTo));
+      if (externalPageWebViewerFrameId && getContextElementId() !== externalPageWebViewerFrameId) {
+        dispatch(mergeExternalWebViewerDocument(externalPageWebViewerFrameId, insertTo, activeDocumentViewerKey));
       } else if (files.length) {
         Array.from(files).forEach((file) => {
-          dispatch(mergeDocument(file, insertTo));
+          dispatch(mergeDocument(file, insertTo, true, activeDocumentViewerKey));
         });
       }
     } else if (isThumbnailReorderingEnabled && !mergingDocument) {
@@ -464,33 +578,48 @@ const ThumbnailsPanel = ({ panelSelector, parentDataElement }) => {
     event.preventDefault();
     core.setCurrentPage(pageIndex + 1);
     if (!selectedPageIndexes.includes(pageIndex)) {
-      dispatch(actions.setSelectedPageThumbnails([pageIndex]));
+      dispatch(actions.setSelectedPageThumbnails([pageIndex], activeDocumentViewerKey));
     }
 
-    if (isReaderMode || isDocumentReadOnly) {
+    if (!shouldShowControls) {
       return;
     }
 
-    dispatch(actions.setPageManipulationOverlayAlternativePosition({ left: event.pageX, right: 'auto', top: event.pageY }));
-    dispatch(actions.openElements([DataElements.PAGE_MANIPULATION_OVERLAY]));
+    dispatch(actions.setFlyoutPosition({ x: event.pageX, y: event.pageY }));
+    dispatch(actions.openElements([DataElements.PAGE_MANIPULATION]));
   };
 
   const getPendingThumbIndex = (pageIndex) => pendingThumbs.current.findIndex((thumbStatus) => thumbStatus.pageIndex === pageIndex);
 
   const onRemove = (pageIndex) => {
     onCancel(pageIndex);
-    const canvases = thumbs.current[pageIndex]?.element?.querySelectorAll('canvas');
-    if (canvases?.length) {
-      canvases.forEach((c) => {
+    const thumbElement = thumbs.current[pageIndex]?.element;
+    if (thumbElement) {
+      // Remove annotation canvases from the DOM so that any in-flight
+      // drawAnnotations promises (which are async and uncancellable)
+      // draw to a detached, invisible canvas instead of the live one.
+      const annotCanvases = thumbElement.querySelectorAll('canvas.annotation-image');
+      annotCanvases.forEach((c) => c.remove());
+
+      const pageCanvases = thumbElement.querySelectorAll('canvas.page-image');
+      pageCanvases.forEach((c) => {
         c.height = 0;
         c.width = 0;
       });
     }
 
-    if (activeThumbRenders[pageIndex]) {
-      activeThumbRenders[pageIndex].cancel();
+    const pageNumber = pageIndex + 1;
+    if (activeThumbRendersRef.current[pageNumber]) {
+      activeThumbRendersRef.current[pageNumber].cancel();
+      delete activeThumbRendersRef.current[pageNumber];
     }
     thumbs.current[pageIndex] = null;
+  };
+
+  const handleFocus = (e, index) => {
+    if (thumbnailContainerRefs.current && thumbnailContainerRefs.current.includes(e.target)) {
+      selectElement(thumbnailContainerRefs.current[index]);
+    }
   };
 
   const renderThumbnails = ({ index, key, style }) => {
@@ -498,8 +627,7 @@ const ThumbnailsPanel = ({ panelSelector, parentDataElement }) => {
       columnsOfThumbnails: numberOfColumns > 1,
       row: true,
     });
-    const allowPageOperationsUI = !(isReaderMode || isDocumentReadOnly);
-
+    const allowPageOperationsUI = !(isReaderMode || isDocumentReadOnly || isViewOnly);
     return (
       <div role="row" aria-label="row" className={className} key={key} style={style}>
         {new Array(numberOfColumns).fill().map((_, columnIndex) => {
@@ -507,17 +635,28 @@ const ThumbnailsPanel = ({ panelSelector, parentDataElement }) => {
           const allowDragAndDrop = allowPageOperationsUI && (isThumbnailMergingEnabled || isThumbnailReorderingEnabled);
           const showPlaceHolder = allowDragAndDrop && draggingOverPageIndex === thumbIndex;
 
-          return thumbIndex < pageCount ? (
+          return thumbIndex < totalPages ? (
             <React.Fragment key={thumbIndex}>
               {(numberOfColumns > 1 || thumbIndex === 0) && showPlaceHolder && isDraggingToPreviousPage && <div key={`placeholder1-${thumbIndex}`} className="thumbnailPlaceholder" />}
-              <div key={thumbIndex} role="cell" onDragEnd={onDragEnd} className="cellThumbContainer" onContextMenu={(e) => isRightClickEnabled && onRightClick(e, thumbIndex)}>
+              <td
+                ref={(el) => (thumbnailContainerRefs.current[thumbIndex] = el)}
+                key={thumbIndex}
+                role="gridcell"
+                tabIndex={focusedIndex === thumbIndex ? 0 : -1}
+                aria-current={focusedIndex === thumbIndex ? 'page' : undefined}
+                onDragEnd={onDragEnd}
+                className="cellThumbContainer"
+                onKeyDown={(e) => handleKeyDown(e, thumbIndex, numberOfColumns)}
+                onContextMenu={(e) => isRightClickEnabled && onRightClick(e, thumbIndex)}
+                onFocus={(e) => handleFocus(e, thumbIndex)}
+              >
                 <Thumbnail
+                  ref={(el) => (thumbnailRefs.current[thumbIndex] = el)}
                   isDraggable={allowDragAndDrop}
                   isSelected={selectedPageIndexes.includes(thumbIndex)}
                   index={thumbIndex}
                   canLoad={canLoad}
                   onLoad={onLoad}
-                  onCancel={onCancel}
                   onRemove={onRemove}
                   onDragStart={onDragStart}
                   onDragOver={onDragOver}
@@ -526,8 +665,9 @@ const ThumbnailsPanel = ({ panelSelector, parentDataElement }) => {
                   shouldShowControls={allowPageOperationsUI}
                   thumbnailSize={thumbnailSize}
                   panelSelector={panelSelector}
+                  parentKeyListener={(e) => handleThumbnailKeyDown(e, thumbIndex)}
                 />
-              </div>
+              </td>
               {showPlaceHolder && !isDraggingToPreviousPage && <div key={`placeholder2-${thumbIndex}`} className="thumbnailPlaceholder" />}
             </React.Fragment>
           ) : null;
@@ -547,17 +687,16 @@ const ThumbnailsPanel = ({ panelSelector, parentDataElement }) => {
   };
 
   const thumbnailHeight = isThumbnailControlDisabled ? Number(thumbnailSize) + 50 : Number(thumbnailSize) + 80;
-  const shouldShowControls = !(isReaderMode || isDocumentReadOnly);
   const thumbnailAutoScrollAreaStyle = {
     'height': `${hoverAreaHeight}px`,
   };
-  const lineStart = circleRadius;
 
-  const onSliderChange = (property, value) => {
+  const onSliderChange = (_, value) => {
     let zoomValue = Number(value) * ZOOM_RANGE_MAX;
     if (zoomValue < 100) {
       zoomValue = 100;
     }
+
     setThumbnailSize(zoomValue);
     updateNumberOfColumns();
   };
@@ -582,23 +721,12 @@ const ThumbnailsPanel = ({ panelSelector, parentDataElement }) => {
             dataElement={'thumbnailsSizeSlider'}
             property={'zoom'}
             displayProperty={'zoom'}
-            min={Number(ZOOM_RANGE_MIN)}
-            max={Number(ZOOM_RANGE_MAX)}
-            value={thumbnailSize}
+            min={0}
+            max={1}
+            step={0.01}
+            value={thumbnailSize / 1000}
             getDisplayValue={() => thumbnailSize}
-            customCircleRadius={8}
-            customLineStrokeWidth={4}
-            getCirclePosition={(lineLength, zoom) => {
-              if (zoom > 1) {
-                zoom /= 1000;
-              }
-              return zoom * lineLength + lineStart;
-            }
-            }
-            convertRelativeCirclePositionToValue={(circlePosition) => circlePosition}
             onSliderChange={onSliderChange}
-            onStyleChange={onSliderChange}
-            step={Number(ZOOM_RANGE_STEP)}
             shouldHideSliderTitle={true}
             shouldHideSliderValue={true}
           />
@@ -650,15 +778,18 @@ const ThumbnailsPanel = ({ panelSelector, parentDataElement }) => {
                 rowHeight={thumbnailHeight}
                 // Round it to a whole number because React-Virtualized list library doesn't round it for us and throws errors when rendering non whole number rows
                 // use ceiling rather than floor so that an extra row can be created in case the items can't be evenly distributed between rows
-                rowCount={Math.ceil(pageCount / numberOfColumns)}
+                rowCount={Math.ceil(totalPages / numberOfColumns)}
                 rowRenderer={renderThumbnails}
                 overscanRowCount={3}
-                className={'thumbnailsList'}
-                style={{ outline: 'none' }}
+                className={classNames({
+                  'thumbnailsList': true,
+                  'right-to-left': isRightToLeft,
+                })}
                 // Ensure we show the current page in the thumbnails when we open the panel
                 scrollToIndex={Math.floor((currentPage - 1) / numberOfColumns)}
                 role='grid'
                 aria-label={t('component.thumbnailsPanel')}
+                tabIndex={-1}
               />
               {isDragging ?
                 <div className="thumbnailAutoScrollArea" onDragOver={scrollDown} style={{ ...thumbnailAutoScrollAreaStyle, 'bottom': '70px' }}></div> : ''

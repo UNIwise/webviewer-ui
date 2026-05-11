@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
 import selectors from 'selectors';
-import { Choice } from '@pdftron/webviewer-react-toolkit';
+import Choice from 'components/Choice';
 import PageNumberInput from 'components/PageReplacementModal/PageNumberInput';
 import Dropdown from 'components/Dropdown';
 import IncrementNumberInput from './IncrementNumberInput';
@@ -74,11 +74,6 @@ const InsertBlankPagePanel = ({
   };
 
   const handlePageNumbersChanged = (pageNumbers) => {
-    if (pageNumbers.length > 0) {
-      setPageNumberError(null);
-    } else {
-      setPageNumberError(`${t('message.errorBlankPageNumber')}`);
-    }
     setInsertNewPageIndexes(pageNumbers);
   };
 
@@ -150,7 +145,6 @@ const InsertBlankPagePanel = ({
               pageCount={loadedDocumentPageCount}
               onSelectedPageNumbersChange={handlePageNumbersChanged}
               onBlurHandler={handlePageNumbersChanged}
-              pageNumberError={pageNumberError}
             />
           </div>
           <div className="input-container">
@@ -168,9 +162,10 @@ const InsertBlankPagePanel = ({
         <div className="subheader">{t('insertPageModal.pageDimensions.header')}</div>
         <div className="section page-dimensions-section">
           <div className="input-container">
-            <label htmlFor="pagesPreset">{t('insertPageModal.pageDimensions.subHeader')}</label>
+            <label id="insert-blank-pages-preset-label" htmlFor="pagesPreset">{t('insertPageModal.pageDimensions.subHeader')}</label>
             <Dropdown
               id="pagesPreset"
+              labelledById="insert-blank-pages-preset-label"
               dataElement="presetSelector"
               currentSelectionKey={selectedPageDimensions}
               onClickItem={handlePageDimensionsChanged}
@@ -178,9 +173,10 @@ const InsertBlankPagePanel = ({
             />
           </div>
           <div className="input-container" style={{ visibility: openCustomDimensions ? 'visible' : 'hidden' }}>
-            <label htmlFor='pageDimensionsUnit'>{t('insertPageModal.pageDimensions.units')}</label>
+            <label id="insert-blank-pages-dimensions-label" htmlFor='pageDimensionsUnit'>{t('insertPageModal.pageDimensions.units')}</label>
             <Dropdown
               id="pageDimensionsUnit"
+              labelledById="insert-blank-pages-dimensions-label"
               dataElement="unitSelector"
               currentSelectionKey={units}
               onClickItem={handleUnitsChanged}
@@ -217,13 +213,11 @@ InsertBlankPagePanel.propTypes = {
   insertNewPageBelow: PropTypes.bool,
   insertNewPageIndexes: PropTypes.array,
   numberOfBlankPagesToInsert: PropTypes.number,
-  pageNumberError: PropTypes.string,
   setInsertNewPageBelow: PropTypes.func,
   setInsertNewPageIndexes: PropTypes.func,
   setNumberOfBlankPagesToInsert: PropTypes.func,
   setInsertPageHeight: PropTypes.func,
   setInsertPageWidth: PropTypes.func,
-  setPageNumberError: PropTypes.func,
   loadedDocumentPageCount: PropTypes.number,
 };
 

@@ -4,67 +4,59 @@ import selectors from 'selectors';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
 import DataElements from 'constants/dataElement';
 
-import core from 'core';
+import useCore from 'hooks/useCore';
 
 import { printPages } from 'helpers/print';
-import { creatingPages } from 'helpers/rasterPrint';
-import { printPDF, createPages, iosWindowOpen, convertToGrayscaleDocument } from 'helpers/embeddedPrint';
+import { createRasterizedPrintPages } from 'helpers/rasterPrint';
+import { processEmbeddedPrintOptions, printEmbeddedPDF } from 'helpers/embeddedPrint';
 import PrintModal from './PrintModal';
+import useFocusOnClose from 'hooks/useFocusOnClose';
+import usePageRanges, { PAGE_RANGES } from 'src/hooks/usePageRanges';
 
 import './PrintModal.scss';
 
 const PrintModalContainer = () => {
+  const { core } = useCore();
   const dispatch = useDispatch();
-  const [
-    isDisabled,
-    isOpen,
-    isApplyWatermarkDisabled,
-    currentPage,
-    printQuality,
-    defaultPrintOptions,
-    pageLabels,
-    sortStrategy,
-    colorMap,
-    layoutMode,
-    printedNoteDateFormat,
-    language,
-    watermarkModalOptions,
-    timezone,
-    useEmbeddedPrint,
-  ] = useSelector(
-    (state) => [
-      selectors.isElementDisabled(state, DataElements.PRINT_MODAL),
-      selectors.isElementOpen(state, DataElements.PRINT_MODAL),
-      selectors.isElementDisabled(state, 'applyWatermark'),
-      selectors.getCurrentPage(state),
-      selectors.getPrintQuality(state),
-      selectors.getDefaultPrintOptions(state),
-      selectors.getPageLabels(state, 'pageLabels'),
-      selectors.getSortStrategy(state),
-      selectors.getColorMap(state),
-      selectors.getDisplayMode(state),
-      selectors.getPrintedNoteDateFormat(state),
-      selectors.getCurrentLanguage(state),
-      selectors.getWatermarkModalOptions(state),
-      selectors.getTimezone(state),
-      selectors.isEmbedPrintSupported(state, 'useEmbeddedPrint')
-    ],
-    shallowEqual
-  );
+  const isDisabled = useSelector((state) => selectors.isElementDisabled(state, DataElements.PRINT_MODAL));
+  const isOpen = useSelector((state) => selectors.isElementOpen(state, DataElements.PRINT_MODAL));
+  const isApplyWatermarkDisabled = useSelector((state) => selectors.isElementDisabled(state, 'applyWatermark'));
+  const activeDocumentViewerKey = useSelector(selectors.getActiveDocumentViewerKey);
+  const currentPage = useSelector((state) => selectors.getCurrentPage(state, activeDocumentViewerKey));
+  const printQuality = useSelector(selectors.getPrintQuality);
+  const defaultPrintOptions = useSelector(selectors.getDefaultPrintOptions, shallowEqual);
+  const sortStrategy = useSelector(selectors.getSortStrategy);
+  const colorMap = useSelector(selectors.getColorMap, shallowEqual);
+  const layoutMode = useSelector(selectors.getDisplayMode, shallowEqual);
+  const printedNoteDateFormat = useSelector(selectors.getPrintedNoteDateFormat);
+  const language = useSelector(selectors.getCurrentLanguage);
+  const watermarkModalOptions = useSelector(selectors.getWatermarkModalOptions, shallowEqual);
+  const timezone = useSelector(selectors.getTimezone);
+  const useEmbeddedPrint = useSelector((state) => selectors.isEmbedPrintSupported(state, 'useEmbeddedPrint'));
 
   const existingWatermarksRef = useRef();
 
   const [allowWatermarkModal, setAllowWatermarkModal] = useState(false);
   const [count, setCount] = useState(-1);
-
   const [maintainPageOrientation, setMaintainPageOrientation] = useState(false);
   const [pagesToPrint, setPagesToPrint] = useState([]);
   const [isGrayscale, setIsGrayscale] = useState(false);
+  const [pagesAreProcessing, setPagesAreProcessing] = useState(false);
   const [isWatermarkModalVisible, setIsWatermarkModalVisible] = useState(false);
   const [includeAnnotations, setIncludeAnnotations] = useState(true);
   const [includeComments, setIncludeComments] = useState(false);
-  const [isCurrentView, setIsCurrentView] = useState(false);
-  const [isCurrentViewDisabled, setIsCurrentViewDisabled] = useState(false);
+  const {
+    pageRange,
+    setPageRange,
+    onPageRangeChange,
+    hasPageNumberError,
+    onError,
+    specifiedPages,
+    setSpecifiedPages,
+    hasSpecifiedPages,
+    isCurrentViewDisabled,
+    setIsCurrentViewDisabled,
+  } = usePageRanges();
 
   useEffect(() => {
     if (defaultPrintOptions) {
@@ -89,7 +81,7 @@ const PrintModalContainer = () => {
         DataElements.ERROR_MODAL,
       ]));
     }
-  }, [isOpen, dispatch]);
+  }, [isOpen, dispatch, core]);
 
   const checkCurrentView = () => {
     if (isCurrentViewDisabled) {
@@ -115,32 +107,39 @@ const PrintModalContainer = () => {
     }
 
     if (useEmbeddedPrint && fileType !== 'xod') {
-      embeddedPrinting(iosWindowOpen());
+      embeddedPrinting();
     } else {
       rasterPrinting(e);
     }
   };
 
-  const embeddedPrinting = async (windowRef) => {
-    if (pagesToPrint.length < 1) {
-      return;
-    }
-    const document = core.getDocument();
-    const annotManager = core.getAnnotationManager();
-    const printingOptions = { isCurrentView, includeAnnotations, includeComments };
-    let pdf = await createPages(
-      document,
-      annotManager,
+  const embeddedPrinting = async () => {
+    const isCurrentView = pageRange === PAGE_RANGES.CURRENT_VIEW;
+    const isAlwaysPrintAnnotationsInColorEnabled = core.getDocumentViewer().isAlwaysPrintAnnotationsInColorEnabled();
+    const printingOptions = {
+      isCurrentView,
+      includeAnnotations,
+      includeComments,
+      watermarkModalOptions,
       pagesToPrint,
-      printingOptions,
-      watermarkModalOptions
-    );
+      isGrayscale,
+      isAlwaysPrintAnnotationsInColorEnabled,
+    };
 
-    if (isGrayscale) {
-      pdf = await convertToGrayscaleDocument(pdf);
-    }
+    setPagesAreProcessing(true);
+    const document = core.getDocument();
+    const annotationManager = core.getAnnotationManager();
+    const embeddedPrintOptions = await processEmbeddedPrintOptions(core, printingOptions, document, annotationManager);
 
-    printPDF(pdf, windowRef);
+    await printEmbeddedPDF(embeddedPrintOptions);
+
+    // The `afterprint` event doesn't seem to get triggered so a slight delay improves the UX
+    // Otherwise there's a weird delay between the print modal and the browser's print dialog
+    // without the setTimeout
+    setTimeout(() => {
+      setPagesAreProcessing(false);
+      closePrintModalAfterPrint();
+    }, 1000);
   };
 
   const rasterPrinting = (e) => {
@@ -153,10 +152,12 @@ const PrintModalContainer = () => {
     setCount(0);
 
     if (allowWatermarkModal) {
-      core.setWatermark(watermarkModalOptions);
+      core.setWatermark(watermarkModalOptions, activeDocumentViewerKey);
     } else {
-      core.setWatermark(existingWatermarksRef.current);
+      core.setWatermark(existingWatermarksRef.current,activeDocumentViewerKey);
     }
+
+    const isCurrentView = pageRange === PAGE_RANGES.CURRENT_VIEW;
 
     const printOptions = {
       includeComments,
@@ -173,30 +174,39 @@ const PrintModalContainer = () => {
       isGrayscale
     };
 
-    const createPages = creatingPages(
+    const createPages = createRasterizedPrintPages(
+      core,
       pagesToPrint,
       printOptions,
-      undefined
+      undefined,
     );
+
+    setPagesAreProcessing(true);
     createPages.forEach(async (pagePromise) => {
       await pagePromise;
       setCount(count < pagesToPrint.length && (count !== -1 ? count + 1 : count));
     });
+
     Promise.all(createPages)
       .then((pages) => {
-        printPages(pages);
-        closePrintModal();
+        printPages(core, pages);
       })
       .catch((e) => {
         console.error(e);
         setCount(-1);
+      }).finally(() => {
+        setPagesAreProcessing(false);
+        closePrintModalAfterPrint();
       });
   };
+
 
   const closePrintModal = () => {
     setCount(-1);
     dispatch(actions.closeElement(DataElements.PRINT_MODAL));
   };
+
+  const closePrintModalAfterPrint = useFocusOnClose(closePrintModal);
 
   return (
     <PrintModal
@@ -205,10 +215,18 @@ const PrintModalContainer = () => {
       isApplyWatermarkDisabled={isApplyWatermarkDisabled}
       isFullAPIEnabled={core.isFullPDFEnabled()}
       currentPage={currentPage}
+      activeDocumentViewerKey={activeDocumentViewerKey}
       printQuality={printQuality}
       isGrayscale={isGrayscale}
       setIsGrayscale={setIsGrayscale}
-      setIsCurrentView={setIsCurrentView}
+      pageRange={pageRange}
+      setPageRange={setPageRange}
+      onPageRangeChange={onPageRangeChange}
+      hasPageNumberError={hasPageNumberError}
+      onError={onError}
+      specifiedPages={specifiedPages}
+      setSpecifiedPages={setSpecifiedPages}
+      hasSpecifiedPages={hasSpecifiedPages}
       isCurrentViewDisabled={isCurrentViewDisabled}
       checkCurrentView={checkCurrentView}
       includeAnnotations={includeAnnotations}
@@ -225,8 +243,7 @@ const PrintModalContainer = () => {
       pagesToPrint={pagesToPrint}
       setPagesToPrint={setPagesToPrint}
       count={count}
-      isPrinting={isPrinting}
-      pageLabels={pageLabels}
+      isPrinting={isPrinting || pagesAreProcessing}
       layoutMode={layoutMode}
       useEmbeddedPrint={useEmbeddedPrint}
     />

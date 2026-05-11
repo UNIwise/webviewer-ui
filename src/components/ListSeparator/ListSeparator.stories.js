@@ -1,5 +1,6 @@
 import React from 'react';
 import ListSeparator from './ListSeparator';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 
 export default {
@@ -23,3 +24,5 @@ export function Basic() {
 
   );
 }
+
+Basic.parameters = disableRtlModeParameters;

@@ -67,6 +67,20 @@
         display: flex;
         flex-direction: column;
 
+        fieldset {
+          border: 0;
+          padding: 0;
+          margin: 0;
+          min-width: 0;
+          display: grid;
+          gap: 12px;
+        }
+
+        legend {
+          padding: 0;
+          margin-bottom: 12px;
+        }
+
         .page-number-input-container {
           width: 100%;
           margin-top: 8px;
@@ -98,7 +112,7 @@
               .ui__choice__label {
                 width: 100%;
                 position: relative;
-                top: -2px;
+                inset-block-start: -2px;
               }
             }
           }
@@ -107,13 +121,12 @@
             display: flex;
 
             .specifyPagesExampleLabel {
-              margin-left: 4px;
+              margin-inline-start: 4px;
               color: var(--faded-text);
             }
           }
         }
       }
-
     }
 
     .footer {

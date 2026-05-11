@@ -50,7 +50,7 @@ describe('RedactionItem', () => {
     it('Text Redaction item delete button should have a valid Aria Label', () => {
       render(<TextRedactionItem />);
 
-      const element = screen.getByRole('button');
+      const element = screen.getByRole('button', { name: /Delete/ });
       expect(element).toHaveAttribute('aria-label');
     });
   });
@@ -65,7 +65,7 @@ describe('RedactionItem', () => {
       setMockRefElement({ clientWidth: 150 });
       const mockRedactionAnnotation = getMockRedactionAnnotation();
       mockRedactionAnnotation.redactionType = redactionTypeMap['TEXT'];
-      mockRedactionAnnotation.icon = 'icon-form-field-text';
+      mockRedactionAnnotation.icon = 'icon-text-redaction';
       const textRedactionItemProps = {
         iconColor: initialColors[0],
         annotation: mockRedactionAnnotation,
@@ -158,7 +158,7 @@ describe('RedactionItem', () => {
       };
 
       render(<RedactionItemWithRedux {...regionRedactionItemProps} />);
-      const redactionItem = screen.getByText('Region redaction');
+      const redactionItem = screen.getByRole('button', { name: /Select/ });
       userEvent.click(redactionItem);
       expect(mockOnRedactionItemSelection).toHaveBeenCalled();
     });
@@ -180,7 +180,7 @@ describe('RedactionItem', () => {
       };
 
       render(<RedactionItemWithRedux {...regionRedactionItemProps} />);
-      const deleteButton = screen.getByRole('button');
+      const deleteButton = screen.getByRole('button', { name: /Delete/ });
       userEvent.click(deleteButton);
       expect(mockOnRedactionItemDelete).toHaveBeenCalled();
     });

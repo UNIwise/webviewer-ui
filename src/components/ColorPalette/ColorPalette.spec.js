@@ -20,4 +20,11 @@ describe('ColorPalette', () => {
 
     expect(element).toBeInTheDocument();
   });
+
+  it('Should have aria-current attribute', () => {
+    render(<ColorPaletteWithProviders onStyleChange={noop} property={''}/>);
+    const element = screen.getByLabelText(`Color #${customColors[0]}`);
+
+    expect(element).toHaveAttribute('aria-current');
+  });
 });

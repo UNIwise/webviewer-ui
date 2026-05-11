@@ -5,73 +5,58 @@ import actions from 'actions';
 import { useTranslation } from 'react-i18next';
 import DataElements from 'constants/dataElement';
 import Button from 'components/Button';
-import { Choice, Input } from '@pdftron/webviewer-react-toolkit';
-import core from 'core';
+import Choice from 'components/Choice';
+import Input from 'components/Input';
+import useCore from 'hooks/useCore';
 import classNames from 'classnames';
 import Dropdown from 'components/Dropdown';
 import PageNumberInput from 'components/PageReplacementModal/PageNumberInput';
+import usePageRanges, { PAGE_RANGES } from 'src/hooks/usePageRanges';
 import downloadPdf from 'helpers/downloadPdf';
 import { isOfficeEditorMode } from 'helpers/officeEditor';
 import { workerTypes } from 'constants/types';
 import range from 'lodash/range';
 import ModalWrapper from 'components/ModalWrapper';
+import useFocusOnClose from 'hooks/useFocusOnClose';
 
 import './SaveModal.scss';
 
-const PAGE_RANGES = {
-  ALL: 'all',
-  CURRENT_PAGE: 'currentPage',
-  CURRENT_VIEW: 'currentView',
-  SPECIFY: 'specify'
-};
 const FILE_TYPES = {
-  OFFICE: { label: 'OFFICE (*.pptx,*.docx,*.xlsx)', extension: 'office' },
-  PDF: { label: 'PDF (*.pdf)', extension: 'pdf', },
-  IMAGE: { label: 'PNG (*.png)', extension: 'png', },
-  OFFICE_EDITOR: { label: 'Word Document (*.docx)', extension: 'office', },
+  OFFICE: { label: 'OFFICE (*.pptx,*.docx,*.xlsx)', extension: workerTypes.OFFICE },
+  PDF: { label: 'PDF (*.pdf)', extension: workerTypes.PDF },
+  IMAGE: { label: 'PNG (*.png)', extension: 'png' },
+  OFFICE_EDITOR: { label: 'Word Document (*.docx)', extension: workerTypes.OFFICE },
+  SPREADSHEET_EDITOR: { label: 'Excel Document (*.xlsx)', extension: workerTypes.SPREADSHEET_EDITOR },
 };
 // These legacy office extensions return corrupted file data from the workers if downloaded as OFFICE
 const CORRUPTED_OFFICE_EXTENSIONS = ['.ppt', '.xls'];
 
 const SaveModal = () => {
+  const { core } = useCore();
   const store = useStore();
   const dispatch = useDispatch();
   const { t } = useTranslation();
-  const [isOpen, activeDocumentViewerKey] = useSelector((state) => [
-    selectors.isElementOpen(state, DataElements.SAVE_MODAL),
-    selectors.getActiveDocumentViewerKey(state),
-  ]);
+  const isOpen = useSelector((state) => selectors.isElementOpen(state, DataElements.SAVE_MODAL));
+  const activeDocumentViewerKey = useSelector((state) => selectors.getActiveDocumentViewerKey(state));
+  const isSpreadsheetEditorMode = useSelector(selectors.isSpreadsheetEditorModeEnabled);
 
   const initalFileTypes = [FILE_TYPES.PDF, FILE_TYPES.IMAGE];
   const [fileTypes, setFileTypes] = useState(initalFileTypes);
   const [filename, setFilename] = useState('');
   const [filetype, setFiletype] = useState(fileTypes[0]);
-  const [pageRange, setPageRange] = useState(PAGE_RANGES.ALL);
-  const [specifiedPages, setSpecifiedPages] = useState();
   const [includeAnnotations, setIncludeAnnotations] = useState(true);
   const [includeComments, setIncludeComments] = useState(false);
   const [pageCount, setPageCount] = useState(1);
-  const [errorText, setErrorText] = useState('');
-
-  // useEffect(() => {
-  //   const keydownListener = (e) => {
-  //     if (e.key === 'Enter') {
-  //       onSave();
-  //     }
-  //   };
-
-  //   !saveDisabled && window.addEventListener('keydown', keydownListener);
-  //   return () => window.removeEventListener('keydown', keydownListener);
-  // }, [
-  //   activeDocumentViewerKey,
-  //   saveDisabled,
-  //   includeAnnotations,
-  //   specifiedPages,
-  //   includeComments,
-  //   pageRange,
-  //   filename,
-  //   filetype,
-  // ]);
+  const {
+    pageRange,
+    setPageRange,
+    onPageRangeChange,
+    hasPageNumberError,
+    onError,
+    hasSpecifiedPages,
+    specifiedPages,
+    setSpecifiedPages,
+  } = usePageRanges();
 
   useEffect(() => {
     const updateFile = async () => {
@@ -96,6 +81,12 @@ const SaveModal = () => {
             FILE_TYPES.PDF
           ]);
           setFiletype(FILE_TYPES.OFFICE_EDITOR);
+        } else if (type === workerTypes.SPREADSHEET_EDITOR) {
+          setFileTypes([
+            FILE_TYPES.SPREADSHEET_EDITOR,
+            FILE_TYPES.PDF
+          ]);
+          setFiletype(FILE_TYPES.SPREADSHEET_EDITOR);
         }
         setPageCount(core.getTotalPages(activeDocumentViewerKey));
       }
@@ -127,10 +118,18 @@ const SaveModal = () => {
     }
   }, [isOpen]);
 
+  // One is passed to the modalWrapper which uses onFocusClose
   const closeModal = () => dispatch(actions.closeElement(DataElements.SAVE_MODAL));
+  // One is used when we close the modal after save, we want to transfer focus back
+  const closeModalWithOnFocusClose = useFocusOnClose(closeModal);
   const preventDefault = (e) => e.preventDefault();
   const onFilenameChange = (e) => {
     setFilename(e?.target?.value);
+  };
+  const onFilenameKeyDown = (e) => {
+    if (e.key === 'Enter' && !isSaveDisabled) {
+      onSave();
+    }
   };
   const onFiletypeChange = (e) => {
     setFiletype(fileTypes.find((i) => i.label === e));
@@ -138,30 +137,16 @@ const SaveModal = () => {
       setPageRange(PAGE_RANGES.ALL);
     }
   };
-  const onPageRangeChange = (e) => {
-    if (e.target.classList.contains('page-number-input')) {
-      return;
-    }
-    setPageRange(e.target.value);
-    if (errorText) {
-      setHasTyped(false);
-      clearError();
-    }
-  };
   const onIncludeAnnotationsChanged = () => setIncludeAnnotations(!includeAnnotations);
   const onIncludeCommentsChanged = () => setIncludeComments(!includeComments);
-  const clearError = () => setErrorText('');
-  const onError = () => setErrorText(t('saveModal.pageError') + pageCount);
-  const onSpecifiedPagesChanged = (pageNumbers) => {
-    if (!hasTyped) {
-      setHasTyped(true);
+  const onSave = () => {
+    let doc = core.getDocument(activeDocumentViewerKey);
+
+    if (!doc) {
+      console.warn('Document is not loaded');
+      return;
     }
 
-    if (pageNumbers.length > 0) {
-      clearError();
-    }
-  };
-  const onSave = () => {
     if (!filename) {
       return;
     }
@@ -180,22 +165,22 @@ const SaveModal = () => {
     downloadPdf(dispatch, {
       includeAnnotations,
       includeComments,
+      useDisplayAuthor: true,
       filename: filename || 'untitled',
       downloadType: filetype.extension,
       pages,
       store,
     }, activeDocumentViewerKey);
 
-    closeModal();
+    closeModalWithOnFocusClose();
   };
 
-  const [hasTyped, setHasTyped] = useState(false);
-  const saveDisabled = (errorText || !hasTyped) && pageRange === PAGE_RANGES.SPECIFY || !filename;
+  const isSaveDisabled = (hasPageNumberError || !hasSpecifiedPages) && pageRange === PAGE_RANGES.SPECIFY || !filename;
 
-  const optionsDisabled = filetype.extension === 'office' || isOfficeEditorMode();
+  const optionsDisabled = filetype.extension === 'office' || isOfficeEditorMode() || isSpreadsheetEditorMode;
 
   const customPagesLabelElement = (
-    <div className={classNames('page-number-input-container', { error: !!errorText })}>
+    <div className={classNames('page-number-input-container', { error: hasPageNumberError })}>
       <label className={'specifyPagesChoiceLabel'}>
         <span>
           {t('option.print.specifyPages')}
@@ -208,10 +193,8 @@ const SaveModal = () => {
         <PageNumberInput
           selectedPageNumbers={specifiedPages}
           pageCount={pageCount}
-          onBlurHandler={setSpecifiedPages}
-          onSelectedPageNumbersChange={onSpecifiedPagesChanged}
+          onSelectedPageNumbersChange={setSpecifiedPages}
           onError={onError}
-          pageNumberError={errorText}
         />
       }
     </div>
@@ -234,16 +217,19 @@ const SaveModal = () => {
               id='fileNameInput'
               data-testid="fileNameInput"
               onChange={onFilenameChange}
+              onKeyDown={onFilenameKeyDown}
               value={filename}
-              fillWidth="false"
+              fillWidth={true}
               padMessageText={true}
               messageText={filename === '' ? t('saveModal.fileNameCannotBeEmpty') : ''}
               message={filename === '' ? 'warning' : 'default'}
             />
           </div>
           <div className='input-container'>
-            <div className='label'>{t('saveModal.fileType')}</div>
+            <div className='label' id="file-type-dropdown-label">{t('saveModal.fileType')}</div>
             <Dropdown
+              id="fileTypeDropdown"
+              labelledById='file-type-dropdown-label'
               items={fileTypes.map((i) => i.label)}
               onClickItem={onFiletypeChange}
               currentSelectionKey={filetype.label}
@@ -296,7 +282,7 @@ const SaveModal = () => {
           </>)}
         </div>
         <div className='footer'>
-          <Button disabled={saveDisabled} onClick={onSave} label={t('saveModal.save')} />
+          <Button disabled={isSaveDisabled} onClick={onSave} label={t('saveModal.save')} />
         </div>
       </ModalWrapper>
     </div >

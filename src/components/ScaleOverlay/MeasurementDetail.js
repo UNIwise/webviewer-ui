@@ -16,19 +16,24 @@ const propTypes = {
   annotation: PropTypes.object,
   isOpen: PropTypes.bool.isRequired,
   selectedTool: PropTypes.object,
+  canModify: PropTypes.bool,
 };
 
-const MeasurementDetail = ({ annotation, isOpen, selectedTool }) => {
+const MeasurementDetail = ({ annotation, isOpen, selectedTool, canModify }) => {
   const { t } = useTranslation();
 
   const data = useMemo(() => {
     const key = annotation ? mapAnnotationToKey(annotation) : mapToolNameToKey(selectedTool.name);
+    let contents = 0;
+    if (annotation) {
+      contents = annotation.getContents?.() || annotation.getMeasurementTextWithScaleAndUnits?.();
+    }
 
     return {
       key,
       icon: getDataWithKey(key).icon,
       color: annotation ? annotation.Color.toHexString() : selectedTool?.defaults?.StrokeColor?.toHexString(),
-      contents: annotation ? annotation.getMeasurementTextWithScaleAndUnits?.() : 0,
+      contents: contents,
       precision: !annotation ? selectedTool?.defaults?.Precision : annotation.Precision,
     };
   });
@@ -93,7 +98,7 @@ const MeasurementDetail = ({ annotation, isOpen, selectedTool }) => {
     };
     const pts = keyPtMap[key](annotation).filter((pt) => !!pt);
 
-    let angle = getAngleInRadians(...pts);
+    let angle = getAngleInRadians(...pts) || 0;
     if (angle) {
       const decimalPlaces = getNumberOfDecimalPlaces(annotation.Precision);
       angle = ((angle / Math.PI) * 180).toFixed(decimalPlaces);
@@ -142,7 +147,7 @@ const MeasurementDetail = ({ annotation, isOpen, selectedTool }) => {
   const renderDetails = () => {
     const { key, precision } = data;
     if (key === 'ellipseMeasurement') {
-      return <EllipseMeasurementOverlay annotation={annotation} selectedTool={selectedTool} isOpen={isOpen} />;
+      return <EllipseMeasurementOverlay annotation={annotation} selectedTool={selectedTool} isOpen={isOpen} canModify={canModify} />;
     }
 
     return (
@@ -154,7 +159,7 @@ const MeasurementDetail = ({ annotation, isOpen, selectedTool }) => {
           </div>
         </div>
         {key === 'distanceMeasurement' && (
-          <LineMeasurementInput annotation={annotation} isOpen={isOpen} selectedTool={selectedTool} />
+          <LineMeasurementInput annotation={annotation} isOpen={isOpen} selectedTool={selectedTool} canModify={canModify} />
         )}
         {[
           'rectangularAreaMeasurement',

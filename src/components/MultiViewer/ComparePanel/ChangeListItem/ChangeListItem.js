@@ -4,11 +4,12 @@ import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import Icon from 'components/Icon';
 import classNames from 'classnames';
-import core from 'core';
 import selectors from 'selectors/index';
 import { useSelector, useDispatch } from 'react-redux';
 import actions from 'actions';
 import { setIsScrolledByClickingChangeItem } from 'helpers/multiViewerHelper';
+import jumpToAnnotation from 'core/jumpToAnnotation';
+import getAnnotationManager from 'core/getAnnotationManager';
 
 const propTypes = {
   oldText: PropTypes.string,
@@ -30,7 +31,8 @@ const ChangeListItem = (props) => {
 
   const onClickItem = useCallback(() => {
     setIsScrolledByClickingChangeItem(true);
-    if (props.old && props.new && props.old.getPageNumber() !== props.new.getPageNumber()) {
+    const onDifferentPage = props.old && props.new && props.old.getPageNumber() !== props.new.getPageNumber();
+    if (onDifferentPage && syncViewer !== null) {
       dispatch(actions.setSyncViewer(null));
     }
     for (const annotation of [props.old, props.new]) {
@@ -38,16 +40,14 @@ const ChangeListItem = (props) => {
       if (!annotation) {
         continue;
       }
-      core.getDocumentViewer(viewerNumber).getAnnotationManager().deselectAllAnnotations();
-      core.jumpToAnnotation(annotation, viewerNumber);
-      core.getDocumentViewer(viewerNumber).getAnnotationManager().selectAnnotation(annotation);
+      const annotationManager = getAnnotationManager(viewerNumber);
+      annotationManager.deselectAllAnnotations();
+      jumpToAnnotation(annotation, viewerNumber);
+      annotationManager.selectAnnotation(annotation);
     }
-  }, [syncViewer]);
+  }, [syncViewer, props.old, props.new]);
 
-  let isSelected = false;
-  if (props.selectedAnnotationId && props.old.Id === props.selectedAnnotationId) {
-    isSelected = true;
-  }
+  let isSelected = props.selectedAnnotationId && props.old?.Id === props.selectedAnnotationId;
 
   return (
     <div className={classNames('ChangeListItem', { 'selected': isSelected })} onClick={onClickItem}>

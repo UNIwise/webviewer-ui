@@ -10,6 +10,7 @@ const PageManipulationOverlay = lazy(() => import('components/PageManipulationOv
 const AnnotationContentOverlay = lazy(() => import('components/AnnotationContentOverlay'));
 const ThumbnailMoreOptionsPopup = lazy(() => import('src/components/LeftPanelOverlay/ThumbnailMoreOptionsPopup'));
 const ThumbnailMoreOptionsPopupSmall = lazy(() => import('src/components/LeftPanelOverlay/ThumbnailMoreOptionsPopupSmall'));
+const HeaderFooterControlsOverlay = lazy(() => import('components/HeaderFooterControlsOverlay'));
 
 // Popups
 const AnnotationPopup = lazy(() => import('components/AnnotationPopup'));
@@ -49,6 +50,9 @@ const OpenFileModal = lazy(() => import('components/OpenFileModal'));
 const SignatureValidationModal = lazy(() => import('components/SignatureValidationModal'));
 const CustomModal = lazy(() => import('components/CustomModal'));
 const CreatePortfolioModal = lazy(() => import('components/CreatePortfolioModal'));
+const HeaderFooterOptionsModal = lazy(() => import('components/HeaderFooterOptionsModal'));
+const OfficeEditorMarginsModal = lazy(() => import('components/OfficeEditorMarginsModal'));
+const OfficeEditorColumnsModal = lazy(() => import('components/OfficeEditorColumnsModal'));
 
 // Panels
 const OutlinesPanel = lazy(() => import('components/OutlinesPanel'));
@@ -65,7 +69,13 @@ const LeftPanel = lazy(() => import('components/LeftPanel'));
 const RubberStampPanel = lazy(() => import('components/RubberStampPanel'));
 const RedactionPanel = lazy(() => import('components/RedactionPanel'));
 const PortfolioPanel = lazy(() => import('components/PortfolioPanel'));
+const FormFieldPanel = lazy(() => import('components/FormFieldPanel'));
+const IndexPanel = lazy(() => import('src/components/ModularComponents/IndexPanel'));
+const Wv3dPropertiesPanel = lazy(() => import('components/Wv3dPropertiesPanel'));
 
+// Sheets Editor
+const FormulaBar = lazy(() => import('components/FormulaBar'));
+const SpreadsheetSwitcher = lazy(() => import('components/ModularComponents/SpreadsheetEditor/SpreadsheetSwitcher'));
 
 const OfficeEditorToolsHeader = lazy(() => import('components/Header/OfficeEditorToolsHeader'));
 
@@ -87,6 +97,7 @@ const LazyLoadComponents = {
   ZoomOverlay,
   PageManipulationOverlay,
   AnnotationContentOverlay,
+  HeaderFooterControlsOverlay,
   ThumbnailMoreOptionsPopup,
   ThumbnailMoreOptionsPopupSmall,
   ContentEditLinkModal,
@@ -103,6 +114,7 @@ const LazyLoadComponents = {
   CalibrationModal,
   SettingsModal,
   SaveModal,
+  IndexPanel,
   InsertPageModal,
   LoadingModal,
   ProgressModal,
@@ -124,11 +136,18 @@ const LazyLoadComponents = {
   LeftPanel,
   RedactionPanel,
   PortfolioPanel,
+  Wv3dPropertiesPanel,
   OfficeEditorToolsHeader,
   CreatePortfolioModal,
   LinkAnnotationPopup,
   SignatureListPanel,
   RubberStampPanel,
+  FormFieldPanel,
+  HeaderFooterOptionsModal,
+  OfficeEditorMarginsModal,
+  OfficeEditorColumnsModal,
+  FormulaBar,
+  SpreadsheetSwitcher,
 };
 
 export default LazyLoadComponents;

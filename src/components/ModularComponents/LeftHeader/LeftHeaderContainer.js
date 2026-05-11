@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector, useDispatch, shallowEqual } from 'react-redux';
 import selectors from 'selectors';
 import actions from 'actions';
 import ModularHeader from 'components/ModularComponents/ModularHeader';
@@ -7,73 +7,63 @@ import FloatingHeaderContainer from '../FloatingHeader';
 import useResizeObserver from 'hooks/useResizeObserver';
 import './LeftHeader.scss';
 import { PLACEMENT } from 'constants/customizationVariables';
+import { useTranslation } from 'react-i18next';
 
 function LeftHeaderContainer() {
-  const [
-    featureFlags,
-    leftPanelOpen,
-    leftPanelWidth,
-    leftHeaders,
-    bottomHeadersHeight,
-  ] = useSelector(
-    (state) => {
-      const genericLeftPanelOpen = selectors.getOpenGenericPanel(state, PLACEMENT.LEFT);
-      return [
-        selectors.getFeatureFlags(state),
-        genericLeftPanelOpen,
-        selectors.getPanelWidth(state, genericLeftPanelOpen),
-        selectors.getLeftHeader(state),
-        selectors.getBottomHeadersHeight(state),
-      ];
-    });
 
+  const featureFlags = useSelector(selectors.getFeatureFlags, shallowEqual);
+  const leftPanelOpen = useSelector((state) => selectors.getOpenGenericPanel(state, PLACEMENT.LEFT));
+  const leftPanelWidth = useSelector((state) => selectors.getPanelWidth(state, leftPanelOpen));
+  const leftHeaders = useSelector(selectors.getLeftHeader, shallowEqual);
+  const bottomHeadersHeight = useSelector(selectors.getBottomHeadersHeight);
+
+  const { t } = useTranslation();
   const dispatch = useDispatch();
   const { customizableUI } = featureFlags;
-  const floatingHeaders = leftHeaders.filter((header) => header.float);
-  const fullLengthHeaders = leftHeaders.filter((header) => !header.float);
-  if (fullLengthHeaders.length > 1) {
-    console.warn(`Left headers only support one full length header but ${fullLengthHeaders.length} were added. Only the first one will be rendered.`);
-  }
 
-  const leftHeader = fullLengthHeaders[0];
+  const [floatingHeaders, leftHeader] = useMemo(() => {
+    const floatingHeaders = [];
+    const fullLengthHeaders = [];
+    for (let header of leftHeaders) {
+      header.float ? floatingHeaders.push(header) : fullLengthHeaders.push(header);
+    }
+    if (fullLengthHeaders.length > 1) {
+      console.warn(`Left headers only support one full length header but ${fullLengthHeaders.length} were added. Only the first one will be rendered.`);
+    }
+    return [floatingHeaders, fullLengthHeaders[0]];
+  }, [leftHeaders]);
+
   const userDefinedStyle = leftHeader ? leftHeader.style : {};
   const [elementRef, dimensions] = useResizeObserver();
   useEffect(() => {
     if (dimensions.width !== null) {
-      dispatch(actions.setLeftHeaderWidth(dimensions.width));
+      dispatch(actions.setHeaderWidth('leftHeader', dimensions.width));
     }
-  }, [dimensions]);
+  }, [dimensions.width]);
 
-  let style = useMemo(() => {
-    const styleObject = {};
-    if (leftPanelOpen) {
-      styleObject['transform'] = `translateX(${leftPanelWidth}px)`;
+  const style = useMemo(() => ({
+    ...(leftPanelOpen && { transform: `translateX(${leftPanelWidth}px)` }),
+    ...(bottomHeadersHeight !== 0 && { height: `calc(100% - ${bottomHeadersHeight}px)` }),
+    ...userDefinedStyle
+  }), [leftPanelOpen, leftPanelWidth, bottomHeadersHeight, userDefinedStyle]);
+
+  const renderedHeader = useMemo(() => {
+    if (leftHeader) {
+      const { dataElement } = leftHeader;
+      return (<ModularHeader ref={elementRef} {...leftHeader} key={dataElement} style={style}/>);
     }
-    if (bottomHeadersHeight !== 0) {
-      styleObject['height'] = `calc(100% - ${bottomHeadersHeight}px)`;
-    }
-    return styleObject;
-  }, [leftPanelOpen, leftPanelWidth, bottomHeadersHeight]);
+  }, [leftHeader, style]);
 
-
-  style = Object.assign({}, style, userDefinedStyle);
-
-  if (customizableUI) {
-    const renderLeftHeader = () => {
-      if (leftHeader) {
-        const { dataElement } = leftHeader;
-        return (<ModularHeader ref={elementRef} {...leftHeader} key={dataElement} style={style} />);
-      }
-    };
-
-    return (
-      <>
-        <FloatingHeaderContainer floatingHeaders={floatingHeaders} placement={PLACEMENT.LEFT} />
-        {renderLeftHeader()}
-      </>
-    );
+  if (!customizableUI || !leftHeaders.length) {
+    return null;
   }
-  return null;
+
+  return (
+    <nav aria-label={t('accessibility.landmarks.leftHeader')}>
+      <FloatingHeaderContainer floatingHeaders={floatingHeaders} placement={PLACEMENT.LEFT} />
+      {renderedHeader}
+    </nav>
+  );
 }
 
 export default LeftHeaderContainer;

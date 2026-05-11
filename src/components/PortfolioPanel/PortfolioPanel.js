@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { shallowEqual, useSelector, useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { DndProvider } from 'react-dnd';
-import TouchBackEnd from 'react-dnd-touch-backend';
+import { TouchBackend } from 'react-dnd-touch-backend';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import selectors from 'selectors';
 import actions from 'actions';
@@ -17,22 +17,34 @@ import DataElements from 'constants/dataElement';
 import { DropLocation as MoveDirection } from 'constants/dnd';
 import { isMobileDevice } from 'helpers/device';
 import { enableMultiTab } from 'helpers/TabManager';
-import { addFile, deletePortfolioFile, downloadPortfolioFile, getPortfolioFiles, isOpenableFile, renamePortfolioFile, reorderPortfolioFile } from 'helpers/portfolio';
-import core from 'core';
+import {
+  addFile,
+  deletePortfolioFile,
+  downloadPortfolioFile,
+  getPortfolioFiles,
+  isOpenableFile,
+  renamePortfolioFile,
+  reorderPortfolioFile
+} from 'helpers/portfolio';
+import useCore from 'hooks/useCore';
 
 import '../../constants/bookmarksOutlinesShared.scss';
 import './PortfolioPanel.scss';
+import { menuTypes } from 'helpers/outlineFlyoutHelper';
 
 const PortfolioPanel = () => {
+  const { core } = useCore();
   const [
     isDisabled,
     tabManager,
+    activeDocumentViewerKey,
     portfolioFiles,
   ] = useSelector(
     (state) => [
       selectors.isElementDisabled(state, DataElements.PORTFOLIO_PANEL),
       selectors.getTabManager(state),
-      selectors.getPortfolio(state),
+      selectors.getActiveDocumentViewerKey(state),
+      selectors.getPortfolio(state, selectors.getActiveDocumentViewerKey(state)),
     ],
     shallowEqual,
   );
@@ -70,7 +82,7 @@ const PortfolioPanel = () => {
         if (doc) {
           const pdfDoc = await doc.getPDFDoc();
           if (pdfDoc) {
-            await addFile(pdfDoc, file);
+            await addFile({ core, pdfDoc, file });
             refreshPortfolio();
           }
         }
@@ -87,12 +99,12 @@ const PortfolioPanel = () => {
   };
 
   const renamePortfolioItem = async (id, newName) => {
-    await renamePortfolioFile(id, newName);
+    await renamePortfolioFile(core, id, newName);
     refreshPortfolio();
   };
 
   const refreshPortfolio = async () => {
-    dispatch(actions.setPortfolio(await getPortfolioFiles()));
+    dispatch(actions.setPortfolio(await getPortfolioFiles(core), activeDocumentViewerKey));
     setAddingNewFolder(false);
   };
 
@@ -106,7 +118,7 @@ const PortfolioPanel = () => {
       title,
       confirmBtnText,
       onConfirm: async () => {
-        await deletePortfolioFile(id);
+        await deletePortfolioFile(core, id);
         refreshPortfolio();
       },
     };
@@ -114,10 +126,13 @@ const PortfolioPanel = () => {
   };
 
   const openPortfolioItem = (portfolioItem) => {
-    if (isOpenableFile(portfolioItem.extension)) {
-      dispatch(enableMultiTab());
-      dispatch(actions.addPortfolioTab(portfolioItem));
+    if (!isOpenableFile(portfolioItem.extension)) {
+      console.warn(`Cannot open file "${portfolioItem.name}". Extension "${portfolioItem.extension}" is not supported.`);
+      return;
     }
+
+    dispatch(enableMultiTab());
+    dispatch(actions.addPortfolioTab(portfolioItem));
   };
 
   const isNameDuplicated = (newName, id) => {
@@ -157,20 +172,38 @@ const PortfolioPanel = () => {
     fileArray.splice(moveToIndex, 0, fileArray.splice(fromIndex, 1)[0]);
     for (const [index, file] of fileArray.entries()) {
       if (file.order !== index) {
-        await reorderPortfolioFile(file.id, index);
+        await reorderPortfolioFile(core, file.id, index);
       }
     }
+  };
+
+  const movePortfolio = async (fileId, direction) => {
+    const portfolioFiles = await getPortfolioFiles(core);
+    const fromIndex = portfolioFiles.findIndex((file) => file.id === fileId);
+    const outOfBound = (fromIndex === 0 && direction === menuTypes.MOVE_UP)
+      || (fromIndex === portfolioFiles.length - 1 && direction === menuTypes.MOVE_DOWN);
+    if (outOfBound) {
+      return;
+    }
+    const moveToIndex = direction === menuTypes.MOVE_UP ? fromIndex - 1 : fromIndex + 1;
+    portfolioFiles.splice(moveToIndex, 0, portfolioFiles.splice(fromIndex, 1)[0]);
+    for (const [index, file] of portfolioFiles.entries()) {
+      if (file.order !== index) {
+        await reorderPortfolioFile(core, file.id, index);
+      }
+    }
+    await refreshPortfolio();
   };
 
   const movePortfolioBeforeTarget = useCallback(async (dragItemId, dropItemId) => {
     await moveFileInArray(portfolioFiles, dragItemId, dropItemId, MoveDirection.ABOVE_TARGET);
     refreshPortfolio();
-  }, [portfolioFiles]);
+  }, [portfolioFiles, core]);
 
   const movePortfolioAfterTarget = useCallback(async (dragItemId, dropItemId) => {
     await moveFileInArray(portfolioFiles, dragItemId, dropItemId, MoveDirection.BELOW_TARGET);
     refreshPortfolio();
-  }, [portfolioFiles]);
+  }, [portfolioFiles, core]);
 
   return isDisabled ? null : (
     <DataElementWrapper
@@ -178,9 +211,9 @@ const PortfolioPanel = () => {
       dataElement={DataElements.PORTFOLIO_PANEL}
     >
       <div className="bookmark-outline-panel-header">
-        <div className="header-title">
+        <h2 className="header-title">
           {t('portfolio.portfolioPanelTitle')}
-        </div>
+        </h2>
 
         <div className="portfolio-panel-control">
           <Button
@@ -221,10 +254,10 @@ const PortfolioPanel = () => {
           tabManager,
         }}
       >
-        <DndProvider backend={isMobileDevice ? TouchBackEnd : HTML5Backend}>
+        <DndProvider backend={isMobileDevice ? TouchBackend : HTML5Backend}>
           <PortfolioDragLayer />
 
-          <div className="bookmark-outline-row">
+          <div className='portfolio-panel-list'>
             {portfolioFiles.map((item) => (
               <PortfolioItem
                 key={item.id}
@@ -232,6 +265,7 @@ const PortfolioPanel = () => {
                 movePortfolioInward={movePortfolioInward}
                 movePortfolioBeforeTarget={movePortfolioBeforeTarget}
                 movePortfolioAfterTarget={movePortfolioAfterTarget}
+                movePortfolio={movePortfolio}
               />
             ))}
 

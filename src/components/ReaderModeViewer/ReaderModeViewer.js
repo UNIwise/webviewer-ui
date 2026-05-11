@@ -1,4 +1,5 @@
 import React from 'react';
+// eslint-disable-next-line custom/use-core-hook-in-components
 import core from 'core';
 import PropTypes from 'prop-types';
 import selectors from 'selectors';
@@ -13,7 +14,7 @@ class ReaderModeViewer extends React.PureComponent {
   static propTypes = {
     containerWidth: PropTypes.number.isRequired,
     enableFadePageNavigation: PropTypes.bool.isRequired
-  }
+  };
 
   constructor(props) {
     super(props);
@@ -116,11 +117,11 @@ class ReaderModeViewer extends React.PureComponent {
       this.setZoom(core.getZoom());
       this.setAddAnnotConfig();
     });
-  }
+  };
 
   goToPage = (pageNum) => {
     this.wvReadingMode?.goToPage(pageNum);
-  }
+  };
 
   setZoom = (zoom) => {
     if (!this.wvReadingMode) {
@@ -132,7 +133,7 @@ class ReaderModeViewer extends React.PureComponent {
     if (pageWidth && readerModeElement) {
       readerModeElement.style.padding = `0 ${(this.props.containerWidth - pageWidth * zoom) / 2}px`;
     }
-  }
+  };
 
   updateMaxZoom() {
     // Calling the FitWidth function to get the calculated fit width zoom level for normal page rendering
@@ -160,7 +161,7 @@ class ReaderModeViewer extends React.PureComponent {
       return annotationTypes.Squiggly;
     }
     return undefined;
-  }
+  };
 
   setAddAnnotConfig = () => {
     if (!this.wvReadingMode) {
@@ -179,7 +180,7 @@ class ReaderModeViewer extends React.PureComponent {
         type: undefined
       });
     }
-  }
+  };
 
   onEditStyle = ({ color, opacity, type, position }, setAnnotStyleCb, doneSetAnnotColorCb) => {
     this.setAnnotStyleCb = setAnnotStyleCb;
@@ -193,7 +194,7 @@ class ReaderModeViewer extends React.PureComponent {
       showStylePopup: true,
       annotPosition: position
     });
-  }
+  };
 
   getColorMapKey(annotType) {
     // eslint-disable-next-line no-undef
@@ -226,7 +227,7 @@ class ReaderModeViewer extends React.PureComponent {
         }
       });
     }
-  }
+  };
 
   handleOpacityChange = (property, opacity) => {
     if (property === 'Opacity' && this.setAnnotStyleCb) {
@@ -241,14 +242,14 @@ class ReaderModeViewer extends React.PureComponent {
         }
       });
     }
-  }
+  };
 
   handleStylePopupClose = () => {
     this.setState({
       showStylePopup: false
     });
     this.doneSetAnnotColorCb();
-  }
+  };
 }
 
 const mapStateToProps = (state) => ({

@@ -1,4 +1,4 @@
-@import "../../../constants/styles";
+@import '../../../constants/styles';
 
 $padding-main: 0px;
 $padding-inner: 16px;
@@ -39,16 +39,16 @@ $padding-inner: 16px;
     }
   }
 
-  .changeListContainer{
+  .changeListContainer {
     height: calc(100% - 28px);
     .changeListTitle {
       padding: 8px $padding-inner 2px;
       font-size: var(--font-size-medium);
       font-family: var(--font-family);
       font-weight: var(--font-weight-bold);
-      color: var(--gray-9);
+      color: var(--text-color);
       span {
-        color: var(--gray-7)
+        color: var(--faded-text);
       }
     }
 
@@ -64,8 +64,15 @@ $padding-inner: 16px;
         margin-top: 10px;
         font-size: var(--font-size-default);
         font-family: var(--font-family);
-        color: var(--gray-7);
+        color: var(--faded-text);
       }
+    }
+
+    .highlightSwitch {
+      font-size: var(--font-size-medium);
+      font-weight: normal;
+      padding-top: 16px;
+      padding-inline-start: $padding-inner;
     }
   }
 }

@@ -5,13 +5,11 @@ import { configureStore } from '@reduxjs/toolkit';
 import Panel from 'components/Panel';
 import { mockHeadersNormalized, mockModularComponents } from '../ModularComponents/AppStories/mockAppState';
 import initialState from 'src/redux/initialState';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'ModularComponents/PortfolioPanel',
   component: PortfolioPanel,
-  parameters: {
-    customizableUI: true,
-  },
 };
 
 const mockInitialState = {
@@ -28,11 +26,12 @@ const mockInitialState = {
       portfolioPanel: true,
       panel: true,
     },
-    lastPickedToolForGroupedItems: {
-    },
     panelWidths: { panel: 300 },
     activeGroupedItems: ['insertGroupedItems'],
-    activeCustomPanel: 'portfolioPanel',
+    activeTabInPanel: {
+      'tabPanel': 'portfolioPanel',
+    }
+    ,
   },
   featureFlags: {
     customizableUI: true,
@@ -60,3 +59,5 @@ export function PortfolioPanelRight() {
     </Provider>
   );
 }
+
+PortfolioPanelRight.parameters = disableRtlModeParameters;

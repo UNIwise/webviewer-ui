@@ -1,16 +1,21 @@
 import { useCallback } from 'react';
-import { useDispatch } from 'react-redux';
-import actions from 'actions';
+import getRootNode from 'helpers/getRootNode';
+import FocusStackManager from 'helpers/focusStackManager';
 
 // This hook is used to focus on the previously focused element when an element like a modal is closed
-const useFocusOnClose = (onCloseClick) => {
-  const dispatch = useDispatch();
+const useFocusOnClose = (onCloseClick, preferredFocusElement = '') => {
 
   const onCloseHandler = useCallback((event) => {
     onCloseClick(event);
-    const focusedElement = dispatch(actions.popFocusedElement());
-    if (focusedElement) {
-      focusedElement.focus();
+    const dataElement = FocusStackManager.pop();
+    const elementSelectorToFocus = preferredFocusElement || dataElement;
+    if (elementSelectorToFocus) {
+      const elementToFocus = getRootNode().querySelector(`[data-element="${elementSelectorToFocus}"]`);
+      if (elementToFocus) {
+        requestAnimationFrame(() => {
+          elementToFocus.focus();
+        });
+      }
     }
   }, [onCloseClick]);
 

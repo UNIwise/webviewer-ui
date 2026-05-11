@@ -6,18 +6,19 @@ import RichTextStyleEditor from './RichTextStyleEditor';
 import Panel from '../Panel';
 import '../StylePicker/StylePicker.scss';
 import { initialTextColors } from 'helpers/initialColorStates';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/RichTextStyleEditor',
   component: RichTextStyleEditor,
 };
+const noop = () => {};
 
 // Mock some state to show the style popups
 const state = {
   ...initialState,
   viewer: {
     openElements: {
-      watermarkPanel: true,
       stylePopup: true,
       stylePanel: true,
       stylePopupTextStyleContainer: true,
@@ -44,6 +45,7 @@ const state = {
       '#13558c', '#76287b', '#347842', '#318f29', '#ffffff',
       '#cdcdcd', '#9c9c9c', '#696969', '#272727', '#000000'
     ],
+    customColors: [],
     /* eslint-enable custom/no-hex-colors */
     textColors: initialTextColors,
     toolColorOverrides: {},
@@ -56,34 +58,7 @@ const state = {
   }
 };
 
-const noop = () => {};
-
-const store = configureStore({
-  reducer: () => state
-});
-
-const BasicComponent = (props) => {
-  return (
-    <Provider store={store}>
-      <Panel dataElement="panel" location="left">
-        <div className="StylePicker">
-          <RichTextStyleEditor {...props} />
-        </div>
-      </Panel>
-    </Provider>
-  );
-};
-
-export const Basic = BasicComponent.bind({
-  annotation: '',
-  editor: {},
-  style: {},
-  isFreeTextAutoSize: false,
-  onFreeTextSizeToggle: () => {},
-  onPropertyChange: () => {},
-  onRichTextStyleChange: () => {},
-});
-Basic.args = {
+const baseProps = {
   currentStyleTab: 'StrokeColor',
   isInFormBuilderAndNotFreeText: true,
   style: {
@@ -106,7 +81,6 @@ Basic.args = {
   properties: {
     'StrokeStyle': 'solid',
   },
-  isRedaction: false,
   fonts: ['Helvetica', 'Times New Roman', 'Arimo'],
   isSnapModeEnabled: false,
   onSliderChange: noop,
@@ -117,3 +91,59 @@ Basic.args = {
   onRichTextStyleChange: noop,
   onLineStyleChange: noop,
 };
+
+const baseObject = {
+  annotation: '',
+  editor: {},
+  style: {},
+  isFreeTextAutoSize: false,
+  onFreeTextSizeToggle: () => {},
+  onPropertyChange: () => {},
+  onRichTextStyleChange: () => {},
+};
+
+
+const store = configureStore({
+  reducer: () => state
+});
+
+const BasicComponent = (props) => {
+  return (
+    <Provider store={store}>
+      <Panel dataElement="panel" location="left">
+        <div className="StylePicker">
+          <RichTextStyleEditor {...props} />
+        </div>
+      </Panel>
+    </Provider>
+  );
+};
+
+export const Basic = BasicComponent.bind({
+  ...baseObject
+});
+Basic.args = {
+  ...baseProps,
+  isRedaction: false,
+};
+Basic.parameters = disableRtlModeParameters;
+
+export const WidgetLayout = BasicComponent.bind({
+  ...baseObject
+});
+WidgetLayout.args = {
+  ...baseProps,
+  isWidget: true,
+  isRedaction: false,
+};
+WidgetLayout.parameters = disableRtlModeParameters;
+
+export const RedactionLayout = BasicComponent.bind({
+  ...baseObject
+});
+RedactionLayout.args = {
+  ...baseProps,
+  isRedaction: true,
+  isContentEditing: false,
+};
+RedactionLayout.parameters = disableRtlModeParameters;

@@ -2,18 +2,20 @@ import React from 'react';
 import TabPanel from './TabPanel';
 import { configureStore } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
-import { panelMinWidth } from 'constants/panel';
+import { panelMinWidth, panelNames } from 'constants/panel';
 import initialState from 'src/redux/initialState';
 import { mockHeadersNormalized, mockModularComponents } from '../AppStories/mockAppState';
 import { setItemToFlyoutStore } from 'helpers/itemToFlyoutHelper';
 import { MockApp, createStore } from 'helpers/storybookHelper';
+import { expect, within, userEvent } from 'storybook/test';
+import viewOnlyWhitelist from 'src/redux/viewOnlyWhitelist';
+import { getTranslatedText } from 'src/helpers/testTranslationHelper';
+import { mobileStoryParameters, disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'ModularComponents/TabPanel',
   component: TabPanel,
-  parameters: {
-    customizableUI: true,
-  },
+  layout: 'fullscreen',
 };
 
 const mockState = {
@@ -145,12 +147,25 @@ const mockState = {
       },
     ],
     lastPickedToolGroup: '',
-    activeCustomPanel: 'thumbnailsPanel',
+    activeTabInPanel: {
+      'tabPanel': 'thumbnailsPanel',
+    },
     flyoutMap: {},
-    customPanels: []
+    customPanels: [],
+    multiPageManipulationControls: [
+      { dataElement: 'leftPanelPageTabsRotate' },
+      { type: 'divider' },
+      { dataElement: 'leftPanelPageTabsMove' },
+      { type: 'divider' },
+      { dataElement: 'leftPanelPageTabsMore' },
+    ],
   },
   document: {
     bookmarks: [],
+    portfolio: {
+      1: [{ id: 1, name: 'Portfolio Item 1' }],
+      2: [],
+    },
   },
   featureFlags: {
     customizableUI: true,
@@ -170,10 +185,13 @@ const tabPanelTemplate = (dataElement, width) => {
 };
 
 export const TabPanelWithIconsOnly = () => (tabPanelTemplate('tabPanelIconsOnly', 320));
+TabPanelWithIconsOnly.parameters = disableRtlModeParameters;
 
 export const TabPanelWithLabelsOnly = () => (tabPanelTemplate('tabPanelLabelsOnly', 204));
+TabPanelWithLabelsOnly.parameters = disableRtlModeParameters;
 
 export const TabPanelIconsAndLabels = () => (tabPanelTemplate('tabPanelIconsAndLabels', 246));
+TabPanelIconsAndLabels.parameters = disableRtlModeParameters;
 
 const initialStateThumbnailsOnly = {
   viewer: {
@@ -205,19 +223,30 @@ const initialStateThumbnailsOnly = {
     lastPickedToolGroup: '',
     flyoutMap: {},
     customPanels: [],
-    activeCustomPanel: {
+    activeTabInPanel: {
       'tabPanelIconsAndLabels': 'icon-label1',
     },
     selectedThumbnailPageIndexes: [],
     thumbnailSelectingPages: true,
     panelWidths: {
       'tabPanelIconsAndLabels': panelMinWidth,
-    }
+    },
+    multiPageManipulationControls: [
+      { dataElement: 'leftPanelPageTabsRotate' },
+      { type: 'divider' },
+      { dataElement: 'leftPanelPageTabsMove' },
+      { type: 'divider' },
+      { dataElement: 'leftPanelPageTabsMore' },
+    ],
   },
   document: {
     bookmarks: [],
     totalPages: {
       1: 0,
+    },
+    portfolio: {
+      1: [],
+      2: [],
     }
   },
   featureFlags: {
@@ -257,7 +286,8 @@ export const TabPanelWithThumbnailPanelMaxWidth = () => (
   </Provider>
 );
 
-const TabPanelInApp = (location, activePanel) => {
+const TabPanelInApp = (context, location, activePanel, panelWidth) => {
+  const { addonRtl } = context.globals;
   const appMockState = {
     ...initialState,
     viewer: {
@@ -320,10 +350,15 @@ const TabPanelInApp = (location, activePanel) => {
       openElements: {
         tabPanel: true,
       },
-      activeCustomPanel: {
-        ...initialState.viewer.activeCustomPanel,
+      activeTabInPanel: {
+        ...initialState.viewer.activeTabInPanel,
         'tabPanel': activePanel,
-      }
+      },
+      panelWidths: {
+        ...initialState.viewer.panelWidths,
+        tabPanel: panelWidth || 330,
+      },
+      activeTheme: context.globals.theme,
     },
     featureFlags: {
       customizableUI: true,
@@ -332,24 +367,108 @@ const TabPanelInApp = (location, activePanel) => {
   const store = createStore(appMockState);
   setItemToFlyoutStore(store);
 
-  return <MockApp initialState={appMockState} />;
-} ;
+  return <MockApp initialState={appMockState} initialDirection={addonRtl} />;
+};
 
-export const TabPanelWithThumbnailsInMobile = () => (TabPanelInApp('left', 'thumbnailsPanel'));
+export const TabPanelInApplication = (args, context) => (TabPanelInApp(context, 'left', 'thumbnailsPanel', 400));
 
-export const TabPanelWithOutlinesInMobile = () => (TabPanelInApp('left', 'outlinesPanel'));
+export const TabPanelWithThumbnailsInMobile = (args, context) => (TabPanelInApp(context, 'left', 'thumbnailsPanel'));
 
-export const TabPanelWithBookmarksInMobile = () => (TabPanelInApp('left', 'bookmarksPanel'));
+export const TabPanelWithOutlinesInMobile = (args, context) => (TabPanelInApp(context, 'left', 'outlinesPanel'));
 
-export const TabPanelWithLayersInMobile = () => (TabPanelInApp('left', 'layersPanel'));
+export const TabPanelWithBookmarksInMobile = (args, context) => (TabPanelInApp(context, 'left', 'bookmarksPanel'));
 
-export const TabPanelWithSignatureInMobile = () => (TabPanelInApp('left', 'signaturePanel'));
+export const TabPanelWithLayersInMobile = (args, context) => (TabPanelInApp(context, 'left', 'layersPanel'));
 
-export const TabPanelWithFileAttachmentInMobile = () => (TabPanelInApp('left', 'fileAttachmentPanel'));
+export const TabPanelWithSignatureInMobile = (args, context) => (TabPanelInApp(context, 'left', 'signaturePanel'));
 
-TabPanelWithThumbnailsInMobile.parameters = window.storybook.MobileParameters;
-TabPanelWithOutlinesInMobile.parameters = window.storybook.MobileParameters;
-TabPanelWithBookmarksInMobile.parameters = window.storybook.MobileParameters;
-TabPanelWithLayersInMobile.parameters = window.storybook.MobileParameters;
-TabPanelWithSignatureInMobile.parameters = window.storybook.MobileParameters;
-TabPanelWithFileAttachmentInMobile.parameters = window.storybook.MobileParameters;
+export const TabPanelWithFileAttachmentInMobile = (args, context) => (TabPanelInApp(context, 'left', 'fileAttachmentPanel'));
+
+TabPanelWithThumbnailsInMobile.parameters = mobileStoryParameters;
+TabPanelWithOutlinesInMobile.parameters = mobileStoryParameters;
+TabPanelWithBookmarksInMobile.parameters = mobileStoryParameters;
+TabPanelWithLayersInMobile.parameters = mobileStoryParameters;
+TabPanelWithSignatureInMobile.parameters = mobileStoryParameters;
+TabPanelWithFileAttachmentInMobile.parameters = mobileStoryParameters;
+
+const PANELS_META = [
+  { key: 'component.thumbnailsPanel', className: 'ThumbnailsPanel', panelName: panelNames.THUMBNAIL },
+  { key: 'component.outlinesPanel', className: 'OutlinesPanel', panelName: panelNames.OUTLINE },
+  { key: 'component.bookmarksPanel', className: 'BookmarksPanel', panelName: panelNames.BOOKMARKS },
+  { key: 'component.layersPanel', className: 'LayersPanel', panelName: panelNames.LAYERS },
+  { key: 'component.signaturePanel', className: 'SignaturePanel', panelName: panelNames.SIGNATURE },
+  { key: 'component.attachmentPanel', className: 'fileAttachmentPanel', panelName: panelNames.FILE_ATTACHMENT },
+];
+
+const getPanelsToCheck = () =>
+  PANELS_META.map((p) => ({ ...p, name: getTranslatedText(p.key) }));
+
+TabPanelInApplication.parameters = {
+  layout: 'fullscreen',
+  test: {
+    // For issues with mocks that are unrelated to the test
+    dangerouslyIgnoreUnhandledErrors: true,
+  },
+};
+TabPanelInApplication.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+  const tabButton = await canvas.findByRole('button', { name: getTranslatedText('component.thumbnailsPanel') });
+  expect(tabButton).toBeInTheDocument();
+
+  // should correctly renders all the tabs, should render each panel when clicked
+  // and each tab should have the correct aria-current attribute when it is active
+  for (const panel of getPanelsToCheck()) {
+    const tabButton = await canvas.getByRole('button', { name: panel.name });
+    await expect(tabButton).toBeInTheDocument();
+    await userEvent.click(tabButton);
+    const panelElement = canvasElement.querySelector(`.${panel.className}`);
+    await expect(panelElement).toBeInTheDocument();
+    await expect(tabButton).toHaveAttribute('aria-current', 'true');
+  }
+};
+
+export const ViewOnlyTabPanel = (args, context) => (TabPanelInApp(context, 'left', 'viewOnlyPanel'));
+ViewOnlyTabPanel.parameters = {
+  layout: 'fullscreen',
+  ...disableRtlModeParameters,
+};
+
+ViewOnlyTabPanel.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+
+  let tabButton = await canvas.findByRole('button', { name: getTranslatedText('component.thumbnailsPanel') });
+  expect(tabButton).toBeInTheDocument();
+
+  window.instance.UI.enableViewOnlyMode();
+  window.instance.UI.openElements(['tabPanel']);
+
+  tabButton = await canvas.findByRole('button', { name: getTranslatedText('component.thumbnailsPanel') });
+  expect(tabButton).toBeInTheDocument();
+
+  for (const panel of getPanelsToCheck()) {
+    const tabButton = canvas.queryByRole('button', { name: panel.name });
+    const isWhitelisted = viewOnlyWhitelist.panel.includes(panel.panelName);
+    if (isWhitelisted) {
+      await expect(tabButton).toBeInTheDocument();
+    } else {
+      await expect(tabButton).toBeNull();
+    }
+  }
+};
+
+export const TabPanelWithNoVisibleTabs = (args, context) => (TabPanelInApp(context, 'left', 'viewOnlyPanel'));
+TabPanelWithNoVisibleTabs.parameters = disableRtlModeParameters;
+
+TabPanelWithNoVisibleTabs.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+  const panels = Object.values(panelNames);
+
+  window.instance.UI.openElement(panelNames.TABS);
+  let tabButton = await canvas.findByRole('button', { name: getTranslatedText('component.thumbnailsPanel') });
+  expect(tabButton).toBeInTheDocument();
+
+  window.instance.UI.disableElements(panels);
+  window.instance.UI.openElement(panelNames.TABS);
+  tabButton = canvas.queryByRole('button', { name: getTranslatedText('component.thumbnailsPanel') });
+  expect(tabButton).toBeNull();
+};

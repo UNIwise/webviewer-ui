@@ -11,7 +11,7 @@ import rootReducer from 'reducers/rootReducer';
 import { persistStore } from 'redux-persist';
 import { PersistGate } from 'redux-persist/integration/react';
 import retargetEvents from 'react-shadow-dom-retarget-events';
-
+// eslint-disable-next-line custom/use-core-hook-in-components
 import core from 'core';
 import actions from 'actions';
 import App from 'components/App';
@@ -22,6 +22,7 @@ import defineWebViewerInstanceUIAPIs from 'src/apis';
 import getBackendPromise from 'helpers/getBackendPromise';
 import loadCustomCSS from 'helpers/loadCustomCSS';
 import loadScript, { loadConfig } from 'helpers/loadScript';
+import wildCardMatch from 'helpers/wildCardMatch';
 import setupLoadAnnotationsFromServer from 'helpers/setupLoadAnnotationsFromServer';
 import eventHandler from 'helpers/eventHandler';
 import setupI18n from 'helpers/setupI18n';
@@ -33,8 +34,11 @@ import { addDocumentViewer, setupOpenURLHandler } from 'helpers/documentViewerHe
 import setEnableAnnotationNumbering from 'helpers/setEnableAnnotationNumbering';
 import getRootNode from 'helpers/getRootNode';
 import { setItemToFlyoutStore } from 'helpers/itemToFlyoutHelper';
+import EmotionProvider from './emotion/EmotionProvider';
 
 import './index.scss';
+import importModularComponents from 'src/apis/importModularComponents';
+import localStorageManager from './helpers/localStorageManager';
 
 if (window.isApryseWebViewerWebComponent) {
   if (window.webViewerPath.lastIndexOf('/') !== window.webViewerPath.length - 1) {
@@ -51,13 +55,13 @@ let composeEnhancer = function noopStoreComposeEnhancer(middleware) {
 };
 
 if (process.env.NODE_ENV === 'development') {
-  const isSpamDisabled = localStorage.getItem('spamDisabled') === 'true';
+  const isSpamDisabled = localStorageManager.getItemSynchronous('spamDisabled') === 'true';
   if (!isSpamDisabled) {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires,global-require
+    // eslint-disable-next-line global-require
     const { createLogger } = require('redux-logger');
     middleware.push(createLogger({ collapsed: true }));
   }
-  // eslint-disable-next-line @typescript-eslint/no-var-requires,global-require
+  // eslint-disable-next-line global-require
   const { composeWithDevTools } = require('redux-devtools-extension/logOnlyInProduction');
   composeEnhancer = composeWithDevTools({});
 }
@@ -78,12 +82,12 @@ if (process.env.NODE_ENV === 'development' && module.hot) {
 
 if (process.env.NODE_ENV === 'development') {
   window.disableSpam = () => {
-    localStorage.setItem('spamDisabled', 'true');
+    localStorageManager.setItemSynchronous('spamDisabled', 'true');
     location.reload();
   };
 
   window.enableSpam = () => {
-    localStorage.setItem('spamDisabled', 'false');
+    localStorageManager.setItemSynchronous('spamDisabled', 'false');
     location.reload();
   };
 }
@@ -92,12 +96,16 @@ if (window.CanvasRenderingContext2D) {
   let fullAPIReady = Promise.resolve();
   const state = store.getState();
 
-  if (state.advanced.fullAPI) {
+  if (state.advanced.fullAPI || state.viewer.isAccessibleMode) {
     window.Core.enableFullPDF();
     if (window.isApryseWebViewerWebComponent) {
       fullAPIReady = loadScript(`${window.webViewerPath}core/pdf/PDFNet.js`);
     } else {
       fullAPIReady = loadScript('../core/pdf/PDFNet.js');
+    }
+
+    if (state.viewer.isAccessibleMode) {
+      console.warn('FullAPI is required for accessibleMode. It has been automatically enabled to ensure accesible reading order mode will work.');
     }
   }
 
@@ -202,7 +210,7 @@ if (window.CanvasRenderingContext2D) {
   };
 
   const initTransports = () => {
-    const { PDF, OFFICE, LEGACY_OFFICE, CONTENT_EDIT, OFFICE_EDITOR } = workerTypes;
+    const { PDF, OFFICE, LEGACY_OFFICE, CONTENT_EDIT, OFFICE_EDITOR, SPREADSHEET_EDITOR } = workerTypes;
     const workersToLoad = getWorkersToLoad(preloadWorker);
 
     if (workersToLoad.includes(PDF)) {
@@ -211,7 +219,7 @@ if (window.CanvasRenderingContext2D) {
           workerLoadingProgress: (percent) => {
             store.dispatch(actions.setLoadingProgress(percent));
           },
-        }, window.sampleL);
+        });
       });
     }
 
@@ -221,7 +229,7 @@ if (window.CanvasRenderingContext2D) {
           workerLoadingProgress: (percent) => {
             store.dispatch(actions.setLoadingProgress(percent));
           },
-        }, window.sampleL);
+        });
       });
     }
 
@@ -230,7 +238,7 @@ if (window.CanvasRenderingContext2D) {
         workerLoadingProgress: (percent) => {
           store.dispatch(actions.setLoadingProgress(percent));
         },
-      }, window.sampleL);
+      });
     }
 
     if (workersToLoad.includes(LEGACY_OFFICE)) {
@@ -239,16 +247,47 @@ if (window.CanvasRenderingContext2D) {
           workerLoadingProgress: (percent) => {
             store.dispatch(actions.setLoadingProgress(percent));
           },
-        }, window.sampleL);
+        });
       });
     }
 
     if (workersToLoad.includes(CONTENT_EDIT)) {
       window.Core.ContentEdit.preloadWorker(documentViewer.getContentEditManager());
     }
+
+    if (workersToLoad.includes(SPREADSHEET_EDITOR)) {
+      window.Core.initSpreadsheetEditorWorkerTransports({
+        workerLoadingProgress: (percent) => {
+          store.dispatch(actions.setLoadingProgress(percent));
+        },
+      });
+    }
   };
 
-  fullAPIReady.then(() => loadConfig()).then(() => {
+  const validateUIConfigOrigin = async (uiConfigURL) => {
+    if (uiConfigURL.origin === window.location.origin) {
+      return true;
+    }
+
+    // Load allowed origins list from configorigin.txt (same mechanism used in loadConfig)
+    // https://github.com/XodoDocs/webviewer/blob/master/src/ui/src/helpers/loadScript.js
+    const response = await fetch('configorigin.txt');
+    let data = '';
+    if (response.ok) {
+      data = await response.text();
+    }
+    data = data.replaceAll('\r', '\n').replaceAll('\t', '\n');
+    const allowedOrigins = data.split('\n').filter(Boolean);
+
+    if (!wildCardMatch(allowedOrigins, uiConfigURL.origin)) {
+      console.warn(`uiConfig requested from origin ${uiConfigURL.origin}. Add this origin to lib/ui/configorigin.txt to allow loading this UI configuration.`);
+      return false;
+    }
+
+    return true;
+  };
+
+  fullAPIReady.then(() => loadConfig()).then(async () => {
     if (preloadWorker) {
       initTransports();
     }
@@ -263,21 +302,68 @@ if (window.CanvasRenderingContext2D) {
       tool?.enableViewStateSaving();
     }
 
+    const uiConfigPath = getHashParameters('uiConfig', '');
+    if (uiConfigPath) {
+      try {
+        // Normalize to a URL object to handle both absolute and relative paths
+        let uiConfigURL;
+        try {
+          uiConfigURL = new URL(uiConfigPath, window.location.href);
+        } catch {
+          // If URL parsing fails, uiConfigPath is likely a relative path.
+          // This is expected and can be safely handled by using the original path and current origin.
+          uiConfigURL = { href: uiConfigPath, origin: window.location.origin };
+        }
+
+        const isOriginAllowed = await validateUIConfigOrigin(uiConfigURL);
+        if (isOriginAllowed) {
+          const uiConfigRequest = await fetch(uiConfigURL.href);
+          const uiConfig = await uiConfigRequest.json();
+          await importModularComponents(store)(uiConfig);
+        }
+      } catch (e) {
+        console.error(`Failed to load uiConfiguration from: ${uiConfigPath}`);
+        console.error(e);
+      }
+    }
+
     setupLoadAnnotationsFromServer(store);
 
-    ReactDOM.render(
-      <Provider store={store}>
-        <PersistGate loading={null} persistor={persistor}>
-          <I18nextProvider i18n={i18next}>
-            <DndProvider backend={HTML5Backend}>
-              <App removeEventHandlers={removeEventHandlers} />
-            </DndProvider>
-          </I18nextProvider>
-        </PersistGate>
-      </Provider>,
-      getRootNode().getElementById('app'),
+    const currentLanguage = store.getState().viewer.currentLanguage;
+
+    const defaultLanguage = getHashParameters('defaultLanguage', 'en');
+
+    const language = currentLanguage || defaultLanguage;
+
+    // nsSeparator is the colon. We do not currently use this we had a customer request to remove the colon from the namespace
+    // as it broke their labels
+    i18next.init({
+      nsSeparator: false,
+      lng: language,
+    });
+
+    const rootNode = getRootNode();
+    const appElement = rootNode.getElementById('app');
+
+    const app = (
+      <EmotionProvider rootNode={rootNode}>
+        <Provider store={store}>
+          <PersistGate loading={null} persistor={persistor}>
+            <I18nextProvider i18n={i18next}>
+              <DndProvider backend={HTML5Backend}>
+                <App removeEventHandlers={removeEventHandlers}/>
+              </DndProvider>
+            </I18nextProvider>
+          </PersistGate>
+        </Provider>
+      </EmotionProvider>
     );
-    window.isApryseWebViewerWebComponent && retargetEvents(getRootNode());
+
+    ReactDOM.render(
+      app,
+      appElement,
+    );
+    window.isApryseWebViewerWebComponent && retargetEvents(rootNode);
   });
   addEventHandlers();
 }

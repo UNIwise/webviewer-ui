@@ -3,11 +3,16 @@ import actions from 'actions';
 import selectors from 'selectors';
 import DataElements from 'constants/dataElement';
 import SignatureModes from 'constants/signatureModes';
+import FocusStackManager from 'helpers/focusStackManager';
 
 export default (store, documentViewerKey) => async (_, widget) => {
   const signatureTool = core.getTool('AnnotationCreateSignature', documentViewerKey);
   const signatureMode = selectors.getSignatureMode(store.getState());
   const { ToolNames } = window.Core.Tools;
+
+  if (widget?.getInnerElement()) {
+    FocusStackManager.push(widget.getInnerElement().dataset.element);
+  }
 
   if (!(await signatureTool.isEmptySignature()) && signatureMode === SignatureModes.FULL_SIGNATURE) {
     await signatureTool.addSignature();
@@ -41,16 +46,30 @@ export default (store, documentViewerKey) => async (_, widget) => {
       store.dispatch(actions.openElement(DataElements.TOOLS_OVERLAY));
 
       const isToolsOverlayDisabled = selectors.isElementDisabled(state, DataElements.TOOLS_OVERLAY) || selectors.isElementDisabled(state, 'toolsHeader');
+      const ribbonAssociatedWithTool = selectors.getRibbonAssociatedWithTool(state, ToolNames.SIGNATURE);
+      const activeCustomRibbon = selectors.getActiveCustomRibbon(state);
+      const toolsAssociatedWithRibbon = selectors.getToolsAssociatedWithRibbon(state, activeCustomRibbon);
+      // set active ribbon that has the signature tool
+      if (isCustomizableUI && !toolsAssociatedWithRibbon.includes(ToolNames.SIGNATURE) && ribbonAssociatedWithTool) {
+        store.dispatch(actions.setActiveCustomRibbon(ribbonAssociatedWithTool));
+      }
+
       if ((savedSignatures.length === 0 && !requiresInitials) || isToolsOverlayDisabled) {
         store.dispatch(actions.openElement('signatureModal'));
+        core.setToolMode(ToolNames.SIGNATURE);
       } else if ((savedInitials.length === 0 && requiresInitials) || isToolsOverlayDisabled) {
         store.dispatch(actions.openElement('signatureModal'));
       } else if (widget && isCustomizableUI) {
-        // We set the active ribbon to the one that has the signature tool
-        store.dispatch(actions.setActiveGroupedItemWithTool(ToolNames.SIGNATURE));
+        core.setToolMode(ToolNames.SIGNATURE);
         const isSignatureListPanelOpen = selectors.isElementOpen(state, DataElements.SIGNATURE_LIST_PANEL);
-        // If the active ribbon doesnt have the signature tool, we must switch to one that does
-        if (!isSignatureListPanelOpen) {
+        const signatureListPanelInFlyout = selectors.getIsPanelInFlyout(state, DataElements.SIGNATURE_LIST_PANEL);
+        const isSignatureListFlyoutOpen = selectors.isElementOpen(state, signatureListPanelInFlyout?.dataElement);
+        const shouldOpenSignatureListPanel = !signatureListPanelInFlyout && !isSignatureListPanelOpen;
+        const shouldOpenSignatureListFlyout = signatureListPanelInFlyout && !isSignatureListFlyoutOpen;
+
+        if (shouldOpenSignatureListFlyout) {
+          store.dispatch(actions.openFlyout(signatureListPanelInFlyout.dataElement, ToolNames.SIGNATURE));
+        } else if (shouldOpenSignatureListPanel) {
           store.dispatch(actions.openElement(DataElements.SIGNATURE_LIST_PANEL));
         } else {
           // Signatures and Initials are considered pairs, so we just need to know one index to know the corresponding one.

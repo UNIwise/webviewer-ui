@@ -1,8 +1,8 @@
 import React from 'react';
 import { workerTypes } from 'constants/types';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import i18next from 'i18next';
-import Choice from 'components/Choice/Choice';
+import Choice from 'components/Choice';
 import getMeasurementTools from 'helpers/getMeasurementTools';
 import actions from 'actions';
 import { useDispatch } from 'react-redux';
@@ -12,6 +12,7 @@ const SnapModeToggle = ({
   Precision,
   isSnapModeEnabled,
 }) => {
+  const { core } = useCore();
   const dispatch = useDispatch();
 
   const wasDocumentSwappedToClientSide =
@@ -32,9 +33,9 @@ const SnapModeToggle = ({
 
     measurementTools.forEach((tool) => {
       tool.setSnapMode?.(mode);
+      dispatch(actions.setEnableSnapMode({ toolName: tool.name, isEnabled: enableSnapping }));
     });
 
-    dispatch(actions.setEnableSnapMode(enableSnapping));
   };
 
   return (

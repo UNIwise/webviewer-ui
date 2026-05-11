@@ -2,7 +2,7 @@
 @import '../../constants/note';
 
 .NoteHeader {
-  padding-right: 12px;
+  padding-inline-end: 12px;
   position: relative;
   flex: 1;
   color: var(--text-color);
@@ -19,14 +19,14 @@
   }
 
   .type-icon-container {
-    padding-right: 13px;
+    padding-inline-end: 13px;
 
     .unread-notification {
       position: absolute;
       width: 13px;
       height: 13px;
-      right: -2px;
-      top: -2px;
+      inset-inline-end: -2px;
+      inset-block-start: -2px;
       border-radius: 10000px;
       border: 2px solid var(--component-background);
       background: $pdftron-blue;
@@ -63,7 +63,7 @@
     position: relative;
 
     &.isReply {
-      padding-left: 0px;
+      padding-inline-start: 0px;
       padding-top: 0px;
       font-size: 10px;
     }
@@ -109,7 +109,7 @@
           .num-replies-container {
             display: flex;
             flex-grow: 1;
-            padding-left: 10px;
+            padding-inline-start: 10px;
 
             .num-reply-icon {
               height: 12px;
@@ -133,10 +133,11 @@
         flex: 1;
         justify-content: flex-end;
 
-        .tracked-change-icon-wrapper {
-          cursor: pointer;
-          border-radius: 4px;
+        > * {
+          pointer-events: auto;
+        }
 
+        .tracked-change-icon-wrapper {
           .tracked-change-icon {
             margin: 2px;
             width: 24px;
@@ -176,9 +177,20 @@
   .author-name {
     font-weight: bold;
   }
+
+  .note-popup-toggle-trigger {
+    padding: 0px;
+    margin-inline-end: 0px !important;
+    margin-inline-start: 0px !important;
+    min-width: 28px !important;
+    .Icon {
+      width: 24px !important;
+      height: 24px !important;
+    }
+  }
 }
 
 .parent {
-  padding-left: 12px;
+  padding-inline-start: 12px;
   padding-top: 12px;
 }

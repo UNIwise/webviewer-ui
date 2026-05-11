@@ -12,6 +12,7 @@ import { mockHeadersNormalized, mockModularComponents } from '../ModularComponen
 import { setItemToFlyoutStore } from 'helpers/itemToFlyoutHelper';
 import { MockApp } from 'helpers/storybookHelper';
 import { default as mockAppInitialState } from 'src/redux/initialState';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 const noop = () => { };
 
@@ -25,9 +26,6 @@ export default {
     'RightPanelWithRedactionItems',
     'LeftPanelWithRedactionItems',
   ],
-  parameters: {
-    customizableUI: true,
-  },
 };
 
 export const RedactionContextMock = ({ children, mockContext }) => {
@@ -237,6 +235,8 @@ export function RedactionLeftGenericPanel() {
   );
 }
 
+RedactionLeftGenericPanel.parameters = disableRtlModeParameters;
+
 export function RedactionRightGenericPanel() {
   return (
     <Provider store={store}>
@@ -250,6 +250,8 @@ export function RedactionRightGenericPanel() {
     </Provider >
   );
 }
+
+RedactionRightGenericPanel.parameters = disableRtlModeParameters;
 
 
 export function RightPanelWithRedactionItems() {
@@ -266,6 +268,8 @@ export function RightPanelWithRedactionItems() {
   );
 }
 
+RightPanelWithRedactionItems.parameters = disableRtlModeParameters;
+
 export function LeftPanelWithRedactionItems() {
   return (
     <Provider store={store}>
@@ -280,12 +284,14 @@ export function LeftPanelWithRedactionItems() {
   );
 }
 
+LeftPanelWithRedactionItems.parameters = disableRtlModeParameters;
+
 const RedactSearchPanelInApp = (location, panelSize) => {
   const mockState = {
     ...mockAppInitialState,
     viewer: {
       ...mockAppInitialState.viewer,
-      activeCustomRibbon: 'insert-ribbon-item',
+      activeCustomRibbon: 'toolbarGroup-Insert',
       modularHeaders: mockHeadersNormalized,
       modularComponents: mockModularComponents,
       isInDesktopOnlyMode: false,

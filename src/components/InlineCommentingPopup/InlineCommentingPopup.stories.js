@@ -3,6 +3,9 @@ import InlineCommentingPopup from './InlineCommentingPopup';
 import { configureStore } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
 import { BASIC_PALETTE } from 'constants/commonColors';
+import core from 'core';
+import { setupNotesPanelCoreMocks } from 'src/helpers/storybookHelper';
+import { mobileStoryGlobals } from 'helpers/storybookParams';
 
 const noop = () => { };
 
@@ -10,9 +13,6 @@ export default {
   title: 'Components/InlineCommentPopup',
   component: InlineCommentingPopup,
   includeStories: ['Basic', 'Mobile'],
-  parameters: {
-    customizableUI: true
-  }
 };
 
 export const initialState = {
@@ -46,7 +46,6 @@ export const context = {
 
 const mockAnnotation = {
   Author: 'Mikel Landa',
-  isFormFieldPlaceholder: () => false,
   getReplies: () => [],
   getStatus: () => '',
   isReply: () => false,
@@ -66,6 +65,7 @@ export const basicProps = {
 };
 
 export const Basic = () => {
+  setupNotesPanelCoreMocks(core, [], []);
   return (
     <Provider store={configureStore({ reducer: () => initialState })}>
       <InlineCommentingPopup {...basicProps} />
@@ -79,6 +79,7 @@ export const mobileProps = {
 };
 
 export const Mobile = () => {
+  setupNotesPanelCoreMocks(core, [], []);
   return (
     <Provider store={configureStore({ reducer: () => initialState })}>
       <InlineCommentingPopup {...mobileProps} />
@@ -86,8 +87,4 @@ export const Mobile = () => {
   );
 };
 
-Mobile.parameters = {
-  viewport: {
-    defaultViewport: 'Mobile',
-  },
-};
+Mobile.globals = mobileStoryGlobals;

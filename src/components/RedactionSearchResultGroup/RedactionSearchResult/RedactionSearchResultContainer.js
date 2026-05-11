@@ -1,9 +1,10 @@
 import React, { useCallback, useContext } from 'react';
 import RedactionSearchResult from './RedactionSearchResult';
 import { RedactionPanelContext } from 'components/RedactionPanel/RedactionPanelContext';
-import core from 'core';
+import useCore from 'hooks/useCore';
 
 const RedactionSearchResultContainer = (props) => {
+  const { core } = useCore();
   const {
     searchResult,
     checked,
@@ -20,7 +21,7 @@ const RedactionSearchResultContainer = (props) => {
 
   const onClickResult = useCallback(() => {
     core.setActiveSearchResult(searchResult);
-  }, [searchResult]);
+  }, [searchResult, core]);
 
   return (
     <RedactionSearchResult

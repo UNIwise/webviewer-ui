@@ -1,15 +1,14 @@
 .signature-widget-info {
   --widget-header-indent: 49px;
   --widget-body-indent: 22px;
-  --arrow-width: 22px;
+  --arrow-width: 12px;
   padding: 4px;
 
   display: flex;
   flex-direction: column;
   font-size: 13px;
   margin-bottom: 10px;
-  // Ensures alignment with the Left Panel Header
-  margin-left: 5px;
+  margin-inline-start: 5px;
 
   p+p {
     margin: 0px;
@@ -30,6 +29,8 @@
   }
 
   .signatureProperties {
+    padding: 0;
+    margin: 0px;
 
     &:hover,
     &:focus {
@@ -42,9 +43,15 @@
     outline: none;
     border: 0;
     background-color: transparent;
+    white-space: nowrap;
 
     &:focus-visible {
       outline: var(--focus-visible-outline);
+    }
+
+    p {
+      margin: 0;
+      padding: 0;
     }
   }
 
@@ -59,22 +66,30 @@
   -webkit-border-radius: var(--border-radius-amount);
   border-radius: var(--border-radius-amount);
 
-  &:hover {
-    border-color: var(--blue-6);
+  .panel-list-text-container {
+    height: 100%;
+
+    .panel-list-label-header {
+      .Button {
+        span {
+          text-align: start;
+          overflow: visible;
+          white-space: normal;
+          text-overflow: inherit;
+        }
+      }
+    }
   }
 
-  &:active,
-  &:focus-within {
-    background: var(--outline-hover);
-    border-color: var(--blue-5);
-  }
-
-  &:focus-visible {
-    outline: var(--focus-visible-outline);
+  .panel-list-icon-container {
+    .Icon {
+      width: 20px;
+      height: 20px;
+    }
   }
 
   .title {
-    padding-left: 2px;
+    padding-inline-start: 4px;
     font-weight: bold;
     display: flex;
     align-items: center;
@@ -87,9 +102,9 @@
     border: 0;
     background-color: transparent;
 
-    div+*,
-    button+* {
-      margin-left: 2px;
+    div + *,
+    button + * {
+      margin-inline-start: 2px;
     }
 
     .arrow {
@@ -99,6 +114,9 @@
       background-color: transparent;
       border: none;
       padding: 0;
+      display: flex;
+      justify-content: center; /* Horizontally centers the item */
+      align-items: center;
 
       &.expanded {
         transform: rotate(90deg);
@@ -106,12 +124,12 @@
 
       .Icon {
         width: var(--arrow-width);
-        height: 22px;
+        height: var(--arrow-width);
       }
 
       &.hidden {
         visibility: hidden;
-        // width of signature icon + margin-right + margin-left
+        // width of signature icon + margin-inline-end + margin-inline-start
         padding: 16 + 5 + 2px;
       }
 
@@ -127,7 +145,11 @@
     }
 
     .signature-icon {
-      margin-right: 5px;
+      margin-inline-end: 5px;
+    }
+
+    &:focus-visible {
+      outline: var(--focus-visible-outline);
     }
 
     &:focus-visible {
@@ -136,14 +158,14 @@
   }
 
   .header {
-    margin-left: var(--widget-header-indent);
+    margin-inline-start: 32px;
 
-    .body {
-      margin-left: var(--widget-body-indent);
+    ul {
+      padding-inline-start: 24px;
     }
 
-    .body>div:first-child>p:first-child,
-    .body>p:first-child {
+    .body > div:first-child > p:first-child,
+    .body > p:first-child {
       margin-top: 0.5em;
     }
 
@@ -157,22 +179,33 @@
      * Minus the width off-set created by the arrow, ensuring that the headers
      * align
      */
-    margin-left: calc(var(--widget-header-indent) - var(--arrow-width));
+    margin-inline-start: 0px;
 
-    .body {
+    ul {
       /**
        * Re-add the width offset created by the arrow, ensuring the content of
        * the bodies align
        */
-      margin-left: calc(var(--widget-body-indent) + var(--arrow-width));
+      margin-inline-start: var(--arrow-width);
+      li {
+        margin-inline-start: 18px;
+      }
+    }
+  }
+
+  .panel-list-label-header {
+    button {
+      font-weight: bold;
+      font-size: 13px;
     }
   }
 
   .signatureDetails,
   .verificationDetails {
+    cursor: default;
     padding: 0;
     background-color: transparent;
     border: none;
-    text-align: left;
+    text-align: start;
   }
 }

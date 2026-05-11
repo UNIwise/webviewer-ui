@@ -2,6 +2,7 @@ import React from 'react';
 import { createStore } from 'redux';
 import { Provider } from 'react-redux';
 import StatefulButtonComponent from './StatefulButton';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 const initialState = {
   viewer: {
@@ -49,6 +50,9 @@ StatefulButtonCounter.args = {
   mount: () => {},
 };
 
+StatefulButtonCounter.parameters = disableRtlModeParameters;
+
+
 export const StatefulButtonStates = BasicComponent.bind({});
 StatefulButtonStates.args = {
   type: 'statefulButton',
@@ -71,3 +75,5 @@ StatefulButtonStates.args = {
   },
   mount: () => {},
 };
+
+StatefulButtonStates.parameters = disableRtlModeParameters;

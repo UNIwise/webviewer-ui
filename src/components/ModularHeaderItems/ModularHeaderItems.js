@@ -1,20 +1,25 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import './ModularHeaderItems.scss';
 import InnerItem from '../ModularComponents/InnerItem';
 import { PLACEMENT, DIRECTION, ITEM_TYPE } from 'constants/customizationVariables';
 import ResponsiveContainer from 'components/ResponsiveContainer';
 import { useSelector, useDispatch } from 'react-redux';
-import sizeManager from 'helpers/responsivenessHelper';
+import sizeManager, { useSizeStore } from 'helpers/responsivenessHelper';
 import { itemToFlyout } from 'helpers/itemToFlyoutHelper';
 import selectors from 'selectors';
 import actions from 'actions';
 import ToggleElementButton from 'components/ModularComponents/ToggleElementButton';
+import PropTypes from 'prop-types';
+import classNames from 'classnames';
+import { css } from '@emotion/react';
 
 const ModularHeaderItems = (props) => {
   const dispatch = useDispatch();
   const { placement, gap, items, justifyContent, className = '', maxWidth, maxHeight, headerId } = props;
   const [itemsGap, setItemsGap] = useState(gap);
   const elementRef = useRef();
+  const headerDirection = [PLACEMENT.LEFT, PLACEMENT.RIGHT].includes(placement) ? DIRECTION.COLUMN : DIRECTION.ROW;
+  const [isHeaderEmpty, setIsHeaderEmpty] = useState(false);
 
   useEffect(() => {
     setItemsGap(gap);
@@ -22,6 +27,8 @@ const ModularHeaderItems = (props) => {
 
   const flyoutDataElement = `${headerId}Flyout`;
   const size = useSelector((state) => selectors.getCustomElementSize(state, headerId));
+  const disabledElements = useSelector(selectors.getDisabledElements);
+
   useEffect(() => {
     sizeManager[headerId] = {
       ...(sizeManager[headerId] ? sizeManager[headerId] : {}),
@@ -37,14 +44,12 @@ const ModularHeaderItems = (props) => {
       size: size,
     };
   }, [size, items]);
-
   useEffect(() => {
     const flyout = {
       dataElement: flyoutDataElement,
       className: 'GroupedItemsFlyout',
       items: [],
     };
-
     if (size > 0) {
       const indexToExclude = items.length - size;
       for (let i = 0; i < items.length; i++) {
@@ -58,13 +63,20 @@ const ModularHeaderItems = (props) => {
         }
       }
     }
+    flyout.items.length > 0 ? dispatch(actions.updateFlyout(flyoutDataElement, flyout)) : dispatch(actions.removeFlyout(flyoutDataElement));
+  }, [size, items]);
 
-    dispatch(actions.updateFlyout(flyoutDataElement, flyout));
-  }, [size, items.length]);
+  useEffect(() => {
+    setIsHeaderEmpty(elementRef.current.childElementCount === 0);
+  }, [items]);
 
-  const headerDirection = [PLACEMENT.LEFT, PLACEMENT.RIGHT].includes(placement) ? DIRECTION.COLUMN : DIRECTION.ROW;
+  useSizeStore({
+    elementRef,
+    dataElement: headerId,
+    headerDirection,
+  });
 
-  const headerItems = items?.map((item, index) => {
+  const headerItems = useMemo(() => items?.filter((item) => !disabledElements[item.dataElement]?.disabled).map((item, index) => {
     const hasToShrink = size > 0;
     const indexesToExclude = items.length - size;
     const isLastIndexAndDivider = index === indexesToExclude - 1 && item.type === ITEM_TYPE.DIVIDER;
@@ -82,19 +94,26 @@ const ModularHeaderItems = (props) => {
     const { type, dataElement } = itemProps;
     const key = `${type}-${dataElement || index}-wrapper-${index}`;
     return <InnerItem key={key} {...itemProps} headerDirection={headerDirection} />;
-  });
+  }), [items, size, disabledElements]);
+
+  const wrapperCss = useMemo(() => css({
+    gap: `${itemsGap}px`,
+    flexDirection: headerDirection,
+    justifyContent: justifyContent,
+    ...(maxWidth ? { maxWidth: `${maxWidth}px` } : {}),
+    ...(maxHeight ? { maxHeight: `${maxHeight}px` } : {}),
+  }), [itemsGap, headerDirection, justifyContent, maxWidth, maxHeight]);
 
   return (
-    <div className={`ModularHeaderItems ${className}`}
-      ref={elementRef}
-      style={{
-        gap: `${itemsGap}px`,
-        flexDirection: headerDirection,
-        justifyContent: justifyContent,
-        maxWidth: `${maxWidth}px`,
-        maxHeight: `${maxHeight}px`,
-      }}>
-      <ResponsiveContainer headerDirection={headerDirection} elementRef={elementRef} parent={headerId} items={items}>
+    <div className={classNames({
+      'ModularHeaderItems': true,
+      [className]: true,
+      'empty-header': isHeaderEmpty,
+    })}
+    ref={elementRef}
+    css={wrapperCss}>
+      <ResponsiveContainer headerDirection={headerDirection} elementRef={elementRef} parentDataElement={headerId}
+        items={items}>
         {headerItems}
       </ResponsiveContainer>
       {size > 0 &&
@@ -106,6 +125,19 @@ const ModularHeaderItems = (props) => {
       }
     </div>
   );
+};
+
+ModularHeaderItems.props = {
+  items: PropTypes.arrayOf({
+    dataElement: PropTypes.string.isRequired,
+  }),
+  placement: PropTypes.string,
+  gap: PropTypes.any,
+  justifyContent: PropTypes.string,
+  className: PropTypes.string,
+  maxWidth: PropTypes.any,
+  maxHeight: PropTypes.any,
+  headerId: PropTypes.string,
 };
 
 export default ModularHeaderItems;

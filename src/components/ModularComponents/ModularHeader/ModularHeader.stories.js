@@ -17,6 +17,8 @@ import {
 import { mockModularComponents } from '../AppStories/mockAppState';
 import '../LeftHeader/LeftHeader.scss';
 import '../RightHeader/RightHeader.scss';
+import { MockDocumentContainer } from 'helpers/storybookHelper';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'ModularComponents/ModularHeader',
@@ -26,9 +28,6 @@ export default {
       options: Object.values(JUSTIFY_CONTENT),
       control: { type: 'select' },
     },
-  },
-  parameters: {
-    customizableUI: true,
   },
 };
 
@@ -40,21 +39,12 @@ const initialState = {
     openElements: {},
     customPanels: [],
     flyoutMap: {},
-    lastPickedToolForGroupedItems: {},
     modularComponents: {
       ...mockModularComponents,
       button8,
       button9,
     },
   },
-};
-
-const MockDocumentContainer = () => {
-  return (
-    <div style={{ width: '90%', height: '90%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-      Mock Document Container
-    </div>
-  );
 };
 
 const divider = {
@@ -84,11 +74,13 @@ export const TopHeader = (storyProps) => {
     <Provider store={configureStore({ reducer: () => initialState })}>
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         <ModularHeader {...props} />
-        <MockDocumentContainer />
+        <MockDocumentContainer width='90%' height='90%' />
       </div>
     </Provider>
   );
 };
+
+TopHeader.parameters = disableRtlModeParameters;
 
 export const LeftHeader = (storyProps) => {
   const props = {
@@ -101,11 +93,13 @@ export const LeftHeader = (storyProps) => {
     <Provider store={configureStore({ reducer: () => initialState })}>
       <div style={{ display: 'flex', height: '100%' }}>
         <ModularHeader {...props} />
-        <MockDocumentContainer />
+        <MockDocumentContainer width='90%' height='90%' />
       </div>
     </Provider>
   );
 };
+
+LeftHeader.parameters = disableRtlModeParameters;
 
 export const RightHeader = (storyProps) => {
   const props = {
@@ -118,12 +112,14 @@ export const RightHeader = (storyProps) => {
   return (
     <Provider store={configureStore({ reducer: () => initialState })}>
       <div style={{ display: 'flex', height: '100%' }}>
-        <MockDocumentContainer />
+        <MockDocumentContainer width='90%' height='90%' />
         <ModularHeader {...props} />
       </div>
     </Provider>
   );
 };
+
+RightHeader.parameters = disableRtlModeParameters;
 
 export const BottomHeader = (storyProps) => {
   const props = {
@@ -136,9 +132,11 @@ export const BottomHeader = (storyProps) => {
   return (
     <Provider store={configureStore({ reducer: () => initialState })}>
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <MockDocumentContainer />
+        <MockDocumentContainer width='90%' height='90%' />
         <ModularHeader {...props} />
       </div>
     </Provider>
   );
 };
+
+BottomHeader.parameters = disableRtlModeParameters;

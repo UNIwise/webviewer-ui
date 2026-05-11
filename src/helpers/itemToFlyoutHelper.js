@@ -1,8 +1,20 @@
-import { FLYOUT_ITEM_TYPES, ITEM_TYPE } from 'constants/customizationVariables';
+import React from 'react';
+// eslint-disable-next-line custom/use-core-hook-in-components
+import core from 'core';
+import {
+  FLYOUT_ITEM_TYPES,
+  ITEM_TYPE,
+  CHANGE_DISPLAY_BUTTONS,
+  ROTATE_DOCUMENT_BUTTONS,
+  PRESET_BUTTON_TYPES
+} from 'constants/customizationVariables';
 import selectors from 'selectors';
 import actions from 'actions';
+import Icon from 'components/Icon';
 import { getZoomFlyoutItems } from 'components/ModularComponents/ZoomControls/ZoomHelper';
 import { menuItems } from 'components/ModularComponents/Helpers/menuItems';
+import DataElements from 'constants/dataElement';
+import classNames from 'classnames';
 
 let store;
 export const setItemToFlyoutStore = (newStore) => {
@@ -14,8 +26,9 @@ export const itemToFlyout = (item, {
   children = undefined,
   useOverrideClickOnly = false,
   extraProps = {},
+  skipCheck = false,
 } = {}) => {
-  const itemProps = item.props || item;
+  const itemProps = item.properties || item.props || item;
   const {
     type,
     label,
@@ -28,13 +41,16 @@ export const itemToFlyout = (item, {
   } = itemProps;
 
   const isDisabledItem = itemProps?.dataElement && store && selectors.isElementDisabled(store.getState(), dataElement);
-  if (!itemProps || !type || !Object.values(ITEM_TYPE).includes(type) || isDisabledItem) {
+  if (!skipCheck && (!itemProps || !type || !Object.values(ITEM_TYPE).includes(type) || isDisabledItem)) {
     return null;
   }
 
   if (type === ITEM_TYPE.DIVIDER) {
     return 'divider';
   }
+
+  cleanObject(extraProps);
+  cleanObject(itemProps);
 
   const flyoutItem = {
     label: label || title || (dataElement ? dataElementToLabel(dataElement) : ''),
@@ -49,28 +65,52 @@ export const itemToFlyout = (item, {
   };
 
   switch (type) {
+    case ITEM_TYPE.STATEFUL_BUTTON:
+      return itemProps;
+    case ITEM_TYPE.FLYOUT:
+      delete flyoutItem.items;
+      flyoutItem.children = itemProps.items;
+      break;
     case ITEM_TYPE.BUTTON:
       flyoutItem.className = 'FlyoutButton';
       break;
-    case ITEM_TYPE.TOGGLE_BUTTON:
+    case ITEM_TYPE.TOGGLE_BUTTON: {
+      const togglesFlyout = selectors.getFlyoutMap(store.getState())[itemProps.toggleElement];
+
+      if (togglesFlyout) {
+        flyoutItem.children = togglesFlyout.items;
+        break;
+      }
+
       flyoutItem.onClick = () => {
         store.dispatch(actions.toggleElement(itemProps.toggleElement));
-        onClick && onClick();
       };
       break;
+    }
+    case ITEM_TYPE.VIEW_CONTROLS: {
+      const flyoutMap = selectors.getFlyoutMap(store.getState());
+      const viewControlsItems = flyoutMap[DataElements.VIEW_CONTROLS_FLYOUT]?.items;
+      flyoutItem.children = viewControlsItems;
+      break;
+    }
     case ITEM_TYPE.ZOOM: {
       const zoomOptionsList = selectors.getZoomList(store.getState());
       flyoutItem.className = 'ZoomFlyoutMenu';
       flyoutItem.icon = 'icon-magnifying-glass';
-      flyoutItem.children = getZoomFlyoutItems(zoomOptionsList, store.dispatch, 1);
+      flyoutItem.children = getZoomFlyoutItems({
+        zoomOptionsList,
+        store,
+        size: 1,
+      });
       break;
     }
     case ITEM_TYPE.RIBBON_GROUP:
       flyoutItem.className = 'FlyoutRibbonGroup';
-      flyoutItem.label = 'Views';
+      flyoutItem.label = 'option.toolbarGroup.flyoutLabel';
       flyoutItem.children = items;
       break;
     case ITEM_TYPE.GROUPED_ITEMS:
+    case ITEM_TYPE.MODULAR_HEADER:
       flyoutItem.className = 'FlyoutGroupedItems';
       flyoutItem.children = items.map((item) => itemToFlyout(item));
       break;
@@ -81,11 +121,54 @@ export const itemToFlyout = (item, {
       flyoutItem.label = label;
       break;
     case ITEM_TYPE.PRESET_BUTTON: {
-      const { label, dataElement, icon } = menuItems[itemProps.buttonType || itemProps.dataElement];
-      flyoutItem.label = label;
+      let menuItem = menuItems[itemProps.buttonType];
+      if (!menuItem) {
+        menuItem = menuItems[itemProps.dataElement];
+      }
+      const dataElement = itemProps.dataElement || menuItem?.dataElement;
+      const icon = itemProps.img || menuItem?.icon;
+      const title = itemProps.title || menuItem?.title;
+      flyoutItem.label = menuItem?.label;
       flyoutItem.dataElement = dataElement;
       flyoutItem.icon = icon;
+      flyoutItem.title = title;
       flyoutItem.type = type;
+      break;
+    }
+    case ITEM_TYPE.PAGE_CONTROLS: {
+      const flyoutMap = selectors.getFlyoutMap(store.getState());
+      const pageControlsItems = flyoutMap[DataElements.PAGE_CONTROLS_FLYOUT]?.items;
+      flyoutItem.children = pageControlsItems;
+      break;
+    }
+    case ITEM_TYPE.PAGE_NAVIGATION_BUTTON: {
+      const state = store.getState();
+      const activeDocumentViewerKey = state.viewer.activeDocumentViewerKey;
+      const currentPage = core.getCurrentPage(activeDocumentViewerKey);
+      const isDisabled = flyoutItem.dataElement === DataElements.PREVIOUS_PAGE_BUTTON ?
+        currentPage === 1 :
+        currentPage === state.document.totalPages[activeDocumentViewerKey];
+      flyoutItem.disabled = isDisabled;
+      break;
+    }
+    case ITEM_TYPE.FONT_SIZE_DROPDOWN:{
+      flyoutItem.type = type;
+      flyoutItem.className = 'FontSizeDropdown';
+      break;
+    }
+    case ITEM_TYPE.FONT_FAMILY_DROPDOWN:{
+      flyoutItem.type = type;
+      flyoutItem.className = 'FontFamilyDropdown';
+      break;
+    }
+    case ITEM_TYPE.STYLE_PRESET_DROPDOWN:{
+      flyoutItem.type = type;
+      flyoutItem.className = 'StylePresetDropdown';
+      break;
+    }
+    case ITEM_TYPE.OFFICE_EDITOR_MODE_DROPDOWN:{
+      flyoutItem.type = type;
+      flyoutItem.className = 'OfficeEditorModeDropdown';
       break;
     }
   }
@@ -104,13 +187,17 @@ export const getFlyoutItemType = (flyoutItem) => {
     return FLYOUT_ITEM_TYPES.ZOOM_OPTIONS_BUTTON;
   } else if (flyoutItem.dataElement?.includes('zoom-button-')) {
     return FLYOUT_ITEM_TYPES.ZOOM_BUTTON;
-  } else if (flyoutItem.dataElement === FLYOUT_ITEM_TYPES.PAGE_NAVIGATION_BUTTON) {
-    return FLYOUT_ITEM_TYPES.PAGE_NAVIGATION_BUTTON;
+  } else if (flyoutItem.dataElement?.includes('line-spacing-button-')) {
+    return FLYOUT_ITEM_TYPES.LINE_SPACING_OPTIONS_BUTTON;
+  } else if (flyoutItem.dataElement === FLYOUT_ITEM_TYPES.PAGE_NAVIGATION_INPUT) {
+    return FLYOUT_ITEM_TYPES.PAGE_NAVIGATION_INPUT;
+  } else if (flyoutItem.dataElement?.includes('office-editor-list-type-')) {
+    return FLYOUT_ITEM_TYPES.LIST_TYPE_BUTTON;
   } else if (flyoutItem.tabPanel) {
     return FLYOUT_ITEM_TYPES.TAB_PANEL_ITEM;
   } else if (flyoutItem.toolbarGroup) {
     return FLYOUT_ITEM_TYPES.RIBBON_ITEM;
-  } else if (flyoutItem.buttonType || flyoutItem.type === ITEM_TYPE.PRESET_BUTTON) {
+  } else if (flyoutItem.buttonType) {
     return FLYOUT_ITEM_TYPES.PRESET_BUTTON;
   } else {
     return FLYOUT_ITEM_TYPES.BUTTON;
@@ -125,5 +212,62 @@ const dataElementToLabel = (dataElement) => {
   } catch (e) {
     // In some browsers the regex above is not supported
     return dataElement;
+  }
+};
+
+const hasNoIcon = (item) => {
+  const presetsWithIcons = [
+    ...Object.values(CHANGE_DISPLAY_BUTTONS),
+    ...Object.values(ROTATE_DOCUMENT_BUTTONS),
+    PRESET_BUTTON_TYPES.TOGGLE_MULTI_VIEWER_MODE,
+    PRESET_BUTTON_TYPES.TOGGLE_ACCESSIBILITY_MODE,
+    PRESET_BUTTON_TYPES.UNDO,
+    PRESET_BUTTON_TYPES.REDO,
+    PRESET_BUTTON_TYPES.NEW_DOCUMENT,
+    PRESET_BUTTON_TYPES.NEW_SPREADSHEET,
+    PRESET_BUTTON_TYPES.FILE_PICKER,
+    PRESET_BUTTON_TYPES.DOWNLOAD,
+    PRESET_BUTTON_TYPES.FULLSCREEN,
+    PRESET_BUTTON_TYPES.SAVE_AS,
+    PRESET_BUTTON_TYPES.PRINT,
+    PRESET_BUTTON_TYPES.CREATE_PORTFOLIO,
+    PRESET_BUTTON_TYPES.SETTINGS,
+    PRESET_BUTTON_TYPES.FORM_FIELD_EDIT,
+    PRESET_BUTTON_TYPES.CONTENT_EDIT,
+  ];
+  if (item.type === ITEM_TYPE.PRESET_BUTTON && presetsWithIcons.includes(item.buttonType)) {
+    return false;
+  }
+  return !item.icon && !item.img && !item.toolName;
+};
+
+export const getIconDOMElement = (currentItem, allItems = [currentItem], disabled = false) => {
+  const areAllitemsWithoutIcons = allItems.every((item) => hasNoIcon(item));
+  const currentItemIconWithoutIcon = hasNoIcon(currentItem);
+  if (currentItemIconWithoutIcon && areAllitemsWithoutIcons) {
+    return null;
+  }
+
+  const iconElement = currentItem.icon ? currentItem.icon : currentItem.img;
+  const isBase64 = iconElement?.trim().startsWith('data:');
+
+  // if there is no file extension then assume that this is a glyph
+  const isGlyph =
+    iconElement && !isBase64 && (!iconElement.includes('.') || iconElement.startsWith('<svg'));
+
+  if (isGlyph) {
+    return <Icon className={classNames({ 'menu-icon': true, 'disabled': disabled })} glyph={iconElement} />;
+  }
+  if (iconElement && !isGlyph) {
+    return <img className={classNames({ 'menu-icon': true, 'disabled': disabled })} alt="Flyout item icon" src={iconElement} />;
+  }
+  return <div className={classNames({ 'menu-icon': true, 'disabled': disabled })}></div>;
+};
+
+const cleanObject = (object) => {
+  for (const key in object) {
+    if (object[key] === undefined || object[key] === null) {
+      delete object[key];
+    }
   }
 };

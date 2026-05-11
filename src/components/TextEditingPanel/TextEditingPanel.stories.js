@@ -6,6 +6,7 @@ import initialState from 'src/redux/initialState';
 import { mockHeadersNormalized, mockModularComponents } from '../ModularComponents/AppStories/mockAppState';
 import { setItemToFlyoutStore } from 'helpers/itemToFlyoutHelper';
 import { MockApp, createStore } from 'helpers/storybookHelper';
+import { mobileStoryParameters } from 'helpers/storybookParams';
 
 const noop = () => { };
 
@@ -13,9 +14,6 @@ export default {
   title: 'Components/TextEditingPanel',
   component: TextEditingPanel,
   includeStories: ['Basic', 'TextEditingUndoRedo', 'LeftSide', 'TextEditingPanelInMobile'],
-  parameters: {
-    customizableUI: true,
-  }
 };
 
 const textEditingPanelInitialState = {
@@ -29,14 +27,7 @@ const textEditingPanelInitialState = {
     panelWidths: {
       textEditingPanel: 330,
     },
-    lastPickedToolForGroupedItems: {
-      'annotateGroupedItems': 'AnnotationCreateFreeText'
-    },
     activeGroupedItems: ['annotateGroupedItems'],
-    lastPickedToolAndGroup: {
-      tool: 'AnnotationCreateFreeText',
-      group: ['annotateGroupedItems'],
-    },
   },
   featureFlags: {
     customizableUI: false,
@@ -117,7 +108,8 @@ export const TextEditingUndoRedo = () => {
   );
 };
 
-const TextEditingPanelInApp = (dataElement, location) => {
+const TextEditingPanelInApp = (context, dataElement, location) => {
+  const { addonRtl } = context.globals;
   const appMockState = {
     ...initialState,
     viewer: {
@@ -137,16 +129,10 @@ const TextEditingPanelInApp = (dataElement, location) => {
         contextMenuPopup: false,
         [dataElement]: true,
       },
-      lastPickedToolForGroupedItems: {
-        'annotateGroupedItems': 'AnnotationCreateFreeText'
-      },
       activeGroupedItems: ['annotateGroupedItems'],
       activeCustomRibbon: 'toolbarGroup-Annotate',
-      lastPickedToolAndGroup: {
-        tool: 'AnnotationCreateFreeText',
-        group: ['annotateGroupedItems', 'annotateToolsGroupedItems'],
-      },
-      activeToolName: 'AnnotationCreateFreeText'
+      activeToolName: 'AnnotationCreateFreeText',
+      activeTheme: context.globals.theme,
     },
     featureFlags: {
       customizableUI: true,
@@ -155,11 +141,12 @@ const TextEditingPanelInApp = (dataElement, location) => {
   const store = createStore(appMockState);
   setItemToFlyoutStore(store);
 
-  return <MockApp initialState={appMockState} />;
+  return <MockApp initialState={appMockState} initialDirection={addonRtl}/>;
 };
 
-export const LeftSide = () => (TextEditingPanelInApp('panel1', 'left'));
+export const LeftSide = (args, context) => TextEditingPanelInApp(context, 'panel1', 'left');
+LeftSide.parameters = { layout: 'fullscreen' };
 
-export const TextEditingPanelInMobile = () => (TextEditingPanelInApp('textEditingPanel', 'right'));
+export const TextEditingPanelInMobile = (args, context) => TextEditingPanelInApp(context, 'textEditingPanel', 'right');
 
-TextEditingPanelInMobile.parameters = window.storybook.MobileParameters;
+TextEditingPanelInMobile.parameters = mobileStoryParameters;

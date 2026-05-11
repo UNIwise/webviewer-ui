@@ -2,13 +2,11 @@ import React from 'react';
 import FilterAnnotModal from './FilterAnnotModal';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/FilterAnnotModal',
   component: FilterAnnotModal,
-  parameters: {
-    customizableUI: true,
-  },
 };
 
 const initialState = {
@@ -33,13 +31,25 @@ const initialState = {
       authorFilter: [],
       colorFilter: [],
       typeFilter: [],
-      statusFilter: []
+      statusFilter: [],
+      shareTypesFilter: []
     },
   },
   featureFlags: {
     customizableUI: true,
   },
 };
+
+function customFilter(annotation) {
+  return (
+    annotation['Author'] === 'Guest_1' || annotation['Author'] === 'Guest_2'
+  );
+}
+function customFilterTwo(annotation) {
+  return (
+    annotation['Author'] === 'Guest_1'
+  );
+}
 
 export function UserPanel() {
   const props = {
@@ -51,7 +61,32 @@ export function UserPanel() {
       ...initialState.viewer,
       tab: {
         filterAnnotModal: 'annotationUserFilterPanelButton'
-      }
+      },
+    },
+    featureFlags: {
+      customizableUI: true,
+    },
+  };
+
+  return (
+    <Provider store={configureStore({ reducer: () => initialStateUserPanel })}>
+      <FilterAnnotModal {...props} />
+    </Provider>
+  );
+}
+
+export function UserPanelWithFilter() {
+  const props = {
+    isOpen: true
+  };
+
+  const initialStateUserPanel = {
+    viewer: {
+      ...initialState.viewer,
+      tab: {
+        filterAnnotModal: 'annotationUserFilterPanelButton'
+      },
+      customNoteFilter: customFilter,
     },
     featureFlags: {
       customizableUI: true,
@@ -89,9 +124,104 @@ export function ColorPanel() {
   );
 }
 
+export function ColorPanelWithFilter() {
+  const props = {
+    isOpen: true
+  };
+
+  const initialStateColorPanel = {
+    viewer: {
+      ...initialState.viewer,
+      tab: {
+        filterAnnotModal: 'annotationColorFilterPanelButton'
+      },
+      customNoteFilter: customFilterTwo,
+    },
+    featureFlags: {
+      ...initialState.featureFlags,
+    }
+  };
+
+  return (
+    <Provider store={configureStore({ reducer: () => initialStateColorPanel })}>
+      <FilterAnnotModal {...props} />
+    </Provider>
+  );
+}
+
 export function TypePanel() {
   const props = {
     isOpen: true
+  };
+
+  const initialStateTypePanel = {
+    viewer: {
+      ...initialState.viewer,
+      tab: {
+        filterAnnotModal: 'annotationTypeFilterPanelButton'
+      }
+    },
+    featureFlags: {
+      ...initialState.featureFlags,
+    }
+  };
+
+  return (
+    <Provider store={configureStore({ reducer: () => initialStateTypePanel })}>
+      <FilterAnnotModal {...props} />
+    </Provider>
+  );
+}
+
+export function TypePanelWithWidgetsInFormBuilderMode() {
+  const widgetAnnotations = [
+    new window.Core.Annotations.TextWidgetAnnotation(),
+    new window.Core.Annotations.ChoiceWidgetAnnotation(),
+    new window.Core.Annotations.ListWidgetAnnotation()
+  ];
+
+  const originalAnnotationList = window.documentViewer.getAnnotationManager().getAnnotationsList();
+  window.documentViewer.getAnnotationManager().getAnnotationsList = () => {
+    return [...originalAnnotationList, ...widgetAnnotations];
+  };
+
+  const props = {
+    isInFormBuilderMode: true
+  };
+
+  const initialStateTypePanel = {
+    viewer: {
+      ...initialState.viewer,
+      tab: {
+        filterAnnotModal: 'annotationTypeFilterPanelButton'
+      }
+    },
+    featureFlags: {
+      ...initialState.featureFlags,
+    }
+  };
+
+  return (
+    <Provider store={configureStore({ reducer: () => initialStateTypePanel })}>
+      <FilterAnnotModal {...props} />
+    </Provider>
+  );
+}
+
+export function TypePanelWithWidgetsNotInFormBuilderMode() {
+  const widgetAnnotations = [
+    new window.Core.Annotations.TextWidgetAnnotation(),
+    new window.Core.Annotations.ChoiceWidgetAnnotation(),
+    new window.Core.Annotations.ListWidgetAnnotation()
+  ];
+
+  const originalAnnotationList = window.documentViewer.getAnnotationManager().getAnnotationsList();
+  window.documentViewer.getAnnotationManager().getAnnotationsList = () => {
+    return [...originalAnnotationList, ...widgetAnnotations];
+  };
+
+  const props = {
+    isInFormBuilderMode: false
   };
 
   const initialStateTypePanel = {
@@ -138,6 +268,7 @@ export function MeasurementAnnotationsFilterEnabled() {
     </Provider>
   );
 }
+MeasurementAnnotationsFilterEnabled.parameters = disableRtlModeParameters;
 
 export function DocumentFilterActive() {
   const props = {

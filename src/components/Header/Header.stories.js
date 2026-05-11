@@ -3,7 +3,7 @@ import Header from './Header';
 import initialState from 'src/redux/initialState';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
-
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/Header',
@@ -32,9 +32,10 @@ const BasicComponent = (props) => {
   );
 };
 
-
 export const DefaultHeader = BasicComponent.bind({});
 DefaultHeader.args = {
   isToolsHeaderOpen: true,
   isMultiTab: true,
 };
+
+DefaultHeader.parameters = disableRtlModeParameters;

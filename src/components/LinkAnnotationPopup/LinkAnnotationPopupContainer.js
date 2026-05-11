@@ -1,6 +1,6 @@
 import actions from 'actions';
 import classNames from 'classnames';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import DataElements from 'constants/dataElement';
 import DataElementWrapper from '../DataElementWrapper';
 import { getAnnotationPopupPositionBasedOn } from 'helpers/getPopupPosition';
@@ -19,7 +19,8 @@ import React, {
 import {
   useSelector,
   shallowEqual,
-  useDispatch
+  useDispatch,
+  useStore
 } from 'react-redux';
 import getGroupedLinkAnnotations from 'src/helpers/getGroupedLinkAnnotations';
 
@@ -31,7 +32,7 @@ const propTypes = {
   handleOnMouseLeave: PropTypes.func,
 };
 
-export const deleteLinkAnnotationWithGroup = (annotation, activeDocumentViewerKey = 1) => {
+export const deleteLinkAnnotationWithGroup = (annotation, activeDocumentViewerKey = 1, core) => {
   const annotationManager = core.getAnnotationManager(activeDocumentViewerKey);
   const textHighlightAnnotation = annotationManager.getGroupAnnotations(annotation).find((annot, index) => annot instanceof Annotations.TextHighlightAnnotation && annot.Opacity === 0 && index === 0);
   const linkAnnotations = getGroupedLinkAnnotations(annotation);
@@ -41,6 +42,9 @@ export const deleteLinkAnnotationWithGroup = (annotation, activeDocumentViewerKe
       annotationManager.deleteAnnotation(linkAnnot, { 'source': 'unlink' }, true);
     }
   });
+  if (textHighlightAnnotation) {
+    annotationManager.deleteAnnotation(textHighlightAnnotation, { 'source': 'unlink' }, true);
+  }
   annotationManager.deleteAnnotation(annotation, { 'source': 'unlink' }, true);
 };
 
@@ -49,6 +53,7 @@ const LinkAnnotationPopupContainer = ({
   handleOnMouseEnter,
   handleOnMouseLeave
 }) => {
+  const { core } = useCore();
   const [
     isOpen,
     activeDocumentViewerKey,
@@ -60,6 +65,7 @@ const LinkAnnotationPopupContainer = ({
   const [position, setPosition] = useState({ left: 0, top: 0 });
   const dispatch = useDispatch();
   const popupRef = useRef(null);
+  const store = useStore();
 
   const closePopup = () => dispatch(actions.closeElement(DataElements.LINK_ANNOTATION_POPUP));
 
@@ -98,10 +104,10 @@ const LinkAnnotationPopupContainer = ({
     }
   };
 
-  const contents = getLinkDestination(annotation) || '';
+  const contents = getLinkDestination(annotation, store) || '';
 
   const handleUnLink = () => {
-    deleteLinkAnnotationWithGroup(annotation, activeDocumentViewerKey);
+    deleteLinkAnnotationWithGroup(annotation, activeDocumentViewerKey, core);
     closePopup();
     handleOnMouseLeave();
   };

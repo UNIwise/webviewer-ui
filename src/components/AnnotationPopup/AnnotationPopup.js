@@ -28,9 +28,9 @@ const propTypes = {
   isLinkModalOpen: PropTypes.bool,
   isWarningModalOpen: PropTypes.bool,
   isContextMenuPopupOpen: PropTypes.bool,
+  isVisible: PropTypes.bool,
 
   focusedAnnotation: PropTypes.object,
-  multipleAnnotationsSelected: PropTypes.bool,
   popupRef: PropTypes.any,
   position: PropTypes.object,
 
@@ -57,7 +57,7 @@ const propTypes = {
   onEditContent: PropTypes.func,
   openContentEditDeleteWarningModal: PropTypes.func,
 
-  isAppearanceSignature: PropTypes.bool,
+  showClearSignatureButton: PropTypes.bool,
   onClearAppearanceSignature: PropTypes.func,
 
   showRedactionButton: PropTypes.bool,
@@ -87,10 +87,12 @@ const propTypes = {
   showCalibrateButton: PropTypes.bool,
   onOpenCalibration: PropTypes.func,
 
-  customizableUI: PropTypes.bool,
-  openStylePanel: PropTypes.func,
-  isInReadOnlyMode: PropTypes.bool,
+  showAlignButton: PropTypes.bool,
   onOpenAlignmentModal: PropTypes.func,
+
+  customizableUI: PropTypes.bool,
+  toggleStylePanel: PropTypes.func,
+  isInReadOnlyMode: PropTypes.bool,
 };
 
 const AnnotationPopup = ({
@@ -103,11 +105,11 @@ const AnnotationPopup = ({
   isLinkModalOpen,
   isWarningModalOpen,
   isContextMenuPopupOpen,
+  isVisible,
 
   focusedAnnotation,
   popupRef,
   position,
-  multipleAnnotationsSelected,
 
   showViewFileButton,
   onViewFile,
@@ -132,7 +134,7 @@ const AnnotationPopup = ({
   onEditContent,
   openContentEditDeleteWarningModal,
 
-  isAppearanceSignature,
+  showClearSignatureButton,
   onClearAppearanceSignature,
 
   showRedactionButton,
@@ -162,10 +164,12 @@ const AnnotationPopup = ({
   showCalibrateButton,
   onOpenCalibration,
 
-  customizableUI,
-  openStylePanel,
-  isInReadOnlyMode,
+  showAlignButton,
   onOpenAlignmentModal,
+
+  customizableUI,
+  toggleStylePanel,
+  isInReadOnlyMode,
 }) => {
   const [t] = useTranslation();
   const [shortCutKeysFor3DVisible, setShortCutKeysFor3DVisible] = useState(false);
@@ -312,7 +316,7 @@ const AnnotationPopup = ({
                     label={isRightClickMenu ? 'action.style' : ''}
                     title={!isRightClickMenu ? 'action.style' : ''}
                     img="icon-menu-style-line"
-                    onClick={customizableUI ? openStylePanel : openEditStylePopup}
+                    onClick={customizableUI ? toggleStylePanel : openEditStylePopup}
                   />
                 )}
                 {showContentEditButton && (
@@ -325,13 +329,13 @@ const AnnotationPopup = ({
                     onClick={onEditContent}
                   />
                 )}
-                {isAppearanceSignature && (
+                {showClearSignatureButton && (
                   <ActionButton
                     className="main-menu-button"
                     dataElement="annotationClearSignatureButton"
-                    label={isReadOnlySignature ? 'action.readOnlySignature' : (isRightClickMenu ? 'action.clearSignature' : '')}
+                    label={!isReadOnlySignature && isRightClickMenu ? 'action.clearSignature' : ''}
                     title={isReadOnlySignature ? 'action.readOnlySignature' : (!isRightClickMenu ? 'action.clearSignature' : '')}
-                    img={isReadOnlySignature ? '' : 'icon-delete-line'}
+                    img={'icon-delete-line'}
                     onClick={onClearAppearanceSignature}
                     isNotClickableSelector={() => isReadOnlySignature}
                   />
@@ -366,12 +370,12 @@ const AnnotationPopup = ({
                     onClick={onUngroupAnnotations}
                   />
                 )}
-                {multipleAnnotationsSelected && !isMobile && (
+                {showAlignButton && (
                   <ActionButton
                     className="main-menu-button"
                     dataElement='openAlignmentButton'
-                    label={isRightClickMenu ? 'alignment' : ''}
-                    title={!isRightClickMenu ? 'Align' : ''}
+                    label={isRightClickMenu ? 'alignmentPopup.alignment' : ''}
+                    title={!isRightClickMenu ? 'alignmentPopup.alignment' : ''}
                     img="ic-alignment-main"
                     onClick={onOpenAlignmentModal}
                   />
@@ -461,12 +465,13 @@ const AnnotationPopup = ({
         open: isOpen,
         closed: !isOpen,
         stylePopupOpen: isStylePopupOpen,
-        'is-vertical': isReadOnlySignature ? true : isRightClickMenu,
-        'is-horizontal': isReadOnlySignature ? false : !isRightClickMenu,
+        'is-vertical': isRightClickMenu,
+        'is-horizontal': !isRightClickMenu,
+        'is-hidden': isVisible === false,
       })}
       ref={popupRef}
       data-element={DataElements.ANNOTATION_POPUP}
-      style={{ ...position }}
+      css={position}
     >
       {renderPopup()}
     </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
+import DOMPurify from 'dompurify';
 
 import './Icon.scss';
 
@@ -11,8 +12,12 @@ class Icon extends React.PureComponent {
     glyph: PropTypes.string.isRequired,
     fillColor: PropTypes.string,
     strokeColor: PropTypes.string,
-    disabled: PropTypes.bool
-  }
+    disabled: PropTypes.bool,
+    dataElement: PropTypes.string,
+    ariaHidden: PropTypes.bool,
+    ariaLabel: PropTypes.string,
+  };
+
 
   constructor() {
     super();
@@ -50,7 +55,7 @@ class Icon extends React.PureComponent {
   }
 
   render() {
-    const { className = '', color, glyph, fillColor = '', strokeColor = '', disabled } = this.props;
+    const { className = '', color, glyph, fillColor = '', strokeColor = '', disabled, dataElement, ariaLabel } = this.props;
     // eslint-disable-next-line custom/no-hex-colors
     const filter = (color && (color === 'rgba(255, 255, 255, 1)' || color === 'rgb(255, 255, 255)')) ? 'drop-shadow(0 0 .5px #333)' : undefined;
     let svgElement;
@@ -73,8 +78,14 @@ class Icon extends React.PureComponent {
         svgElement = svgElement.replace('fill="none"', `fill="#${fillColor}"`);
       }
       if (strokeColor) {
-        svgElement = svgElement.replace('fill="stroke"', `fill="#${strokeColor}"`);
+        svgElement = svgElement.replaceAll('fill="stroke"', `fill="#${strokeColor}"`);
       }
+    }
+
+    // Deque required aria-label to be on the SVG element rather than the wrapping div
+    if (ariaLabel) {
+      const sanitizedAriaLabel = DOMPurify.sanitize(ariaLabel, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+      svgElement = svgElement.replace('<svg', `<svg aria-label="${sanitizedAriaLabel}"`);
     }
 
     return (
@@ -87,11 +98,17 @@ class Icon extends React.PureComponent {
           disabled,
         })}
         style={style}
+        data-element={dataElement}
+        aria-hidden={this.props.ariaHidden}
         /* eslint-disable react/no-danger */
         dangerouslySetInnerHTML={{ __html: svgElement }}
       />
     );
   }
 }
+
+Icon.defaultProps = {
+  ariaHidden: true
+};
 
 export default Icon;

@@ -1,66 +1,35 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import selectors from 'selectors';
 import actions from 'actions';
 import { useTranslation } from 'react-i18next';
-import selectors from 'selectors';
 import Button from 'components/Button';
 import DataElements from 'constants/dataElement';
-import { Shortcuts } from 'helpers/hotkeysManager';
+import { EditorModes } from 'helpers/hotkeysUtils';
 import { isMac } from 'helpers/device';
 import EditKeyboardShortcutModal from './EditKeyboardShortcutModal';
 import { SearchWrapper } from './SearchWrapper';
+import useFocusHandler from 'hooks/useFocusHandler';
+import PropTypes from 'prop-types';
+import useKeyboardShortcuts from 'src/hooks/useKeyboardShortcuts';
 
 import './KeyboardShortcutTab.scss';
 
-const keyboardShortcuts = [
-  [Shortcuts.ROTATE_CLOCKWISE, 'option.settings.rotateDocumentClockwise'],
-  [Shortcuts.ROTATE_COUNTER_CLOCKWISE, 'option.settings.rotateDocumentCounterclockwise'],
-  [Shortcuts.COPY, 'option.settings.copyText'],
-  [Shortcuts.PASTE, 'option.settings.pasteText'],
-  [Shortcuts.UNDO, 'option.settings.undoChange'],
-  [Shortcuts.REDO, 'option.settings.redoChange'],
-  [Shortcuts.OPEN_FILE, 'option.settings.openFile'],
-  [Shortcuts.SEARCH, 'option.settings.openSearch'],
-  [Shortcuts.ZOOM_IN, 'option.settings.zoomIn'],
-  [Shortcuts.ZOOM_OUT, 'option.settings.zoomOut'],
-  [Shortcuts.FIT_SCREEN_WIDTH, 'option.settings.fitScreenWidth'],
-  [Shortcuts.PRINT, 'option.settings.print'],
-  [Shortcuts.BOOKMARK, 'option.settings.bookmarkOpenPanel'],
-  [Shortcuts.PREVIOUS_PAGE, 'option.settings.goToPreviousPage'],
-  [Shortcuts.NEXT_PAGE, 'option.settings.goToNextPage'],
-  [Shortcuts.UP, 'option.settings.goToPreviousPageArrowUp'],
-  [Shortcuts.DOWN, 'option.settings.goToNextPageArrowDown'],
-  [Shortcuts.SWITCH_PAN, 'option.settings.holdSwitchPan'],
-  [Shortcuts.SELECT, 'option.settings.selectAnnotationEdit'],
-  [Shortcuts.PAN, 'option.settings.selectPan'],
-  [Shortcuts.ARROW, 'option.settings.selectCreateArrowTool'],
-  [Shortcuts.CALLOUT, 'option.settings.selectCreateCalloutTool'],
-  [Shortcuts.ERASER, 'option.settings.selectEraserTool'],
-  [Shortcuts.FREEHAND, 'option.settings.selectCreateFreeHandTool'],
-  [Shortcuts.IMAGE, 'option.settings.selectCreateStampTool'],
-  [Shortcuts.LINE, 'option.settings.selectCreateLineTool'],
-  [Shortcuts.STICKY_NOTE, 'option.settings.selectCreateStickyTool'],
-  [Shortcuts.ELLIPSE, 'option.settings.selectCreateEllipseTool'],
-  [Shortcuts.RECTANGLE, 'option.settings.selectCreateRectangleTool'],
-  [Shortcuts.RUBBER_STAMP, 'option.settings.selectCreateRubberStampTool'],
-  [Shortcuts.FREETEXT, 'option.settings.selectCreateFreeTextTool'],
-  [Shortcuts.SIGNATURE, 'option.settings.openSignatureModal'],
-  [Shortcuts.SQUIGGLY, 'option.settings.selectCreateTextSquigglyTool'],
-  [Shortcuts.HIGHLIGHT, 'option.settings.selectCreateTextHighlightTool'],
-  [Shortcuts.STRIKEOUT, 'option.settings.selectCreateTextStrikeoutTool'],
-  [Shortcuts.UNDERLINE, 'option.settings.selectCreateTextUnderlineTool'],
-  [Shortcuts.CLOSE, 'option.settings.close'],
-];
-
-const KeyboardShortcutTab = () => {
+const KeyboardShortcutTab = ({ editorMode = EditorModes.DEFAULT }) => {
   const [t] = useTranslation();
   const dispatch = useDispatch();
+  const isViewOnly = useSelector(selectors.isViewOnly);
 
-  const shortcutKeyMap = useSelector(selectors.getShortcutKeyMap);
-
+  const { keyboardShortcuts, shortcutKeyMap } = useKeyboardShortcuts(editorMode);
   const [currentShortcut, setCurrentShortcut] = useState(undefined);
+  const isEditingDisabled = useMemo(() => {
+    return editorMode !== EditorModes.DEFAULT || isViewOnly;
+  }, [editorMode]);
 
   const getCommandStrings = (command) => {
+    if (!command) {
+      return [];
+    }
     command = command.toUpperCase();
     if (command.includes(', COMMAND')) {
       const commands = command.split(', ');
@@ -78,6 +47,11 @@ const KeyboardShortcutTab = () => {
     setCurrentShortcut(undefined);
     dispatch(actions.setIsElementHidden(DataElements.SETTINGS_MODAL, false));
   };
+
+  const focusHandler = useFocusHandler((e) => {
+    const shortcut = e.currentTarget.getAttribute('data-element').replace('edit-button-', '');
+    editShortcut(shortcut);
+  });
 
   return (
     <>
@@ -102,9 +76,12 @@ const KeyboardShortcutTab = () => {
                 {t(description)}
               </div>
               <Button
+                dataElement={`edit-button-${command}`}
                 img="icon-edit-form-field"
                 title={t('action.edit')}
-                onClick={() => editShortcut(command)}
+                ariaLabel={`${t(description)} ${t('action.edit')}`}
+                onClick={focusHandler}
+                disabled={isEditingDisabled}
               />
             </div>
           </SearchWrapper>
@@ -119,6 +96,10 @@ const KeyboardShortcutTab = () => {
       )}
     </>
   );
+};
+
+KeyboardShortcutTab.propTypes = {
+  editorMode: PropTypes.oneOf(Object.values(EditorModes))
 };
 
 export default KeyboardShortcutTab;

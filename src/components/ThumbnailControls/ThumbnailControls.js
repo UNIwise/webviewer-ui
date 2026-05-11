@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useDispatch, shallowEqual, useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
@@ -8,9 +8,10 @@ import selectors from 'selectors';
 import './ThumbnailControls.scss';
 import PageManipulationOverlayButton from 'components/PageManipulationOverlayButton';
 import { workerTypes } from 'constants/types';
-import core from 'src/core';
 import DataElements from 'constants/dataElement';
 import { useTranslation } from 'react-i18next';
+import findFocusableElements from 'helpers/findFocusableElements';
+import useCore from 'src/hooks/useCore';
 
 const propTypes = {
   index: PropTypes.number.isRequired,
@@ -20,23 +21,20 @@ const dataElementName = 'thumbnailControl';
 
 const ThumbnailControls = ({ index }) => {
   const { t } = useTranslation();
-  const [isElementDisabled] = useSelector((state) => [selectors.isElementDisabled(state, dataElementName)]);
-  const [isMoreOptionDisabled] = useSelector((state) => [selectors.isElementDisabled(state, DataElements.PAGE_MANIPULATION_OVERLAY_BUTTON)]);
-  const [isPageDeletionConfirmationModalEnabled, selectedIndexes] = useSelector((state) => [
-    selectors.pageDeletionConfirmationModalEnabled(state),
-    selectors.getSelectedThumbnailPageIndexes(state),
-  ]);
-  const dispatch = useDispatch();
+  const { core } = useCore();
+  const activeDocumentViewerKey = useSelector(selectors.getActiveDocumentViewerKey);
+  const isElementDisabled = useSelector((state) => selectors.isElementDisabled(state, dataElementName));
+  const isMoreOptionDisabled = useSelector((state) => selectors.isElementDisabled(state, DataElements.PAGE_MANIPULATION_OVERLAY_BUTTON));
+  const isPageDeletionConfirmationModalEnabled = useSelector(selectors.pageDeletionConfirmationModalEnabled);
+  const selectedIndexes = useSelector(selectors.getSelectedThumbnailPageIndexes, shallowEqual);
+  const currentPage = useSelector((state) => selectors.getCurrentPage(state, activeDocumentViewerKey));
+  const pageThumbnailControlMenuItems = useSelector(selectors.getThumbnailControlMenuItems, shallowEqual);
+  const featureFlags = useSelector(selectors.getFeatureFlags, shallowEqual);
+  const isViewOnly = useSelector(selectors.isViewOnly);
 
-  const [
-    currentPage,
-    pageThumbnailControlMenuItems,
-    featureFlags,
-  ] = useSelector((state) => [
-    selectors.getCurrentPage(state),
-    selectors.getThumbnailControlMenuItems(state),
-    selectors.getFeatureFlags(state),
-  ], shallowEqual);
+  const dispatch = useDispatch();
+  const buttonsRef = useRef([]);
+  const buttonContainerRef = useRef(null);
 
   let pageNumbers = selectedIndexes.length > 0 ? selectedIndexes.map((i) => i + 1) : [index + 1];
 
@@ -56,20 +54,20 @@ const ThumbnailControls = ({ index }) => {
     'thumbRotateClockwise': <Button
       className="rotate-button"
       img="icon-header-page-manipulation-page-rotation-clockwise-line"
-      onClick={() => rotateClockwise(pageNumbers)}
+      onClick={() => rotateClockwise(pageNumbers, activeDocumentViewerKey)}
       title="option.thumbnailPanel.rotatePageClockwise"
       dataElement="thumbRotateClockwise"
     />,
     'thumbRotateCounterClockwise': <Button
       img="icon-header-page-manipulation-page-rotation-counterclockwise-line"
-      onClick={() => rotateCounterClockwise(pageNumbers)}
+      onClick={() => rotateCounterClockwise(pageNumbers, activeDocumentViewerKey)}
       title="option.thumbnailPanel.rotatePageCounterClockwise"
       dataElement="thumbRotateCounterClockwise"
     />,
     'thumbDelete': <Button
       className="delete-button"
       img="icon-delete-line"
-      onClick={() => deletePages(pageNumbers, dispatch, isPageDeletionConfirmationModalEnabled)}
+      onClick={() => deletePages(pageNumbers, dispatch, isPageDeletionConfirmationModalEnabled, activeDocumentViewerKey)}
       title="option.thumbnailPanel.delete"
       dataElement="thumbDelete"
       onClickAnnouncement={`${t('action.delete')} ${t('action.modal')} ${t('action.isOpen')}`}
@@ -112,9 +110,20 @@ const ThumbnailControls = ({ index }) => {
       : null;
   });
 
+  useEffect(() => {
+    buttonsRef.current = findFocusableElements(buttonContainerRef.current);
+    if (buttonsRef.current.length > 0) {
+      buttonsRef.current.forEach((element) => {
+        element.tabIndex = -1;
+      });
+    }
+  }, [buttonsRef.current, buttons]);
+
   if (isElementDisabled) {
     return null;
-  } if (isXod || isOffice || document?.isWebViewerServerDocument()) {
+  }
+
+  if (isXod || isOffice || document?.isWebViewerServerDocument()) {
     return (
       <div className="thumbnailControls-overlay" data-element={dataElementName}
         style={{ display: 'flex' }}
@@ -134,6 +143,11 @@ const ThumbnailControls = ({ index }) => {
       </div>
     );
   }
+
+  if (isViewOnly) {
+    return null;
+  }
+
   return (
     <div className={classNames({
       'thumbnailControls-overlay': true,
@@ -141,6 +155,7 @@ const ThumbnailControls = ({ index }) => {
       'modular-ui': customizableUI,
     })}
     data-element={dataElementName}
+    ref={buttonContainerRef}
     >
       {buttons}
       {

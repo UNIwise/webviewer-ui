@@ -6,13 +6,23 @@
 WebViewer(...)
   .then(function(instance) {
     // open left panel
-    instance.UI.openElements([ 'leftPanel' ]);
+    instance.UI.openElements(['leftPanel']);
     // view outlines panel
     instance.UI.setActiveLeftPanel('outlinesPanel');
+  });
  */
 
 import actions from 'actions';
+import { panelNames } from 'constants/panel';
 
 export default (store) => (headerGroup) => {
-  store.dispatch(actions.setActiveLeftPanel(headerGroup));
+  const state = store.getState();
+  const featureFlags = state.featureFlags;
+  const { customizableUI } = featureFlags;
+
+  if (customizableUI) {
+    store.dispatch(actions.setActiveTabInPanel(headerGroup, panelNames.TABS));
+  } else {
+    store.dispatch(actions.setActiveLeftPanel(headerGroup));
+  }
 };

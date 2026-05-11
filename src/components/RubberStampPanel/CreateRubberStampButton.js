@@ -18,9 +18,10 @@ const CreateRubberStampButton = () => {
   const openRubberStampModalWithFocus = useFocusHandler(openRubberStampModal);
 
   return (
-    <DataElementWrapper dataElement={DataElements.CREATE_RUBBER_STAMP_BUTTON}>
+    <DataElementWrapper dataElement={DataElements.CREATE_RUBBER_STAMP_BUTTON_WRAP}>
       <Button
         className={'CreateRubberStampButton'}
+        dataElement={DataElements.CREATE_RUBBER_STAMP_BUTTON}
         label={t('component.createStampButton')}
         onClick={openRubberStampModalWithFocus} />
     </DataElementWrapper>

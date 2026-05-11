@@ -73,15 +73,17 @@ const getStyles = (isDarkMode) => ({
       color: COMMON_COLORS['gray6'],
     },
     'svg': {
+      color: COMMON_COLORS['gray6'],
       height: '16px',
       width: '16px',
     },
   }),
-  option: (base) => ({
+  option: (base, { isFocused }) => ({
     ...base,
     display: 'flex',
     fontSize: '13px',
     padding: '6px 8px 0',
+    outline: isFocused ? 'var(--focus-visible-outline)' : undefined,
     '&:hover': {
       backgroundColor: getColorForMode(isDarkMode, COMMON_COLORS['blue1DarkMode'], CUSTOM_UI_VARS['primary-button-hover']),
       color: COMMON_COLORS['gray0'],
@@ -132,13 +134,18 @@ const getStyles = (isDarkMode) => ({
   }),
 });
 
+const renderRedactionOption = (icon, label) => (
+  <span className='redactionOption'>
+    {icon && <Icon glyph={icon} />}
+    {label}
+  </span>
+);
+
 const RedactionOption = (props) => {
   const { data } = props;
-  const { t } = useTranslation();
   return (
     <components.Option {...props}>
-      {data.icon && <Icon glyph={data.icon} />}
-      {t(data.label)}
+      {renderRedactionOption(data.icon, data.label)}
     </components.Option>
   );
 };
@@ -148,12 +155,9 @@ RedactionOption.propTypes = {
 };
 
 const MultiValueLabel = ({ data }) => {
-  const { t } = useTranslation();
-
   return (
-    <div style={{ display: 'flex', height: '18px' }}>
-      {data.icon && <Icon glyph={data.icon} />}
-      {t(data.label)}
+    <div tabIndex={0} style={{ display: 'flex', height: '18px' }}>
+      {renderRedactionOption(data.icon, data.label)}
     </div>
   );
 };
@@ -170,6 +174,33 @@ const CustomControl = ({ children, ...props }) => (
     {children}
   </components.Control>
 );
+
+const MultiValueRemove = (props) => {
+  const { t } = useTranslation();
+  const label = props.data.label;
+
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      // Trigger the removal action when Enter or Space is pressed
+      event.stopPropagation();
+      props.innerProps.onClick();
+    }
+  };
+
+  const updatedProps = {
+    ...props,
+    innerProps: {
+      ...props.innerProps,
+      'aria-label': `${t('action.remove')} ${label}`,
+      tabIndex: 0,
+      onKeyDown: handleKeyDown, // Add the keydown handler for accessibility
+    }
+  };
+
+  return (
+    <components.MultiValueRemove {...updatedProps} />
+  );
+};
 
 CustomControl.propTypes = {
   children: PropTypes.node,
@@ -193,7 +224,7 @@ const RedactionSearchMultiSelect = (props) => {
     <CreatableMultiSelect
       options={redactionGroup}
       styles={styles}
-      components={{ Option: RedactionOption, MultiValueLabel, IndicatorsContainer: () => null, Control: CustomControl }}
+      components={{ Option: RedactionOption, MultiValueLabel, IndicatorsContainer: () => null, Control: CustomControl, MultiValueRemove }}
       placeholder={''}
       formatCreateLabel={(value) => `${t('component.searchPanel')} ${value}`}
       id="redaction-search-multi-select"

@@ -37,6 +37,53 @@ const groupedLeftHeaderButtons = new instance.UI.Components.GroupedItems({
   alwaysVisible: true,
 });
    */
+
+  /**
+   * The data element of the grouped item.
+   * @member {string} UI.Components.GroupedItems#dataElement
+   */
+
+  /**
+   * The data element of the grouped item.
+   * @member {'top' | 'bottom' | 'left' | 'right'} UI.Components.GroupedItems#placement
+   */
+
+  /**
+   * A string that determines the flex justify content value of the grouped items container.
+   * @member {'start' | 'end' | 'flex-start' | 'flex-end' | 'center' | 'space-between' | 'space-around' | 'space-evenly'} UI.Components.GroupedItems#justifyContent
+   */
+
+  /**
+   * The flex grow value of the grouped items container.
+   * @member {number} UI.Components.GroupedItems#grow
+   */
+
+  /**
+   * The gap between the items in the grouped items container.
+   * @member {number} UI.Components.GroupedItems#gap
+   */
+
+  /**
+   * A string that determines the position of the grouped items container.
+   * @member {'start' | 'center' | 'end'} UI.Components.GroupedItems#position
+   */
+
+  /**
+   * Whether the group should always be visible or not. Default is false. Alternatively, visibility can be toggled by changing the active grouped item using a Ribbon Item.
+   * @member {boolean} UI.Components.GroupedItems#alwaysVisible
+   */
+
+  /**
+   * An object that can set the CSS style of the grouped items.
+   * @member {Object} UI.Components.GroupedItems#style
+   */
+
+  /**
+   * The items within the grouped items container. The valid items are: {@link UI.Components.ModularHeader}, {@link UI.Components.CustomButton}, {@link UI.Components.StatefulButton}, {@link UI.Components.GroupedItems}, {@link UI.Components.RibbonItem}, {@link UI.Components.ToggleElementButton}, {@link UI.Components.RibbonGroup}, {@link UI.Components.ToolButton}, {@link UI.Components.Zoom}, {@link UI.Components.Flyout}, {@link UI.Components.PageControls}, {@link UI.Components.PresetButton}, {@link UI.Components.ViewControls}, {@link UI.Components.TabPanel}.
+   * @member {Array<Object>} UI.Components.GroupedItems#items
+   */
+
+
   constructor(props) {
     const {
       label,
@@ -117,6 +164,23 @@ const groupedLeftHeaderButtons = new instance.UI.Components.GroupedItems({
     }
   }
 
+  getItemsValidationError(items) {
+    if (this.type === ITEM_TYPE.RIBBON_GROUP) {
+      const allAreRibbonItems = items.every((item) => item?.type === ITEM_TYPE.RIBBON_ITEM);
+      if (!allAreRibbonItems) {
+        return 'Invalid items provided to setItems. Ribbon Group only accepts Ribbon Items.';
+      }
+    } else {
+      const hasInvalid = items.some((item) => {
+        return typeof item !== 'object' || !item.type || item.type === ITEM_TYPE.RIBBON_ITEM;
+      });
+      if (hasInvalid) {
+        return 'Invalid items provided to setItems. Items should be an array of objects.';
+      }
+    }
+    return false;
+  }
+
   /**
    * Sets the items in the GroupedItems
    * @method UI.Components.GroupedItems#setItems
@@ -124,6 +188,11 @@ const groupedLeftHeaderButtons = new instance.UI.Components.GroupedItems({
    */
   setItems(items) {
     checkTypes([items], [TYPES.ARRAY(TYPES.ANY)], 'GroupedItems.setItems');
+    const itemsValidationError = this.getItemsValidationError(items);
+    if (itemsValidationError) {
+      console.warn(itemsValidationError);
+      return;
+    }
     this.items = items;
     this.store.dispatch(actions.updateGroupedItems(this.dataElement, items));
   }
@@ -138,7 +207,7 @@ const groupedLeftHeaderButtons = new instance.UI.Components.GroupedItems({
     }
     // If the component is not yet in redux we return the property that we have in the class
     return this[`_${property}`];
-  }
+  };
 
   get gap() {
     return this.getGroupedItemProperty('gap');

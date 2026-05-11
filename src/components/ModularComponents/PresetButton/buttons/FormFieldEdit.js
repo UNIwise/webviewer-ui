@@ -1,9 +1,11 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import ActionButton from 'components/ActionButton';
 import { menuItems } from '../../Helpers/menuItems';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import FlyoutItemContainer from '../../FlyoutItemContainer';
+import classNames from 'classnames';
+import { getButtonPressedAnnouncement } from 'helpers/accessibility';
 
 /**
  * A button that toggles form field edit mode.
@@ -11,16 +13,41 @@ import FlyoutItemContainer from '../../FlyoutItemContainer';
  * @memberof UI.Components.PresetButton
  */
 const FormFieldEditButton = forwardRef((props, ref) => {
-  const { isFlyoutItem, dataElement } = props;
-  const { icon, title } = menuItems.formFieldEditButton;
+  const { core } = useCore();
+  const {
+    isFlyoutItem,
+    style,
+    className,
+    dataElement = menuItems.formFieldEditButton.dataElement,
+    img: icon = menuItems.formFieldEditButton.icon,
+    title = menuItems.formFieldEditButton.title,
+  } = props;
+  const [active, setActive] = useState(core?.getFormFieldCreationManager()?.isInFormFieldCreationMode());
+
+  useEffect(() => {
+    const formFieldCreationManager = core.getFormFieldCreationManager();
+    if (formFieldCreationManager) {
+      const updateState = () => setActive(formFieldCreationManager.isInFormFieldCreationMode());
+      formFieldCreationManager.addEventListener('formFieldCreationModeStarted', updateState);
+      formFieldCreationManager.addEventListener('formFieldCreationModeEnded', updateState);
+      return () => {
+        formFieldCreationManager.removeEventListener('formFieldCreationModeStarted', updateState);
+        formFieldCreationManager.removeEventListener('formFieldCreationModeEnded', updateState);
+      };
+    }
+  }, [core]);
 
   const handleClick = () => {
     const formFieldCreationManager = core.getFormFieldCreationManager();
     const isInFormFieldCreationMode = formFieldCreationManager.isInFormFieldCreationMode();
     if (isInFormFieldCreationMode) {
-      formFieldCreationManager.endFormFieldCreationMode();
+      core.getDocumentViewers().forEach((viewer) => {
+        viewer.getAnnotationManager().getFormFieldCreationManager().endFormFieldCreationMode();
+      });
     } else {
-      formFieldCreationManager.startFormFieldCreationMode();
+      core.getDocumentViewers().forEach((viewer) => {
+        viewer.getAnnotationManager().getFormFieldCreationManager().startFormFieldCreationMode();
+      });
     }
   };
 
@@ -29,12 +56,19 @@ const FormFieldEditButton = forwardRef((props, ref) => {
       <FlyoutItemContainer {...props} ref={ref} onClick={handleClick} />
       : (
         <ActionButton
-          className={'PresetButton formFieldEditButton'}
+          className={classNames({
+            PresetButton: true,
+            formFieldEditButton: true,
+            [className]: true,
+          })}
           dataElement={dataElement}
           title={title}
           img={icon}
           onClick={handleClick}
-          isActive={core.getFormFieldCreationManager().isInFormFieldCreationMode()}
+          isActive={active}
+          style={style}
+          ariaPressed={active}
+          onClickAnnouncement={getButtonPressedAnnouncement(title)}
         />
       )
   );
@@ -43,6 +77,10 @@ const FormFieldEditButton = forwardRef((props, ref) => {
 FormFieldEditButton.propTypes = {
   isFlyoutItem: PropTypes.bool,
   dataElement: PropTypes.string,
+  style: PropTypes.object,
+  className: PropTypes.string,
+  img: PropTypes.string,
+  title: PropTypes.string,
 };
 FormFieldEditButton.displayName = 'FormFieldEditButton';
 

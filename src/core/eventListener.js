@@ -26,6 +26,8 @@ const getEventToObjectMap = (documentViewerKey = 1) => {
   const editBoxManager = annotManager.getEditBoxManager();
   const formFieldCreationManager = annotManager.getFormFieldCreationManager();
   const measurementManager = documentViewer.getMeasurementManager();
+  const accessibleReadingOrderManager = documentViewer.getAccessibleReadingOrderManager();
+  const spreadsheetEditorManager = documentViewer.getSpreadsheetEditorManager();
 
   return {
     cursorPropertiesUpdated: documentViewer,
@@ -67,6 +69,7 @@ const getEventToObjectMap = (documentViewerKey = 1) => {
     zoomUpdated: documentViewer,
     pageNumberUpdated: documentViewer,
     pagesUpdated: documentViewer,
+    visiblePagesChanged: documentViewer,
     'fitModeUpdated.fitbutton': documentViewer,
     [Events.COMPARE_ANNOTATIONS_LOADED]: documentViewer,
     historyChanged: historyManager,
@@ -85,7 +88,8 @@ const getEventToObjectMap = (documentViewerKey = 1) => {
     notify: annotManager,
     setNoteText: annotManager,
     fileAttachmentDataAvailable: annotManager,
-    digitalSignatureAvailable: annotManager,
+    digitalSignatureApplied: annotManager,
+    widgetHighlightingChanged: annotManager,
     editorFocus: editBoxManager,
     editorBlur: editBoxManager,
     editorTextChanged: editBoxManager,
@@ -101,5 +105,21 @@ const getEventToObjectMap = (documentViewerKey = 1) => {
     contentEditDocumentDigitallySigned: contentEditManager,
     contentEditPasswordRequired: contentEditManager,
     createAnnotationWithNoScale: measurementManager,
+    accessibleReadingOrderModeStarted: accessibleReadingOrderManager,
+    accessibleReadingOrderModeReady: accessibleReadingOrderManager,
+    accessibleReadingOrderModeEnded: accessibleReadingOrderManager,
+    accessibleReadingOrderModeNoStructure: accessibleReadingOrderManager,
+    userBookmarksChanged: documentViewer,
+    selectionChanged: spreadsheetEditorManager,
+    sheetChanged: spreadsheetEditorManager,
+    spreadsheetEditorEditModeChanged: spreadsheetEditorManager,
+    activeSheetChanged: spreadsheetEditorManager,
+    spreadsheetEditorLoaded: spreadsheetEditorManager,
+    spreadsheetEditorReady: spreadsheetEditorManager,
+    selectedRangeStyleChanged: spreadsheetEditorManager,
+    formulaSearchEvent: spreadsheetEditorManager,
+    formulaHelpEvent: spreadsheetEditorManager,
+    formulaBarTextChangedEvent: spreadsheetEditorManager,
+    formulaBarSelectionChangedEvent: spreadsheetEditorManager,
   };
 };

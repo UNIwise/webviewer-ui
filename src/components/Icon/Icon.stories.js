@@ -1,5 +1,6 @@
 import React from 'react';
 import Icon from './Icon';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/Icon',
@@ -14,6 +15,8 @@ export function Basic() {
   );
 }
 
+Basic.parameters = disableRtlModeParameters;
+
 export function Colorized() {
   return (
     /* eslint-disable custom/no-hex-colors */
@@ -25,6 +28,8 @@ export function Colorized() {
   );
 }
 
+Colorized.parameters = disableRtlModeParameters;
+
 export function Disabled() {
   return (
     <div>
@@ -33,3 +38,5 @@ export function Disabled() {
     </div>
   );
 }
+
+Disabled.parameters = disableRtlModeParameters;

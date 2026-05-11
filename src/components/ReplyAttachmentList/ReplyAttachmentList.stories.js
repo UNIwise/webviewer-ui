@@ -2,13 +2,11 @@ import React from 'react';
 import ReplyAttachmentList from './ReplyAttachmentList';
 import { createStore } from 'redux';
 import { Provider } from 'react-redux';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'Components/ReplyAttachmentList',
   component: ReplyAttachmentList,
-  parameters: {
-    customizableUI: true,
-  }
 };
 
 const initialState = {
@@ -50,6 +48,7 @@ export function DisplayMode() {
     </Provider>
   );
 }
+DisplayMode.parameters = disableRtlModeParameters;
 
 // State 2
 export function EditMode() {
@@ -66,6 +65,7 @@ export function EditMode() {
     </Provider>
   );
 }
+EditMode.parameters = disableRtlModeParameters;
 
 const SVG_MIME_TYPE = 'image/svg+xml';
 const svgString = `
@@ -96,3 +96,4 @@ export function UnsafeSVGAttachment() {
     </Provider>
   );
 }
+UnsafeSVGAttachment.parameters = disableRtlModeParameters;

@@ -30,6 +30,7 @@
     border-radius: 0px 0px 4px 4px;
     box-shadow: 0 0 3px 0 var(--box-shadow);
     align-items: center;
+    z-index: 85;
 
     @include ie11 {
       margin-top: 0;
@@ -44,7 +45,7 @@
     display: flex;
 
     .Button {
-      margin-right: 8px;
+      margin-inline-end: 8px;
 
       &:hover {
         background: var(--popup-button-hover);
@@ -88,11 +89,11 @@
 
     .form-font-type {
       margin-top: 16px;
-      margin-left: 16px;
-  
+      margin-inline-start: 16px;
+
       @include mobile {
         width: 160px;
-        margin-left: 0px;
+        margin-inline-start: 0px;
       }
 
       label {
@@ -100,6 +101,11 @@
 
         @include mobile {
           font-size: 13px;
+        }
+
+        @include mobile {
+          font-size: 13px;
+          margin-top: 16px;
         }
       }
 
@@ -111,7 +117,7 @@
         }
 
         .Dropdown {
-          text-align: left;
+          text-align: start;
           height: 32px;
 
           @include mobile {
@@ -122,8 +128,7 @@
         }
 
         .Dropdown__items {
-          width: 100%;
-          top: 0;
+          inset-block-start: 0;
         }
 
         &#location {
@@ -132,16 +137,15 @@
           }
         }
       }
-
     }
 
     .form-font-size {
       margin-top: 16px;
-      margin-left: 16px;
+      margin-inline-start: 16px;
 
       @include mobile {
         width: 160px;
-        margin-left: 8px;
+        margin-inline-start: 8px;
       }
 
       label {
@@ -190,7 +194,8 @@
     .form-field {
       display: flex;
       flex-direction: column;
-      margin: 16px 0px 0px 16px;
+      margin-top: 16px;
+      margin-inline-start: 16px;
 
       @include mobile {
         margin: 0px 0px 0px 0px;
@@ -240,7 +245,6 @@
       }
 
       .Dropdown__wrapper {
-
         @include mobile {
           width: 328px;
         }
@@ -249,7 +253,7 @@
           width: 314px;
         }
         .Dropdown {
-          text-align: left;
+          text-align: start;
           width: 314px;
           height: 32px;
 
@@ -260,8 +264,7 @@
         }
 
         .Dropdown__items {
-          width: 100%;
-          top: 0;
+          inset-block-start: 0;
         }
 
         &#location {
@@ -276,7 +279,7 @@
       width: 18px;
       height: 18px;
       margin: 7px;
-      margin-right: 8px;
+      margin-inline-end: 8px;
       border-radius: 10000000px;
     }
 
@@ -335,24 +338,18 @@
     padding: 16px;
 
     .button {
-      display: flex;
-      justify-content: center;
-      align-items: center;
       padding: 6px 18px;
       width: auto;
-      width: fit-content;
-      border-radius: 4px;
-      border: 0px;
-      height: 32px;
-      cursor: pointer;
-      font-size: 13px;
 
-      &.ok {
-        color: var(--primary-button-text);
-        background: var(--primary-button);
+      &.add-watermark {
+        @extend %default-button-selected;
 
         &:hover {
-          background: var(--primary-button-hover);
+          @extend %default-button-hover;
+        }
+
+        @include mobile {
+          font-size: 13px;
         }
 
         @include mobile {
@@ -370,11 +367,12 @@
       }
     }
 
-    .reset-settings {
+     .reset-settings {
       @include button-reset;
       cursor: pointer;
       background: none;
       border: 0;
+      border-radius: 4px;
       color: var(--secondary-button-text);
       display: flex;
       font-size: 13px;
@@ -382,6 +380,10 @@
 
       &:hover {
         color: var(--secondary-button-hover);
+      }
+
+      &:focus-visible {
+        outline: var(--focus-visible-outline) !important;
       }
 
       @include mobile {

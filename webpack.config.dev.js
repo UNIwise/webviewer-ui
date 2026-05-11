@@ -1,5 +1,6 @@
 const path = require('path');
 const webpack = require('webpack');
+const { postCssLoader, styleLoaderOptions, createDevThemeRule } = require('./webpack.helpers');
 
 module.exports = {
   name: 'ui',
@@ -19,16 +20,28 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.js$/,
+        test: /\.mjs$/,
+        include: /node_modules/,
+        type: 'javascript/auto',
+        use: [],
+      },
+      {
+        test: /\.(js|jsx|mjs)$/,
         use: {
           loader: 'babel-loader',
           options: {
             ignore: [
               /\/core-js/,
             ],
-            sourceType: "unambiguous",
+            sourceType: 'unambiguous',
             presets: [
-              '@babel/preset-react',
+              [
+                '@babel/preset-react',
+                {
+                  runtime: 'automatic',
+                  importSource: '@emotion/react',
+                },
+              ],
               [
                 '@babel/preset-env',
                 {
@@ -45,84 +58,44 @@ module.exports = {
               '@babel/plugin-proposal-throw-expressions',
               '@babel/plugin-proposal-class-properties',
               '@babel/plugin-proposal-optional-chaining',
+              require.resolve('@emotion/babel-plugin'),
             ],
           },
         },
-        include: [path.resolve(__dirname, 'src')],
+        include: [
+          path.resolve(__dirname, 'src'),
+          path.resolve(__dirname, 'node_modules/react-quill-new'),
+          path.resolve(__dirname, 'node_modules/quill-mention'),
+          path.resolve(__dirname, 'node_modules/quill'),
+          path.resolve(__dirname, 'node_modules/react-error-boundary'),
+        ],
       },
       {
         test: /\.scss$/,
         use: [
           {
             loader: 'style-loader',
-            options: {
-              insert: function (styleTag) {
-                function findNestedWebComponents(tagName, root = document) {
-                  const elements = [];
-
-                  // Check direct children
-                  root.querySelectorAll(tagName).forEach(el => elements.push(el));
-
-                  // Check shadow DOMs
-                  root.querySelectorAll('*').forEach(el => {
-                    if (el.shadowRoot) {
-                      elements.push(...findNestedWebComponents(tagName, el.shadowRoot));
-                    }
-                  });
-
-                  return elements;
-                }
-                // If its the iframe we just append to the document head
-                if (!window.isApryseWebViewerWebComponent) {
-                  document.head.appendChild(styleTag);
-                  return;
-                }
-
-                let webComponents;
-                // First we see if the webcomponent is at the document level
-                webComponents = document.getElementsByTagName('apryse-webviewer');
-                // If not, we check have to check if it is nested in another webcomponent
-                if (!webComponents.length) {
-                  webComponents = findNestedWebComponents('apryse-webviewer');
-                }
-                // Now we append the style tag to each webcomponent
-                const clonedStyleTags = [];
-                for (let i = 0; i < webComponents.length; i++) {
-                  const webComponent = webComponents[i];
-                  if (i === 0) {
-                    webComponent.shadowRoot.appendChild(styleTag);
-                    styleTag.onload = function () {
-                      if (clonedStyleTags.length > 0) {
-                        clonedStyleTags.forEach((styleNode) => {
-                          // eslint-disable-next-line no-unsanitized/property
-                          styleNode.innerHTML = styleTag.innerHTML;
-                        });
-                      }
-                    };
-                  } else {
-                    const styleNode = styleTag.cloneNode(true);
-                    webComponent.shadowRoot.appendChild(styleNode);
-                    clonedStyleTags.push(styleNode);
-                  }
-                }
-              },
-            },
+            options: styleLoaderOptions,
           },
           'css-loader',
-          {
-            loader: 'postcss-loader',
-            options: {
-              ident: 'postcss',
-              plugins: (loader) => [
-                require('postcss-import')({ root: loader.resourcePath }),
-                require('postcss-preset-env')(),
-                require('cssnano')(),
-              ],
-            },
-          },
+          postCssLoader,
           'sass-loader',
         ],
         include: path.resolve(__dirname, 'src'),
+        exclude: path.resolve(__dirname, 'src/components/App/'),
+      },
+      {
+        test: /\.scss$/,
+        oneOf: [
+          createDevThemeRule(/theme-light-high-contrast/, 'light-high-contrast', 'highContrastLight.scss', path),
+          createDevThemeRule(/theme-dark-high-contrast/, 'dark-high-contrast', 'highContrastDark.scss', path),
+          createDevThemeRule(/theme-light-modular/, 'light-modular', 'lightWCAG.scss', path),
+          createDevThemeRule(/theme-dark-modular/, 'dark-modular', 'darkWCAG.scss', path),
+          createDevThemeRule(/theme-light/, 'light', 'light.scss', path),
+          createDevThemeRule(/theme-dark/, 'dark', 'dark.scss', path),
+          createDevThemeRule(undefined, 'light', 'light.scss', path),
+        ],
+        include: path.resolve(__dirname, 'src/components/App/'),
       },
       {
         test: /\.svg$/,
@@ -142,6 +115,7 @@ module.exports = {
     ],
   },
   resolve: {
+    fullySpecified: false,
     alias: {
       'react-dom': '@hot-loader/react-dom',
       src: path.resolve(__dirname, 'src/'),

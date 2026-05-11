@@ -6,12 +6,15 @@ import { useTranslation } from 'react-i18next';
 import touchEventManager from 'helpers/TouchEventManager';
 import Choice from 'components/Choice';
 import { SearchWrapper } from './SearchWrapper';
+import useCore from 'hooks/useCore';
+import { VIEWER_CONFIGURATIONS } from 'constants/customizationVariables';
 
 import './AdvancedTab.scss';
 
 const createItem = (label, description, isChecked, onToggled) => ({ label, description, isChecked, onToggled });
 
 const AdvancedTab = () => {
+  const { core } = useCore();
   const [
     shouldFadePageNavigationComponent,
     isNoteSubmissionWithEnterEnabled,
@@ -22,7 +25,9 @@ const AdvancedTab = () => {
     pageDeletionConfirmationModalEnabled,
     isThumbnailSelectingPages,
     customSettings,
-    isToolDefaultStyleUpdateFromAnnotationPopupEnabled
+    isToolDefaultStyleUpdateFromAnnotationPopupEnabled,
+    isWidgetHighlightingEnabled,
+    uiConfiguration,
   ] = useSelector((state) => [
     selectors.shouldFadePageNavigationComponent(state),
     selectors.isNoteSubmissionWithEnterEnabled(state),
@@ -33,8 +38,11 @@ const AdvancedTab = () => {
     selectors.pageDeletionConfirmationModalEnabled(state),
     selectors.isThumbnailSelectingPages(state),
     selectors.getCustomSettings(state),
-    selectors.isToolDefaultStyleUpdateFromAnnotationPopupEnabled(state)
+    selectors.isToolDefaultStyleUpdateFromAnnotationPopupEnabled(state),
+    selectors.isWidgetHighlightingEnabled(state),
+    selectors.getUIConfiguration(state),
   ]);
+
   const [t] = useTranslation();
   const dispatch = useDispatch();
 
@@ -57,8 +65,24 @@ const AdvancedTab = () => {
       (enable) => {
         touchEventManager.useNativeScroll = !enable;
       }
+    ),
+    createItem(
+      t('option.settings.enabledFormFieldHighlighting'),
+      t('option.settings.enabledFormFieldHighlightingDesc'),
+      isWidgetHighlightingEnabled,
+      (enable) => {
+        enable ? enableWidgetHighlighting() : disableWidgetHighlighting();
+      }
     )
   ];
+
+  const disableWidgetHighlighting = () => {
+    core.getAnnotationManager().getFieldManager().disableWidgetHighlighting();
+  };
+
+  const enableWidgetHighlighting = () => {
+    core.getAnnotationManager().getFieldManager().enableWidgetHighlighting();
+  };
 
   const annotationsItems = [
     createItem(
@@ -96,14 +120,15 @@ const AdvancedTab = () => {
     )
   ];
 
-  const searchItems = [
+  const searchItems = uiConfiguration !== VIEWER_CONFIGURATIONS.DOCX_EDITOR ? [
     createItem(
       t('option.settings.disableClearSearchOnPanelClose'),
       t('option.settings.disableClearSearchOnPanelCloseDesc'),
       !shouldClearSearchPanelOnClose,
       (enable) => dispatch(actions.setClearSearchOnPanelClose(!enable))
     )
-  ];
+  ] :
+    [];
 
   const pageManipulationItems = [
     createItem(
@@ -158,6 +183,7 @@ const AdvancedTab = () => {
                     <div>{item.description}</div>
                   </div>
                   <Choice
+                    aria-label={item.label}
                     isSwitch
                     checked={(typeof item.isChecked === 'function') ? item.isChecked() : item.isChecked}
                     onChange={(e) => {

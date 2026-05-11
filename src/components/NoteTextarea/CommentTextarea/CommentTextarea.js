@@ -1,6 +1,6 @@
 import React from 'react';
-import ReactQuill, { Quill } from 'react-quill';
-import 'quill-mention';
+import ReactQuill, { Quill } from 'react-quill-new';
+import { Mention, MentionBlot } from 'quill-mention';
 import mentionsManager from 'helpers/MentionsManager';
 import Button from 'components/Button';
 import { useTranslation } from 'react-i18next';
@@ -8,7 +8,8 @@ import { useSelector } from 'react-redux';
 import DataElements from 'constants/dataElement';
 import selectors from 'selectors';
 import getRootNode from 'helpers/getRootNode';
-
+import transformTextForQuill from 'helpers/convertNewlinesToParagraphs';
+import { CustomKeyboard, BlurInputModule, QuillPasteExtra } from 'helpers/quillModules';
 import '../../../constants/quill.scss';
 import './CommentTextarea.scss';
 
@@ -39,43 +40,14 @@ const formats = [
   'mention',
 ];
 
-// We override the default keyboard module to disable the list autofill feature
-const Keyboard = Quill.import('modules/keyboard');
-
-class CustomKeyboard extends Keyboard {
-  static DEFAULTS = {
-    ...Keyboard.DEFAULTS,
-    bindings: {
-      ...Keyboard.DEFAULTS.bindings,
-      'list autofill': undefined,
-    }
-  }
-}
-
 Quill.register('modules/keyboard', CustomKeyboard, true);
-
-// Overriding clipboard module to fix cursor issue after pasting text
-const Clipboard = Quill.import('modules/clipboard');
-const Delta = Quill.import('delta');
-const { quillShadowDOMWorkaround } = window.Core;
-
-class QuillPasteExtra extends Clipboard {
-  constructor(quill, options) {
-    quillShadowDOMWorkaround(quill);
-    super(quill, options);
-    this.keepSelection = options.keepSelection;
-  }
-  onPaste() {
-    const range = this.quill.getSelection();
-    const delta = new Delta().retain(range.index).delete(range.length);
-    if (this.keepSelection) {
-      this.quill.setSelection(range.index, delta.length(), Quill.sources.SILENT);
-    } else {
-      this.quill.setSelection(range.index + delta.length(), Quill.sources.SILENT);
-    }
-  }
-}
 Quill.register('modules/clipboard', QuillPasteExtra, true);
+Quill.register('modules/blurInput', BlurInputModule);
+// Register quill-mention manually so the "mention" format is available
+Quill.register({
+  'modules/mention': Mention,
+  'blots/mention': MentionBlot,
+});
 
 // mentionsModule has to be outside the funtion to be able to access it without it being destroyed and recreated
 const mentionModule = {
@@ -118,9 +90,11 @@ const CommentTextarea = React.forwardRef(
     },
     ref
   ) => {
-    const [t] = useTranslation();
+    const { t, i18n } = useTranslation();
+    const languageKey = i18n.resolvedLanguage || i18n.language;
 
     const isAddReplyAttachmentDisabled = useSelector((state) => selectors.isElementDisabled(state, DataElements.NotesPanel.ADD_REPLY_ATTACHMENT_BUTTON));
+    const isOfficeEditorMode = useSelector(selectors.getIsOfficeEditorMode);
 
     globalUserData = userData;
 
@@ -138,46 +112,36 @@ const CommentTextarea = React.forwardRef(
       e.stopPropagation();
     };
 
-    // Convert text with newline ("\n") to <p>...</p> format so
-    // that editor handles multiline text correctly
-    if (value) {
-      const contentArray = value.split('\n');
-      if (contentArray.length && contentArray[contentArray.length - 1] === '') {
-        contentArray.pop();
-        value = contentArray.map((item) => {
-          const paragraph = document.createElement('p');
-          if (item) {
-            paragraph.innerText = item;
-          } else {
-            paragraph.innerHTML = '<br>';
-          }
-          return paragraph.outerHTML;
-        }
-        ).join('');
-      }
-    }
+    value = transformTextForQuill(value);
+    const baseModule = { blurInput: {} };
 
     // onBlur and onFocus have to be outside in the div because of quill bug
     return (
       <div className='comment-textarea' onBlur={onBlur} onFocus={onFocus} onClick={onClick} onScroll={onScroll}>
         <ReactQuill
+          key={languageKey}
           className='comment-textarea ql-container ql-editor'
           style={{ overflowY: 'visible' }}
-          ref={ref}
-          modules={userData && userData.length > 0 ? mentionModule : {}}
+          ref={(ele) => {
+            if (ele) {
+              ele.getEditor().root.ariaLabel = `${isReply ? t('action.reply') : t('action.comment')}`;
+            }
+            return ref(ele);
+          }}
+          modules={userData && userData.length > 0 ? { ...baseModule, ...mentionModule } : baseModule }
           theme="snow"
           value={value}
           placeholder={`${isReply ? t('action.reply') : t('action.comment')}...`}
-          aria-label={`${isReply ? t('action.reply') : t('action.comment')}...`}
           onChange={onChange}
           onKeyDown={onKeyDown}
           formats={formats}
         />
-        {isReply && !isAddReplyAttachmentDisabled &&
+        {isReply && !isAddReplyAttachmentDisabled && !isOfficeEditorMode &&
           <Button
             className='add-attachment'
             dataElement={DataElements.NotesPanel.ADD_REPLY_ATTACHMENT_BUTTON}
             img='ic_fileattachment_24px'
+            title={`${t('action.add')} ${t('option.type.fileattachment')}`}
             onClick={addAttachment}
           />
         }

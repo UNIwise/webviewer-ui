@@ -1,5 +1,6 @@
 import React from 'react';
 import actions from 'actions';
+// eslint-disable-next-line custom/use-core-hook-in-components
 import core from 'core';
 import ToggleZoomOverlay from 'components/ToggleZoomOverlay';
 import TrackChangeOverlay from 'components/TrackChangeOverlay';
@@ -22,22 +23,35 @@ import presetNewPageDimensions from 'constants/presetNewPageDimensions';
 import defaultDateTimeFormats from 'constants/defaultDateTimeFormats';
 import { redactionTypeMap } from 'constants/redactionTypes';
 import { getMeasurementScalePreset, initialScale } from 'constants/measurementScale';
-import { availableFontFaces, cssFontValues } from 'constants/officeEditorFonts';
-import { OFFICE_EDITOR_EDIT_MODE } from 'constants/officeEditor';
+import { cssFontValues } from 'src/constants/fonts/fonts';
+import { availableOfficeEditorFonts } from 'src/constants/fonts/officeEditorFonts';
+import { availableSpreadsheetEditorFonts } from 'src/constants/fonts/spreadsheetEditorFonts';
+import { EditingStreamType, LAYOUT_UNITS, OfficeEditorEditMode } from 'constants/officeEditor';
 import SignatureModes from 'constants/signatureModes';
-import { ShortcutKeys } from 'helpers/hotkeysManager';
-import defaultToolsWithInlineComment from 'src/constants/defaultToolsWithInlineCommentOnAnnotationSelected';
-import { SYNC_MODES } from 'constants/multiViewerContants';
-import { getInstanceID } from 'helpers/getRootNode';
-import { initialColors, initialTextColors } from 'helpers/initialColorStates';
-import { defaultModularComponents, defaultModularHeaders, defaultFlyoutMap } from './modularComponents';
+import { PRESET_BUTTON_TYPES, VIEWER_CONFIGURATIONS } from 'constants/customizationVariables';
+import defaultToolsWithInlineComment from 'constants/defaultToolsWithInlineCommentOnAnnotationSelected';
 import { PANEL_SIZES } from 'constants/panel';
+import { ShortcutKeys } from 'helpers/hotkeysUtils';
+import { SYNC_MODES } from 'constants/multiViewerContants';
+import { SpreadsheetEditorEditMode } from 'constants/spreadsheetEditor';
+import { getInstanceID } from 'helpers/getRootNode';
+import { defaultBackgroundColor, initialColors, initialTextColors } from 'helpers/initialColorStates';
+import {
+  defaultModularComponents,
+  defaultModularHeaders,
+  defaultFlyoutMap,
+  defaultPanels,
+  defaultPopups
+} from './modularComponents';
+import { addDataElementFromKey } from 'helpers/modularComponentsHelper';
+import viewOnlyWhitelist from './viewOnlyWhitelist';
 
 const { ToolNames } = window.Core.Tools;
 const instanceId = getInstanceID();
 
 export default {
   viewer: {
+    uiConfiguration: VIEWER_CONFIGURATIONS.DEFAULT,
     initalsOffset: 0,
     isInitialsModeEnabled: false,
     isMultiViewerMode: false,
@@ -46,6 +60,7 @@ export default {
     syncViewer: null,
     isCompareStarted: false,
     isComparisonOverlayEnabled: true,
+    compareAnnotationsMap: {},
     activeDocumentViewerKey: 1,
     zoomLevels: {
       1: 1,
@@ -63,18 +78,24 @@ export default {
     tabs: [],
     activeTab: 0,
     isMultiTab: false,
+    tabNameHandler: null,
     thumbnailSelectingPages: false,
     isInDesktopOnlyMode: false,
     toolbarGroup: DataElements.ANNOTATE_TOOLBAR_GROUP,
     activeTheme: 'light',
-    currentLanguage: 'en',
+    currentLanguage: getHashParameters('defaultLanguage', 'en'),
     disabledElements: {
       [DataElements.MULTI_VIEWER_SAVE_DOCUMENT_BUTTON]: { disabled: true, priority: 2 },
-      [DataElements.SAVED_SIGNATURES_TAB]: { disabled: true, priorty: 2 },
+      [DataElements.SAVED_SIGNATURES_TAB]: { disabled: true, priority: 2 },
       [DataElements.CALIBRATION_POPUP_BUTTON]: { disabled: true, priorty: 2 },
       [DataElements.LEGACY_RICH_TEXT_POPUP]: { disabled: true, priority: 2 },
       [DataElements.LOGO_BAR]: { disabled: true, priority: 2 },
+      'comparePanelToggle': { disabled: true, priority: 2 },
+      [DataElements.SPREADSHEET_EDITOR_TOOLS_HEADER]: { disabled: true },
+      [PRESET_BUTTON_TYPES.NEW_SPREADSHEET]: { disabled: true },
     },
+    enabledRibbonsStash: [],
+    enabledToolsStash: [],
     selectedScale: initialScale,
     isAddingNewScale: false,
     calibrationInfo: {
@@ -93,43 +114,47 @@ export default {
       [DataElements.FORM_FIELD_INDICATOR_CONTAINER]: true,
       [DataElements.CUSTOM_MODAL]: true,
       [DataElements.RICH_TEXT_STYLE_CONTAINER]: true,
+      [DataElements.FORMULA_BAR]: true,
+      [DataElements.SPREADSHEET_SWITCHER]: true,
     },
     hiddenElements: {},
     panelWidths: {
       leftPanel: 264,
       searchPanel: 293,
       notesPanel: 293,
+      indexPanel: 293,
       redactionPanel: 330,
       textEditingPanel: 330,
       wv3dPropertiesPanel: 307,
       comparePanel: 330,
-      watermarkPanel: 330,
       stylePanel: 330,
       signatureListPanel: 330,
       rubberStampPanel: 330,
-      tabPanel: 330
+      customLeftPanel: 330,
+      formFieldPanel: 307,
+      tabPanel: 330,
+      officeEditorReviewPanel: 330,
+      officeEditorCommentPanel: 330,
     },
     mobilePanelSize: PANEL_SIZES.SMALL_SIZE,
     documentContainerWidth: null,
     documentContainerHeight: null,
     lastPickedToolForGroup: {},
     lastPickedToolGroup: {},
-    lastPickedToolForGroupedItems: {},
-    lastPickedToolAndGroup: {
-      tool: 'AnnotationEdit',
-      group: [],
-    },
+    lastActiveToolForRibbon: {},
     highContrastMode: getHashParameters('highContrastMode', false),
     notesInLeftPanel: getHashParameters('notesInLeftPanel', false),
     autoFocusNoteOnAnnotationSelection: getHashParameters('autoFocusNoteOnAnnotationSelection', true),
     fadePageNavigationComponent: true,
+    isWidgetHighlightingEnabled: true,
     pageDeletionConfirmationModalEnabled: true,
-    outlineControlVisibility: false,
     autoExpandOutlines: getHashParameters('autoExpandOutlines', false),
+    outlinesStateMap: {},
     isAnnotationNumberingEnabled: getHashParameters('enableAnnotationNumbering', false),
     bookmarkIconShortcutVisibility: false,
     hideContentEditWarning: isContentEditWarningHidden(),
     contentEditWorkersLoaded: false,
+    isContentEditingEnabled: false,
     currentContentBeingEdited: null,
     pageManipulationOverlayAlternativePosition: null,
     pageManipulationOverlayOpenByRightClick: true,
@@ -150,7 +175,7 @@ export default {
           type: 'toggleElementButton',
           img: 'icon-header-sidebar-line',
           element: 'leftPanel',
-          dataElement: 'leftPanelButton',
+          dataElement: DataElements.LEFT_PANEL_BUTTON,
           title: 'component.leftPanel',
         },
         {
@@ -158,7 +183,7 @@ export default {
           img: 'icon-header-page-manipulation-line',
           element: DataElements.VIEW_CONTROLS_OVERLAY,
           dataElement: DataElements.VIEW_CONTROLS_OVERLAY_BUTTON,
-          title: 'component.viewControlsOverlay',
+          title: 'component.viewControls',
         },
         {
           type: 'divider',
@@ -592,13 +617,6 @@ export default {
           dataElement: 'contentEditButton',
           title: 'action.edit',
         },
-        {
-          type: 'toggleElementButton',
-          img: 'icon-watermark-panel',
-          element: DataElements.WATERMARK_PANEL,
-          dataElement: DataElements.WATERMARK_PANEL_TOGGLE,
-          title: 'component.watermarkPanel',
-        },
         { type: 'spacer', hidden: ['mobile', 'small-mobile'] },
       ],
       [DataElements.EDIT_TEXT_TOOLBAR_GROUP]: [
@@ -710,14 +728,14 @@ export default {
           toolGroup: 'checkBoxFieldTools',
           dataElement: 'checkBoxFieldToolGroupButton',
           title: 'annotation.checkBoxFormField',
-          showColor: 'never',
+          showColor: 'always',
         },
         {
           type: 'toolGroupButton',
           toolGroup: 'radioButtonFieldTools',
           dataElement: 'radioButtonFieldToolGroupButton',
           title: 'annotation.radioButtonFormField',
-          showColor: 'never',
+          showColor: 'always',
         },
         {
           type: 'toolGroupButton',
@@ -750,45 +768,6 @@ export default {
     },
     customHeadersAdditionalProperties: {},
     enableRightClickAnnotationPopup: false,
-    annotationPopup: [
-      { dataElement: 'viewFileButton' },
-      { dataElement: 'annotationCommentButton' },
-      { dataElement: 'annotationStyleEditButton' },
-      { dataElement: 'annotationDateEditButton' },
-      { dataElement: 'annotationRedactButton' },
-      { dataElement: 'annotationCropButton' },
-      { dataElement: 'annotationContentEditButton' },
-      { dataElement: 'annotationClearSignatureButton' },
-      { dataElement: 'annotationGroupButton' },
-      { dataElement: 'annotationUngroupButton' },
-      { dataElement: 'formFieldEditButton' },
-      { dataElement: DataElements.CALIBRATION_POPUP_BUTTON },
-      { dataElement: 'linkButton' },
-      { dataElement: 'fileAttachmentDownload' },
-      { dataElement: 'annotationDeleteButton' },
-      { dataElement: 'shortCutKeysFor3D' },
-      { dataElement: 'playSoundButton' },
-      { dataElement: 'openAlignmentButton' }
-    ],
-    textPopup: [
-      { dataElement: 'copyTextButton' },
-      { dataElement: 'textHighlightToolButton' },
-      { dataElement: 'textUnderlineToolButton' },
-      { dataElement: 'textSquigglyToolButton' },
-      { dataElement: 'textStrikeoutToolButton' },
-      { dataElement: 'textRedactToolButton' },
-      { dataElement: 'linkButton' },
-    ],
-    contextMenuPopup: [
-      { dataElement: 'panToolButton' },
-      { dataElement: 'stickyToolButton' },
-      { dataElement: 'highlightToolButton' },
-      { dataElement: 'freeHandToolButton' },
-      { dataElement: 'freeHandHighlightToolButton' },
-      { dataElement: 'freeTextToolButton' },
-      { dataElement: 'markInsertTextToolButton' },
-      { dataElement: 'markReplaceTextToolButton' },
-    ],
     menuOverlay: [
       { dataElement: 'newDocumentButton' },
       { dataElement: 'filePickerButton' },
@@ -812,18 +791,6 @@ export default {
       { dataElement: 'leftPanelPageTabsMove' },
       { type: 'divider' },
       { dataElement: 'leftPanelPageTabsMore' },
-    ],
-    multiPageManipulationControlsLarge: [
-      { dataElement: 'leftPanelPageTabsRotate' },
-      { type: 'divider' },
-      { dataElement: 'leftPanelPageTabsMove' },
-      { type: 'divider' },
-      { dataElement: 'leftPanelPageTabsOperations' },
-    ],
-    multiPageManipulationControlsSmall: [
-      { dataElement: 'leftPanelPageTabsRotate' },
-      { type: 'divider' },
-      { dataElement: 'leftPanelPageTabsMoreSmall' },
     ],
     thumbnailControlMenu: [{ dataElement: 'thumbRotateClockwise' }, { dataElement: 'thumbDelete' }],
     toolButtonObjects: {
@@ -1194,28 +1161,28 @@ export default {
       AnnotationCreateTextStrikeout: {
         dataElement: 'strikeoutToolButton',
         title: 'annotation.strikeout',
-        img: 'icon-tool-text-manipulation-strikethrough',
+        img: 'icon-text-strikeout',
         group: 'strikeoutTools',
         showColor: 'always',
       },
       AnnotationCreateTextStrikeout2: {
         dataElement: 'strikeoutToolButton2',
         title: 'annotation.strikeout',
-        img: 'icon-tool-text-manipulation-strikethrough',
+        img: 'icon-text-strikeout',
         group: 'strikeoutTools',
         showColor: 'always',
       },
       AnnotationCreateTextStrikeout3: {
         dataElement: 'strikeoutToolButton3',
         title: 'annotation.strikeout',
-        img: 'icon-tool-text-manipulation-strikethrough',
+        img: 'icon-text-strikeout',
         group: 'strikeoutTools',
         showColor: 'always',
       },
       AnnotationCreateTextStrikeout4: {
         dataElement: 'strikeoutToolButton4',
         title: 'annotation.strikeout',
-        img: 'icon-tool-text-manipulation-strikethrough',
+        img: 'icon-text-strikeout',
         group: 'strikeoutTools',
         showColor: 'always',
       },
@@ -1818,14 +1785,14 @@ export default {
         title: 'annotation.checkBoxFormField',
         img: 'icon-form-field-checkbox',
         group: 'checkBoxFieldTools',
-        showColor: 'never',
+        showColor: 'always',
       },
       RadioButtonFormFieldCreateTool: {
         dataElement: 'radioButtonFieldCreateToolButton',
         title: 'annotation.radioButtonFormField',
         img: 'icon-form-field-radiobutton',
         group: 'radioButtonFieldTools',
-        showColor: 'never',
+        showColor: 'always',
       },
       ListBoxFormFieldCreateTool: {
         dataElement: 'listBoxFieldCreateToolButton',
@@ -1883,6 +1850,48 @@ export default {
         group: 'comboBoxFieldTools',
         showColor: 'always',
       },
+      CheckBoxFormFieldCreateTool2: {
+        dataElement: 'checkBoxFieldToolGroupButton2',
+        title: 'annotation.checkBoxFormField',
+        img: 'icon-form-field-checkbox',
+        group: 'checkBoxFieldTools',
+        showColor: 'always',
+      },
+      CheckBoxFormFieldCreateTool3: {
+        dataElement: 'checkBoxFieldToolGroupButton3',
+        title: 'annotation.checkBoxFormField',
+        img: 'icon-form-field-checkbox',
+        group: 'checkBoxFieldTools',
+        showColor: 'always',
+      },
+      CheckBoxFormFieldCreateTool4: {
+        dataElement: 'checkBoxFieldToolGroupButton4',
+        title: 'annotation.checkBoxFormField',
+        img: 'icon-form-field-checkbox',
+        group: 'checkBoxFieldTools',
+        showColor: 'always',
+      },
+      RadioButtonFormFieldCreateTool2: {
+        dataElement: 'radioButtonFieldCreateToolButton2',
+        title: 'annotation.radioButtonFormField',
+        img: 'icon-form-field-radiobutton',
+        group: 'radioButtonFieldTools',
+        showColor: 'always',
+      },
+      RadioButtonFormFieldCreateTool3: {
+        dataElement: 'radioButtonFieldCreateToolButton3',
+        title: 'annotation.radioButtonFormField',
+        img: 'icon-form-field-radiobutton',
+        group: 'radioButtonFieldTools',
+        showColor: 'always',
+      },
+      RadioButtonFormFieldCreateTool4: {
+        dataElement: 'radioButtonFieldCreateToolButton4',
+        title: 'annotation.radioButtonFormField',
+        img: 'icon-form-field-radiobutton',
+        group: 'radioButtonFieldTools',
+        showColor: 'always',
+      },
       AnnotationCreateChangeViewTool: {
         dataElement: 'changeViewCreateToolButton',
         title: 'annotation.changeView',
@@ -1933,18 +1942,21 @@ export default {
     activeToolName: 'AnnotationEdit',
     activeToolStyles: {},
     customColors:
-      localStorageManager.isLocalStorageEnabled() && window.localStorage.getItem(`${instanceId}-customColors`)
-        ? JSON.parse(window.localStorage.getItem(`${instanceId}-customColors`))
+      localStorageManager.isLocalStorageEnabled() && localStorageManager.getItemSynchronous(`${instanceId}-customColors`)
+        ? JSON.parse(localStorageManager.getItemSynchronous(`${instanceId}-customColors`))
         : [],
     activeLeftPanel: 'thumbnailsPanel',
-    activeCustomPanel: '',
+    activeTabInPanel: {},
     activeToolGroup: '',
     notePopupId: '',
     isNoteEditing: false,
     fitMode: '',
     rotation: 0,
     displayMode: 'Single',
-    currentPage: 1,
+    currentPage: {
+      1: 1,
+      2: 1,
+    },
     sortStrategy: 'position',
     isFullScreen: false,
     isMultipleViewerMerging: false,
@@ -1965,12 +1977,21 @@ export default {
     enableMouseWheelZoom: true,
     doesAutoLoad: getHashParameters('auto_load', true),
     isReadOnly: getHashParameters('readonly', false),
+    isViewOnly: getHashParameters('viewonly', false),
+    viewOnlyWhitelist,
     customModals: [],
     customPanels: [],
-    genericPanels: [],
+    genericPanels: defaultPanels,
     useEmbeddedPrint: false,
     useClientSidePrint: false,
-    pageLabels: [],
+    pageLabels: {
+      1: [],
+      2: [],
+    },
+    isCustomPageLabelsEnabled: {
+      1: false,
+      2: false,
+    },
     selectedThumbnailPageIndexes: [],
     shiftKeyThumbnailPivotIndex: null,
     noteDateFormat: defaultNoteDateFormat,
@@ -1978,12 +1999,15 @@ export default {
     colorMap: copyMapWithDataProperties('currentStyleTab', 'iconColor'),
     warning: {},
     customNoteFilter: null,
+    internalNoteFilter: null,
     inlineCommentFilter: (annot) => {
       const isAnnotationInstanceOf = defaultToolsWithInlineComment.some((annotationInstance) => annot instanceof annotationInstance);
       return isAnnotationInstanceOf;
     },
     zoomList: defaultZoomList,
     isAccessibleMode: getHashParameters('accessibleMode', false),
+    shouldAddA11yContentToDOM: false,
+    disabledFeaturesInAccessibleReadingMode: {},
     measurementUnits: {
       from: ['in', 'mm', 'cm', 'pt'],
       to: ['in', 'mm', 'cm', 'pt', 'ft', 'ft-in', 'm', 'yd', 'km', 'mi'],
@@ -2007,7 +2031,7 @@ export default {
     selectedDisplayedSignatureIndex: 0,
     selectedDisplayedInitialsIndex: 0,
     annotationContentOverlayHandler: null,
-    isSnapModeEnabled: false,
+    snapMode: {},
     isReaderMode: false,
     unreadAnnotationIdSet: new Set(),
     watermarkModalOptions: null,
@@ -2069,15 +2093,18 @@ export default {
     savedSignatureTabEnabled: false,
     replyAttachmentHandler: null,
     customSettings: [],
-    modularHeaders: defaultModularHeaders,
-    modularComponents: defaultModularComponents,
+    modularComponentStash: {},
+    modularHeaders: addDataElementFromKey(defaultModularHeaders),
+    modularComponents: addDataElementFromKey(defaultModularComponents),
+    modularPopups: defaultPopups,
+    flyoutMap: addDataElementFromKey(defaultFlyoutMap),
     modularComponentFunctions: {},
     activeGroupedItems: [],
     activeCustomRibbon: '',
     fixedGroupedItems: [],
     modularHeadersHeight: {
       topHeaders: 49,
-      bottomHeaders: 32
+      bottomHeaders: 45
     },
     modularHeadersWidth: {
       rightHeader: 0,
@@ -2091,7 +2118,6 @@ export default {
     toolDefaultStyleUpdateFromAnnotationPopupEnabled: true,
     annotationToolStyleSyncingEnabled: false,
     shortcutKeyMap: { ...ShortcutKeys },
-    flyoutMap: defaultFlyoutMap,
     flyoutPosition: { x: 0, y: 0 },
     activeFlyout: null,
     flyoutToggleElement: null,
@@ -2099,6 +2125,8 @@ export default {
     isShowComparisonButtonEnabled: false,
     isMultiViewerModeAvailable: false,
     isOfficeEditorMode: false,
+    isOfficeEditorHeaderEnabled: false,
+    isSpreadsheetEditorModeEnabled: false,
     colors: initialColors,
     textColors: initialTextColors,
     toolColorOverrides: {},
@@ -2116,8 +2144,10 @@ export default {
     isWildcard: false,
     isRegex: false,
     isSearchUp: false,
+    isSearchInProgress: false,
     isAmbientString: false,
     clearSearchPanelOnClose: false,
+    status: 'SEARCH_NOT_INITIATED',
     results: [],
     redactionSearchPatterns: {
       creditCards: {
@@ -2141,14 +2171,24 @@ export default {
     },
   },
   document: {
+    documentLoadedMap: {
+      1: false,
+      2: false,
+    },
     totalPages: {
       1: 0,
       2: 0,
     },
-    outlines: [],
+    outlines: {},
     bookmarks: {},
-    portfolio: [],
-    layers: [],
+    portfolio: {
+      1: [],
+      2: [],
+    },
+    layers: {
+      1: null,
+      2: null,
+    },
     printQuality: 1,
     passwordAttempts: -1,
     maxPasswordAttempts: 3,
@@ -2190,6 +2230,9 @@ export default {
     },
   },
   officeEditor: {
+    canUndo: false,
+    canRedo: false,
+    isReplaceInProgress: false,
     cursorProperties: {
       paragraphProperties: {},
       locationProperties: {},
@@ -2197,16 +2240,84 @@ export default {
     selectionProperties: {
       paragraphProperties: {},
     },
-    availableFontFaces,
+    availableFontFaces: availableOfficeEditorFonts,
     cssFontValues,
-    editMode: OFFICE_EDITOR_EDIT_MODE.EDITING
+    editMode: OfficeEditorEditMode.EDITING,
+    stream: EditingStreamType.BODY,
+    unitMeasurement: LAYOUT_UNITS.CM,
   },
   digitalSignatureValidation: {
     validationModalWidgetName: '',
-    verificationResult: {},
-    certificates: [],
-    trustLists: [],
+    verificationResult: {
+      1: {},
+      2: {},
+    },
+    certificates: {
+      1: [],
+      2: [],
+    },
+    trustListKey: null,
     isRevocationCheckingEnabled: false,
     revocationProxyPrefix: null,
   },
+  spreadsheetEditor: {
+    activeCellRange: '',
+    isSingleCell: true,
+    cellProperties: {
+      cellType: null,
+      cellFormula: null,
+      stringCellValue: null,
+      topLeftRow: null,
+      topLeftColumn: null,
+      bottomRightRow: null,
+      bottomRightColumn: null,
+      canCopy: false,
+      canPaste: false,
+      canCut: false,
+      styles: {
+        verticalAlignment: null,
+        horizontalAlignment: null,
+        wrapText: null,
+        font: {
+          fontFace: null,
+          pointSize: null,
+          bold: false,
+          italic: false,
+          underline: false,
+          strikeout: false,
+          color: null,
+        },
+        formatType: null,
+        isCellRangeMerged: false,
+        backgroundColor: defaultBackgroundColor,
+        border: {
+          top: { color: null, style: 'None' },
+          right: { color: null, style: 'None' },
+          bottom: { color: null, style: 'None' },
+          left: { color: null, style: 'None' },
+        },
+      }
+    },
+    selectedBorderStyleListOption: 'Thin',
+    // eslint-disable-next-line custom/no-hex-colors
+    selectedBorderColorOption: '#000000',
+    textColors: structuredClone(initialTextColors),
+    customTextColors: localStorageManager.getItemSynchronous(`${instanceId}-customTextColors`)
+      ? JSON.parse(localStorageManager.getItemSynchronous(`${instanceId}-customTextColors`))
+      : [],
+    borderColors: structuredClone(initialTextColors),
+    customBorderColors: localStorageManager.getItemSynchronous(`${instanceId}-customBorderColors`)
+      ? JSON.parse(localStorageManager.getItemSynchronous(`${instanceId}-customBorderColors`))
+      : [],
+    cellBackgroundColors: structuredClone(initialTextColors),
+    customCellBackgroundColors: localStorageManager.getItemSynchronous(`${instanceId}-customCellBackgroundColors`)
+      ? JSON.parse(localStorageManager.getItemSynchronous(`${instanceId}-customCellBackgroundColors`))
+      : [],
+    editMode: SpreadsheetEditorEditMode.VIEW_ONLY,
+    availableFontFaces: availableSpreadsheetEditorFonts,
+    cssFontValues: cssFontValues,
+    canUndo: false,
+    canRedo: false,
+    activeBorderButtons: [],
+  }
 };

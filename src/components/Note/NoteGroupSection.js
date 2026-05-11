@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 
-import Icon from 'components/Icon';
+import Button from 'components/Button';
 import NoteContent from 'components/NoteContent';
 import PropTypes from 'prop-types';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import actions from 'actions';
 import selectors from 'selectors';
 import classNames from 'classnames';
@@ -19,39 +19,40 @@ const NoteGroupSection = ({
   groupAnnotations,
   isMultiSelectMode,
 }) => {
+  const { core } = useCore();
   const [t] = useTranslation();
   const dispatch = useDispatch();
   const [isViewingGroupAnnots, setIsViewingGroupAnnots] = useState(false);
   const customizableUI = useSelector((state) => selectors.getFeatureFlags(state)?.customizableUI);
 
-  const upArrow = 'ic_chevron_up_black_24px';
-  const downArrow = 'ic_chevron_down_black_24px';
+  const upArrow = 'icon-chevron-up';
+  const downArrow = 'icon-chevron-down';
 
   const ViewAllAnnotsButton = (
-    <div
+    <Button
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
         setIsViewingGroupAnnots(true);
       }}
       className="text-button"
-    >
-      {t('component.noteGroupSection.open')}
-      <Icon glyph={downArrow} />
-    </div>
+      ariaLabel={t('component.noteGroupSection.open')}
+      label={t('component.noteGroupSection.open')}
+      img={downArrow}
+    />
   );
   const CloseAllAnnotsButton = (
-    <div
+    <Button
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
         setIsViewingGroupAnnots(false);
       }}
       className="text-button"
-    >
-      {t('component.noteGroupSection.close')}
-      <Icon glyph={upArrow} />
-    </div>
+      ariaLabel={t('component.noteGroupSection.close')}
+      label={t('component.noteGroupSection.close')}
+      img={upArrow}
+    />
   );
 
   return (
@@ -69,7 +70,7 @@ const NoteGroupSection = ({
             return null;
           }
           return (
-            <div
+            <Button
               key={groupAnnotation.Id}
               className="group-child"
               onClick={(e) => {
@@ -87,7 +88,7 @@ const NoteGroupSection = ({
                 isGroupMember={true}
                 isMultiSelectMode={isMultiSelectMode}
               />
-            </div>
+            </Button>
           );
         })
       }

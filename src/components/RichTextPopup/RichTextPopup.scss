@@ -12,6 +12,18 @@
   padding: 6px 12px;
   align-items: flex-start;
 
+  #FontSizeDropdown.Dropdown__wrapper {
+    width: 80px;
+
+    .Dropdown {
+      width: 80px !important;
+    }
+
+    .Dropdown__items {
+      width: 80px !important;
+    }
+  }
+
   &.legacy {
     padding: 0;
     width: auto;
@@ -49,7 +61,7 @@
     justify-content: space-between;
 
     .menu-title {
-      padding-left: 4px;
+      padding-inline-start: 4px;
       padding-top: 6px;
       padding-bottom: 6px;
       font-weight: bold;

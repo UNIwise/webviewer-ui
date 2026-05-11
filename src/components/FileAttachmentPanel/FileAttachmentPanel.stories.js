@@ -3,13 +3,11 @@ import FileAttachmentPanelComponent from './FileAttachmentPanel';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import Panel from 'components/Panel';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 export default {
   title: 'ModularComponents/FileAttachmentPanel',
   component: FileAttachmentPanelComponent,
-  parameters: {
-    customizableUI: true,
-  }
 };
 
 const initialState = {
@@ -35,6 +33,8 @@ export function FileAttachmentPanelLeftEmpty() {
   );
 }
 
+FileAttachmentPanelLeftEmpty.parameters = disableRtlModeParameters;
+
 export function FileAttachmentPanelRightEmpty() {
   return (
     <Provider store={configureStore({ reducer: () => initialState })}>
@@ -44,6 +44,8 @@ export function FileAttachmentPanelRightEmpty() {
     </Provider>
   );
 }
+
+FileAttachmentPanelRightEmpty.parameters = disableRtlModeParameters;
 
 const filesMock = {
   embeddedFiles: [
@@ -75,3 +77,5 @@ export function FileAttachmentPanelRightWithFiles() {
     </Provider>
   );
 }
+
+FileAttachmentPanelRightWithFiles.parameters = disableRtlModeParameters;

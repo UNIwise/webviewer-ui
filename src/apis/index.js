@@ -16,71 +16,38 @@ import annotationPopup from './annotationPopup';
 import closeDocument from './closeDocument';
 import closeElements from './closeElements';
 import contextMenuPopup from './contextMenuPopup';
-import disableAnnotations from './disableAnnotations';
-import disableDownload from './disableDownload';
 import disableElement from './disableElement';
 import disableElements from './disableElements';
 import disableFeatures from './disableFeatures';
-import disableFilePicker from './disableFilePicker';
 import disableHighContrastMode from './disableHighContrastMode';
-import disableLocalStorage from './disableLocalStorage';
-import disableMeasurement from './disableMeasurement';
 import disableNativeScrolling from './disableNativeScrolling';
-import disableNotesPanel from './disableNotesPanel';
 import disableNoteSubmissionWithEnter from './disableNoteSubmissionWithEnter';
-import disablePrint from './disablePrint';
-import disableRedaction from './disableRedaction';
-import disableTextSelection from './disableTextSelection';
 import disableTool from './disableTool';
 import disableTools from './disableTools';
-import disableTouchScrollLock from './disableTouchScrollLock';
 import displayErrorMessage from './displayErrorMessage';
 import downloadPdf from './downloadPdf';
 import enableAllElements from './enableAllElements';
-import enableAnnotations from './enableAnnotations';
-import enableDownload from './enableDownload';
 import enableElement from './enableElement';
 import enableElements from './enableElements';
 import enableHighContrastMode from './enableHighContrastMode';
 import enableFeatures from './enableFeatures';
-import enableFilePicker from './enableFilePicker';
-import enableLocalStorage from './enableLocalStorage';
-import enableMeasurement from './enableMeasurement';
 import enableNativeScrolling from './enableNativeScrolling';
-import enableNotesPanel from './enableNotesPanel';
-import enablePrint from './enablePrint';
-import enableRedaction from './enableRedaction';
-import enableTextSelection from './enableTextSelection';
 import enableTool from './enableTool';
 import enableTools from './enableTools';
-import enableTouchScrollLock from './enableTouchScrollLock';
 import extractPagesWithAnnotations from './extractPagesWithAnnotations';
 import focusNote from './focusNote';
-import getAnnotationUser from './getAnnotationUser';
-import getBBAnnotManager from './getBBAnnotManager';
 import getCurrentLanguage from './getCurrentLanguage';
-import getCurrentPageNumber from './getCurrentPageNumber';
 import getFitMode from './getFitMode';
 import getLayoutMode from './getLayoutMode';
-import getPageCount from './getPageCount';
 import getSelectors from './getSelectors';
-import getShowSideWindow from './getShowSideWindow';
-import getSideWindowVisibility from './getSideWindowVisibility';
 import getToolMode from './getToolMode';
 import getZoomLevel from './getZoomLevel';
 import getMaxZoomLevel from './getMaxZoomLevel';
 import getMinZoomLevel from './getMinZoomLevel';
-import goToFirstPage from './goToFirstPage';
-import goToLastPage from './goToLastPage';
-import goToNextPage from './goToNextPage';
-import goToPrevPage from './goToPrevPage';
-import hideOutlineControl from './hideOutlineControl';
 import hotkeys from './hotkeys';
-import isAdminUser from './isAdminUser';
 import isElementDisabled from './isElementDisabled';
 import isElementOpen from './isElementOpen';
 import isHighContrastModeEnabled from './isHighContrastModeEnabled';
-import isReadOnly from './isReadOnly';
 import isToolDisabled from './isToolDisabled';
 import isFullscreen from './isFullscreen';
 import loadDocument from './loadDocument';
@@ -93,22 +60,16 @@ import printInBackground from './printInBackground';
 import cancelPrint from './cancelPrint';
 import registerTool from './registerTool';
 import removeSearchListener from './removeSearchListener';
-import rotateClockwise from './rotateClockwise';
-import rotateCounterClockwise from './rotateCounterClockwise';
 import saveAnnotations from './saveAnnotations';
 import searchText from './searchText';
 import searchTextFull from './searchTextFull';
 import setWv3dPropertiesPanelModelData from './setWv3dPropertiesPanelModelData';
 import setWv3dPropertiesPanelSchema from './setWv3dPropertiesPanelSchema';
-import setActiveHeaderGroup from './setActiveHeaderGroup';
 import setActiveLeftPanel from './setActiveLeftPanel';
 import setTimezone from './setTimezone';
-import setAdminUser from './setAdminUser';
-import setAnnotationUser from './setAnnotationUser';
 import setActivePalette from './setActivePalette';
 import setColorPalette from './setColorPalette';
 import setPageReplacementModalFileList from './setPageReplacementModalFileList';
-import setCurrentPageNumber from './setCurrentPageNumber';
 import addCustomModal from './addCustomModal';
 import setCustomNoteFilter from './setCustomNoteFilter';
 import setInlineCommentFilter from './setInlineCommentFilter';
@@ -141,14 +102,13 @@ import createToolbarGroup from './createToolbarGroup';
 import setToolMode from './setToolMode';
 import setZoomLevel from './setZoomLevel';
 import setZoomList from './setZoomList';
-import showOutlineControl from './showOutlineControl';
 import showWarningMessage from './showWarningMessage';
 import syncNamespaces from './syncNamespaces';
 import textPopup from './textPopup';
 import toggleFullScreen from './toggleFullScreen';
 import {
   enableToolDefaultStyleUpdateFromAnnotationPopup,
-  disableToolDefaultStyleUpdateFromAnnotationPopup
+  disableToolDefaultStyleUpdateFromAnnotationPopup,
 } from './toolDefaultStyleUpdateFromAnnotationPopup';
 import { enableAnnotationToolStyleSyncing, disableAnnotationToolStyleSyncing } from './annotationToolStyleSyncing';
 import unregisterTool from './unregisterTool';
@@ -191,13 +151,12 @@ import {
   enableAttachmentPreview,
   disableAttachmentPreview,
   disableMultiSelect as notesPanelDisableMultiSelect,
+  enableMultiSelect as notesPanelEnableMultiSelect,
   setAttachmentHandler,
   enableMeasurementAnnotationFilter,
   disableMeasurementAnnotationFilter,
 } from './notesPanel';
 import {
-  enableMultiselect,
-  disableMultiselect,
   enableMultiSelect,
   disableMultiSelect,
   selectPages,
@@ -253,6 +212,8 @@ import signSignatureWidget from './signSignatureWidget';
 import addModularHeaders from './addModularHeaders';
 import getModularHeader from './getModularHeader';
 import getModularHeaderList from './getModularHeaderList';
+import getGroupedItems from './getGroupedItems';
+import getRibbonGroup from './getRibbonGroup';
 import exportModularComponents from './exportModularComponents';
 import setGroupedItemsGap from './setGroupedItemsGap';
 import setGroupedItemsJustifyContent from './setGroupedItemsJustifyContent';
@@ -260,6 +221,8 @@ import setGroupedItemsGrow from './setGroupedItemsGrow';
 import core from 'core';
 import { setDefaultOptions } from './outlinesPanel';
 import Item from './ModularComponents/item';
+import Divider from './ModularComponents/divider';
+import Label from './ModularComponents/label';
 import GroupedItems from './ModularComponents/groupedItems';
 import ModularHeader from './ModularComponents/modularHeader';
 import CustomButton from './ModularComponents/customButton';
@@ -302,6 +265,8 @@ import enableFeatureFlag from './enableFeatureFlag';
 import disableFeatureFlag from './disableFeatureFlag';
 import enterMultiViewerMode from './enterMultiViewerMode';
 import exitMultiViewerMode from './exitMultiViewerMode';
+import getActiveDocumentViewerKey from './getActiveDocumentViewerKey';
+import setActiveDocumentViewerKey from './setActiveDocumentViewerKey';
 import setPanelWidth from './setPanelWidth';
 import setModularHeaders from './setModularHeaders';
 import importModularComponents from './importModularComponents';
@@ -311,6 +276,22 @@ import getPanels from './getPanels';
 import getActiveRibbonItem from './getActiveRibbonItem';
 import setActiveRibbonItem from './setActiveRibbonItem';
 import closeTooltip from './closeToolTip';
+import startTextComparison from './startTextComparison';
+import stopTextComparison from './stopTextComparison';
+import setActiveTabInPanel from './setActiveTabInPanel';
+import setActiveGroupedItems from './setActiveGroupedItems';
+import CustomElement from 'src/apis/ModularComponents/customElement';
+import {
+  enableViewOnlyMode,
+  disableViewOnlyMode,
+  addToViewOnlyWhitelist,
+  removeFromViewOnlyWhitelist,
+  updateViewOnlyWhitelist,
+  getViewOnlyWhitelist,
+  updateViewOnlyShortcuts,
+  getViewOnlyShortcuts
+} from 'src/apis/viewOnlyMode';
+import { Shortcuts } from 'helpers/hotkeysUtils';
 
 export default (store) => {
   const CORE_NAMESPACE = 'Core';
@@ -360,7 +341,6 @@ export default (store) => {
     getMaxZoomLevel,
     getMinZoomLevel,
     hotkeys,
-    hideOutlineControl: hideOutlineControl(store),
     isElementDisabled: isElementDisabled(store),
     isElementOpen: isElementOpen(store),
     isToolDisabled: isToolDisabled(store),
@@ -380,14 +360,12 @@ export default (store) => {
     searchText: searchText(store.dispatch),
     searchTextFull: searchTextFull(store),
     overrideSearchExecution,
-    setActiveHeaderGroup: setActiveHeaderGroup(store),
     getActiveRibbonItem: getActiveRibbonItem(store),
     setActiveRibbonItem: setActiveRibbonItem(store),
     setActiveLeftPanel: setActiveLeftPanel(store),
     setTimezone: setTimezone(store),
     addCustomModal: addCustomModal(store),
     addPanel: addPanel(store),
-    showOutlineControl: showOutlineControl(store),
     setCustomNoteFilter: setCustomNoteFilter(store),
     setInlineCommentFilter: setInlineCommentFilter(store),
     setCustomPanel: setCustomPanel(store),
@@ -421,7 +399,7 @@ export default (store) => {
     setCustomApplyRedactionsHandler: setCustomApplyRedactionsHandler(store),
     setCustomMultiViewerSyncHandler: setCustomMultiViewerSyncHandler(store),
     setCustomMultiViewerAcceptedFileFormats: setCustomMultiViewerAcceptedFileFormats(store),
-    setToolMode,
+    setToolMode: setToolMode(store),
     setZoomLevel,
     setZoomList: setZoomList(store),
     setSearchResults,
@@ -440,6 +418,8 @@ export default (store) => {
     setCustomMeasurementOverlayInfo: setCustomMeasurementOverlayInfo(store),
     setSignatureFonts: setSignatureFonts(store),
     setSelectedTab: setSelectedTab(store),
+    setActiveTabInPanel: setActiveTabInPanel(store),
+    setActiveGroupedItems: setActiveGroupedItems(store),
 
     setDisplayedSignaturesFilter: setDisplayedSignaturesFilterFunction(store),
 
@@ -455,8 +435,6 @@ export default (store) => {
       selectPages: selectPages(store),
       unselectPages: unselectPages(store),
       getSelectedPageNumbers: getSelectedPageNumbers(store),
-      enableMultiselect: enableMultiselect(store),
-      disableMultiselect: disableMultiselect(store),
       enableMultiSelect: enableMultiSelect(store),
       disableMultiSelect: disableMultiSelect(store),
       setThumbnailSelectionMode: setThumbnailSelectionMode(store),
@@ -473,6 +451,7 @@ export default (store) => {
       enableAttachmentPreview: enableAttachmentPreview(store),
       disableAttachmentPreview: disableAttachmentPreview(store),
       disableMultiSelect: notesPanelDisableMultiSelect(store),
+      enableMultiSelect: notesPanelEnableMultiSelect(store),
       setAttachmentHandler: setAttachmentHandler(store),
       enableMeasurementAnnotationFilter: enableMeasurementAnnotationFilter(store),
       disableMeasurementAnnotationFilter: disableMeasurementAnnotationFilter(store),
@@ -485,6 +464,8 @@ export default (store) => {
     setModularHeaders: setModularHeaders(store),
     getModularHeader: getModularHeader(store),
     getModularHeaderList: getModularHeaderList(store),
+    getGroupedItems: getGroupedItems(store),
+    getRibbonGroup: getRibbonGroup(store),
     exportModularComponents: exportModularComponents(store),
     Flyouts: FlyoutsAPI(store),
     setGroupedItemsGap: setGroupedItemsGap(store),
@@ -500,75 +481,41 @@ export default (store) => {
       BottomHeader: ModularHeader(store),
       LeftHeader: ModularHeader(store),
       RightHeader: ModularHeader(store),
-      CustomButton,
-      ToolButton,
-      ToggleElementButton,
-      RibbonItem,
+      CustomButton: CustomButton(store),
+      ToolButton: ToolButton(store),
+      ToggleElementButton: ToggleElementButton(store),
+      RibbonItem: RibbonItem(store),
       RibbonGroup: RibbonGroup(store),
       Zoom,
       Flyout: Flyout(store),
-      PresetButton,
-      StatefulButton,
+      PresetButton: PresetButton(store),
+      StatefulButton : StatefulButton(store),
       ViewControls,
       PageControls,
       MainMenu: MainMenu(store),
       TabPanel,
+      Label: Label(store),
+      Divider: Divider(store),
+      CustomElement: CustomElement(store),
     },
     getWatermarkModalOptions: getWatermarkModalOptions(store),
-    // undocumented and deprecated, to be removed in 7.0
-    disableAnnotations: disableAnnotations(store),
-    disableDownload: disableDownload(store),
     disableElement: disableElement(store),
-    disableFilePicker: disableFilePicker(store),
-    disableLocalStorage,
-    disableMeasurement: disableMeasurement(store),
-    disableNotesPanel: disableNotesPanel(store),
     disableNoteSubmissionWithEnter: disableNoteSubmissionWithEnter(store),
-    disablePrint: disablePrint(store),
-    disableRedaction: disableRedaction(store),
-    disableTextSelection: disableTextSelection(store),
-    disableTouchScrollLock,
-    enableAnnotations: enableAnnotations(store),
-    enableDownload: enableDownload(store),
     enableElement: enableElement(store),
-    enableFilePicker: enableFilePicker(store),
     enableHighContrastMode: enableHighContrastMode(store),
-    enableLocalStorage,
-    enableMeasurement: enableMeasurement(store),
-    enableNotesPanel: enableNotesPanel(store),
     enableNoteSubmissionWithEnter: enableNoteSubmissionWithEnter(store),
-    enablePrint: enablePrint(store),
-    enableRedaction: enableRedaction(store),
-    enableTextSelection: enableTextSelection(store),
     enableTool: enableTool(store),
-    enableTouchScrollLock,
     enableNativeScrolling,
-    getAnnotationUser,
-    getCurrentPageNumber: getCurrentPageNumber(store),
     getCurrentLanguage: getCurrentLanguage(store),
     getLocalizedText,
-    getPageCount: getPageCount(store),
-    getShowSideWindow: getShowSideWindow(store),
-    getSideWindowVisibility: getSideWindowVisibility(store),
     setNotesPanelSort: setNotesPanelSort(store),
     setActivePalette: setActivePalette(store),
     setColorPalette: setColorPalette(store),
     setPageReplacementModalFileList: setPageReplacementModalFileList(store),
     disableTool: disableTool(store),
     enableAllElements: enableAllElements(store),
-    goToFirstPage,
-    goToLastPage: goToLastPage(store),
-    goToNextPage: goToNextPage(store),
-    goToPrevPage: goToPrevPage(store),
-    isAdminUser,
-    isReadOnly,
     openElement: openElement(store),
-    rotateClockwise,
-    rotateCounterClockwise,
     saveAnnotations: saveAnnotations(store),
-    setAdminUser,
-    setAnnotationUser,
-    setCurrentPageNumber,
     getCustomData,
     toggleReaderMode: toggleReaderMode(store),
     enableToolDefaultStyleUpdateFromAnnotationPopup: enableToolDefaultStyleUpdateFromAnnotationPopup(store),
@@ -622,13 +569,21 @@ export default (store) => {
     disableFeatureFlag: disableFeatureFlag(store),
     setPanelWidth: setPanelWidth(store),
     setScaleOverlayPosition: setScaleOverlayPosition(store),
+    enableViewOnlyMode: enableViewOnlyMode(store),
+    disableViewOnlyMode: disableViewOnlyMode(store),
+    addToViewOnlyWhitelist: addToViewOnlyWhitelist(store),
+    removeFromViewOnlyWhitelist: removeFromViewOnlyWhitelist(store),
+    getViewOnlyWhitelist: getViewOnlyWhitelist(store),
+    updateViewOnlyWhitelist: updateViewOnlyWhitelist(store),
+    Shortcuts,
+    updateViewOnlyShortcuts: updateViewOnlyShortcuts(store),
+    getViewOnlyShortcuts,
 
     // undocumented
     loadedFromServer: false,
     serverFailed: false,
     i18n: i18next,
     showWarningMessage: showWarningMessage(store),
-    getBBAnnotManager,
     selectors: getSelectors(store),
     reactElements,
     enableClearSearchOnPanelClose: enableClearSearchOnPanelClose(store),
@@ -652,6 +607,10 @@ export default (store) => {
     getDocumentViewer,
     enterMultiViewerMode: enterMultiViewerMode(store),
     exitMultiViewerMode: exitMultiViewerMode(store),
+    getActiveDocumentViewerKey: getActiveDocumentViewerKey(store),
+    setActiveDocumentViewerKey: setActiveDocumentViewerKey(store),
+    startTextComparison: startTextComparison(store),
+    stopTextComparison,
     closeTooltip,
   };
   const documentViewer = core.getDocumentViewer(1);

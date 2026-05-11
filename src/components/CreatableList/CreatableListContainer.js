@@ -1,33 +1,120 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Button from '../Button';
 import { useTranslation } from 'react-i18next';
+import PropTypes from 'prop-types';
 import CreatableListItem from './CreatableListItem';
 
 import './CreatableList.scss';
 
+const propTypes = {
+  options: PropTypes.object,
+  onOptionsUpdated: PropTypes.func,
+  popupRef: PropTypes.object
+};
+
 const CreatableListContainer = ({
-  draggableItems,
   popupRef,
+  options,
+  onOptionsUpdated,
   fieldSelectionOptions,
   setFieldSelectionOptions,
 }) => {
+
+  const isInitialized = useRef(false);
+
+  useEffect(() => {
+    isInitialized.current = false;
+  }, [onOptionsUpdated]);
+
+  useEffect(() => {
+    setItems(draggableItems);
+  }, [options]);
+
   const { t } = useTranslation();
-  const [nextId, setNextId] = useState(draggableItems?.length ?? 0);
+
+  // In order to be draggable, each item needs a unique Id
+  // These are managed internally in this component and not exposed to the user
+  const draggableItems = options.map((option, index) => {
+    return {
+      id: index,
+      displayValue: option.displayValue,
+      value: option.value,
+    };
+  });
+  const [items, setItems] = useState(draggableItems);
+  const [nextId, setNextId] = useState(draggableItems.length);
+  const [invalidInputList, setInvalidInputList] = useState([]);
+  const [inputListHasEmptyValue, setInputListHasEmptyValue] = useState(false);
+  const [inputListDuplicateValues, setInputListDuplicateValues] = useState([]);
   const containerRef = useRef();
+
+  useEffect(() => {
+    // Skip calling onOptionsUpdated on the initial prop-driven update
+    if (isInitialized.current) {
+      const { invalidItems, hasEmpty, duplicates } = validateItems();
+
+      setInvalidInputList(invalidItems);
+      setInputListHasEmptyValue(hasEmpty);
+      setInputListDuplicateValues(Array.from(duplicates));
+
+      const filteredOptions = items.filter((item) => item.value && !invalidInputList.includes(item));
+      const sanitizedOptions = filteredOptions.map((item) => ({ value: item.value, displayValue: item.displayValue }));
+      onOptionsUpdated(sanitizedOptions);
+    } else {
+      setInvalidInputList([]);
+      isInitialized.current = true;
+    }
+  }, [items, onOptionsUpdated]);
+
+  const getCounts = useCallback(() => {
+    const valueCounts = new Map();
+    for (const item of items) {
+      const { value } = item;
+      if (!value) {
+        continue;
+      }
+      const count = valueCounts.get(value) || 0;
+      valueCounts.set(value, count + 1);
+    }
+    return valueCounts;
+  }, [items]);
+
+  const identifyInvalidItems = useCallback((counts) => {
+    const invalidItems = [];
+    let hasEmpty = false;
+    const duplicates = new Set();
+    for (const item of items) {
+      const { value } = item;
+      if (value && counts.get(value) > 1) {
+        invalidItems.push(item);
+        duplicates.add(value);
+      } else if (!value) {
+        hasEmpty = true;
+        invalidItems.push(item);
+      }
+    }
+    return { invalidItems, hasEmpty, duplicates };
+  }, [items]);
+
+  const validateItems = useCallback(() => {
+    const valueCounts = getCounts();
+    return identifyInvalidItems(valueCounts);
+  }, [items]);
 
   const onAddItem = useCallback(() => {
     const id = nextId;
     setNextId(nextId + 1);
-    setFieldSelectionOptions([...fieldSelectionOptions, { id, value: '', displayValue: '' }]);
-    validatePopupHeight();
-  }, [nextId, fieldSelectionOptions]);
+    setItems([...items, { id, value: '', displayValue: '' }]);
+    if (popupRef) {
+      validatePopupHeight();
+    }
+  }, [nextId, items]);
 
   const handleDeleteItem = (id) => () => {
     const updatedItems = fieldSelectionOptions.filter((item) => {
       return id !== item.id;
     });
-
-    setFieldSelectionOptions(updatedItems);
+    setItems(updatedItems);
   };
 
   const handleItemValueChange = (id) => (value) => {
@@ -37,8 +124,7 @@ const CreatableListContainer = ({
       }
       return { ...item, value, displayValue: value };
     });
-
-    setFieldSelectionOptions(updatedItems);
+    setItems(updatedItems);
   };
 
   // We add this helper function that doesn't mutate the original array
@@ -92,19 +178,41 @@ const CreatableListContainer = ({
             onChange={handleItemValueChange(item.id)}
             onDeleteItem={handleDeleteItem(item.id)}
             moveListItem={moveListItem}
-            addItem={onAddItem}
+            addItem={invalidInputList?.length > 0 ? () => { } : onAddItem}
+            invalid={invalidInputList?.includes(item) || invalidInputList.some((i) => i.value === item.value && i.id !== item.id)}
           />
         ))}
       </div>
+      {inputListHasEmptyValue && (
+        <div
+          className="invalid-option-message"
+          role="alert"
+          aria-live="assertive"
+        >
+          {t('message.listEmptyValue')}
+        </div>
+      )}
+      {inputListDuplicateValues.length > 0 && (
+        <div
+          className="invalid-option-message"
+          role="alert"
+          aria-live="assertive"
+        >
+          {t('message.listDuplicateValue')} {inputListDuplicateValues.join(', ')}
+        </div>
+      )}
       <Button
         title={t('action.addOption')}
         className="add-item-button"
         label={t('action.addOption')}
         img="icon-plus-sign"
         onClick={onAddItem}
+        disabled={invalidInputList?.length > 0}
       />
     </div>
   );
 };
+
+CreatableListContainer.propTypes = propTypes;
 
 export default CreatableListContainer;

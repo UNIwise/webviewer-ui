@@ -4,9 +4,10 @@ import actions from 'actions';
 import selectors from 'selectors';
 import useMedia from 'hooks/useMedia';
 import { redactionTypeMap } from 'constants/redactionTypes';
-import core from 'core';
-
+import useCore from 'hooks/useCore';
+import DataElements from 'constants/dataElement';
 export default function useOnRedactionAnnotationChanged() {
+  const { core } = useCore();
   const [redactionAnnotationsList, setRedactionAnnotationsList] = useState([]);
   const dispatch = useDispatch();
   const isMobile = useMedia(
@@ -17,15 +18,8 @@ export default function useOnRedactionAnnotationChanged() {
     false,
   );
 
-  const [
-    isNotesPanelOpen,
-    isSearchPanelOpen,
-  ] = useSelector(
-    (state) => [
-      selectors.isElementOpen(state, 'notesPanel'),
-      selectors.isElementOpen(state, 'searchPanel'),
-    ]
-  );
+  const isNotesPanelOpen = useSelector((state) => selectors.isElementOpen(state, DataElements.NOTES_PANEL));
+  const isSearchPanelOpen = useSelector((state) => selectors.isElementOpen(state, DataElements.SEARCH_PANEL));
 
   useEffect(() => {
     const setRedactionAnnotations = () => {
@@ -45,7 +39,7 @@ export default function useOnRedactionAnnotationChanged() {
         const isSearchPanelClosed = !isSearchPanelOpen;
 
         if (isNotesPanelClosed && isSearchPanelClosed) {
-          dispatch(actions.openElement('redactionPanel'));
+          dispatch(actions.openRedactionPanel());
         }
       }
     };
@@ -61,7 +55,13 @@ export default function useOnRedactionAnnotationChanged() {
       core.removeEventListener('documentLoaded', onDocumentLoaded);
       core.removeEventListener('annotationChanged', setRedactionAnnotations);
     };
-  }, [isNotesPanelOpen, isSearchPanelOpen]);
+  }, [isNotesPanelOpen, isSearchPanelOpen, core]);
+
+  // We should update the redaction annotations list when the active document viewer changes
+  useEffect(() => {
+    const redactionAnnotations = core.getAnnotationsList().filter((annotation) => annotation instanceof window.Core.Annotations.RedactionAnnotation);
+    setRedactionAnnotationsList(redactionAnnotations);
+  }, [core]);
 
   return { redactionAnnotationsList };
 }

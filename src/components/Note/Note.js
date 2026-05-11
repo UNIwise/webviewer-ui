@@ -12,15 +12,17 @@ import Button from 'components/Button';
 
 import selectors from 'selectors';
 import actions from 'actions';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import AnnotationNoteConnectorLine from 'components/AnnotationNoteConnectorLine';
 import useDidUpdate from 'hooks/useDidUpdate';
 import DataElements from 'constants/dataElement';
 import getRootNode from 'helpers/getRootNode';
 import { mapAnnotationToKey, annotationMapKeys } from 'constants/map';
-import { OFFICE_EDITOR_EDIT_MODE, OFFICE_EDITOR_TRACKED_CHANGE_KEY } from 'constants/officeEditor';
+import { getOfficeEditorCommentId } from 'helpers/officeEditorCommentHelper';
+import { OfficeEditorEditMode, OFFICE_EDITOR_TRACKED_CHANGE_KEY } from 'constants/officeEditor';
 
 import './Note.scss';
+import { isAnnotationRenderedInDisplayMode } from 'src/helpers/isAnnotationRenderedInDisplayMode';
 import { getAnnotationShareType } from 'src/helpers/annotationShareType';
 import { ShareTypeColors } from 'src/constants/shareTypes';
 import getWiseflowCustomValues from 'helpers/getWiseflowCustomValues';
@@ -44,6 +46,7 @@ const Note = ({
   isCustomPanelOpen,
   shouldHideConnectorLine,
 }) => {
+  const { core } = useCore();
   const {
     isSelected,
     resize,
@@ -92,7 +95,19 @@ const Note = ({
     shallowEqual,
   );
 
-  const replies = annotation.getReplies().sort((a, b) => a['DateCreated'] - b['DateCreated']);
+  const setIsEditing = useCallback(
+    (isEditing, editingKey) => {
+      setIsEditingMap((map) => ({
+        ...map,
+        [editingKey]: isEditing,
+      }));
+    },
+    [setIsEditingMap],
+  );
+
+  const replies = annotation
+    .getReplies()
+    .sort((a, b) => a['DateCreated'] - b['DateCreated']);
 
   replies.filter((r) => unreadAnnotationIdSet.has(r.Id)).forEach((r) => unreadReplyIdSet.add(r.Id));
 
@@ -160,44 +175,78 @@ const Note = ({
 
   useEffect(() => {
     // If this is not a new one, rebuild the isEditing map
-    if (annotation.getContents() === undefined && isContentEditable && !isDocumentReadOnly) {
-      setIsEditing(true, 0);
+    const pendingText = pendingEditTextMap[annotation.Id];
+    if (pendingText !== '' && isContentEditable && !isDocumentReadOnly) {
+      setIsEditing(true, annotation.Id);
     }
   }, [isDocumentReadOnly, isContentEditable, setIsEditing, annotation, isMultiSelectMode, pendingEditTextMap]);
 
+  // Auto-enter edit mode whenever this note becomes selected (handles both panel
+  // clicks via handleNoteClick AND annotation canvas clicks that bypass handleNoteClick)
+  useEffect(() => {
+    if (isSelected && isContentEditable && !isDocumentReadOnly && !isMultiSelectMode) {
+      setIsEditing(true, annotation.Id);
+    }
+  }, [isSelected, isContentEditable, isDocumentReadOnly, isMultiSelectMode, setIsEditing, annotation.Id]);
+
   useDidUpdate(() => {
     if (isDocumentReadOnly || !isContentEditable) {
-      setIsEditing(false, 0);
+      setIsEditing(false, annotation.Id);
     }
   }, [isDocumentReadOnly, isContentEditable, setIsEditing]);
 
   const handleNoteClick = async (e) => {
     // stop bubbling up otherwise the note will be closed
     // due to annotation deselection
-    e && e.stopPropagation();
+    if (e) {
+      e.stopPropagation();
+    }
 
+    const isTextSelected = window.getSelection().toString();
+    if (isTextSelected) {
+      return;
+    }
+
+    if (isMultiSelectMode) {
+      handleMultiSelect(!isMultiSelected);
+      return;
+    }
     if (unreadAnnotationIdSet.has(annotation.Id)) {
       dispatch(actions.setAnnotationReadState({ isRead: true, annotationId: annotation.Id }));
     }
 
-    customNoteSelectionFunction && customNoteSelectionFunction(annotation);
+    if (customNoteSelectionFunction) {
+      customNoteSelectionFunction(annotation);
+    }
     if (!isSelected) {
       core.deselectAllAnnotations(documentViewerKey);
 
       // Need this delay to ensure all other event listeners fire before we open the line
       setTimeout(() => dispatch(actions.openElement(DataElements.ANNOTATION_NOTE_CONNECTOR_LINE)), 300);
     }
-    if (isInNotesPanel && !(isOfficeEditorMode && officeEditorEditMode === OFFICE_EDITOR_EDIT_MODE.PREVIEW)) {
+    const isOfficeEditorViewOnly = isOfficeEditorMode && (officeEditorEditMode === OfficeEditorEditMode.PREVIEW || officeEditorEditMode === OfficeEditorEditMode.VIEW_ONLY);
+    if (isInNotesPanel && !isOfficeEditorViewOnly) {
       core.selectAnnotation(annotation, documentViewerKey);
       setCurAnnotId(annotation.Id);
       core.jumpToAnnotation(annotation, documentViewerKey);
+      dispatch(actions.triggerNoteEditing());
+      if (isContentEditable && !isDocumentReadOnly) {
+        setIsEditing(true, annotation.Id);
+      }
       if (!isRightClickAnnotationPopupEnabled) {
         dispatch(actions.openElement(DataElements.ANNOTATION_POPUP));
       }
-      if (isOfficeEditorMode) {
-        const trackedChangeId = annotation.getCustomData(OFFICE_EDITOR_TRACKED_CHANGE_KEY);
+      if (!isOfficeEditorMode) {
+        return;
+      }
+      const trackedChangeId = annotation.getCustomData(OFFICE_EDITOR_TRACKED_CHANGE_KEY);
+      if (trackedChangeId) {
         await core.getOfficeEditor().moveCursorToTrackedChange(trackedChangeId);
-        core.getOfficeEditor().freezeMainCursor();
+        return;
+      }
+      const commentId = getOfficeEditorCommentId(annotation);
+      if (commentId !== null) {
+        await core.getOfficeEditor().getCommentManager().moveCursorToComment(commentId);
       }
     }
   };
@@ -209,7 +258,7 @@ const Note = ({
     expanded: isSelected,
     'is-multi-selected': isMultiSelected,
     unread: unreadAnnotationIdSet.has(annotation.Id) || hasUnreadReplies,
-    'disabled': isOfficeEditorMode && officeEditorEditMode === OFFICE_EDITOR_EDIT_MODE.PREVIEW,
+    'disabled': isOfficeEditorMode && officeEditorEditMode === OfficeEditorEditMode.PREVIEW,
   });
 
   const repliesClass = classNames({
@@ -221,10 +270,10 @@ const Note = ({
     // Must also restore the isEdit for  any replies, in case someone was editing a
     // reply when a comment was placed above
     if (!isMultiSelectMode) {
-      replies.forEach((reply, index) => {
+      replies.forEach((reply) => {
         const pendingText = pendingEditTextMap[reply.Id];
         if ((pendingText !== '' && typeof pendingText !== 'undefined') && isSelected) {
-          setIsEditing(true, 1 + index);
+          setIsEditing(true, reply.Id);
         }
       });
     }
@@ -233,10 +282,12 @@ const Note = ({
   useEffect(() => {
     if (isMultiSelectMode) {
       setIsEditing(false, 0);
+      setIsEditing(false, annotation.Id);
     }
   }, [isMultiSelectMode]);
 
-  // const showReplyArea = !Object.values(isEditingMap).some((val) => val);
+  const isNoteOrReplyBeingEdited = isEditingMap[annotation.Id] || replies.some((reply) => isEditingMap[reply.Id]);
+  void isNoteOrReplyBeingEdited;
 
   const handleNoteKeydown = (e) => {
     // Click if enter or space is pressed and is current target.
@@ -247,13 +298,13 @@ const Note = ({
     }
   };
 
-  // const handleReplyClicked = (reply) => {
-  //   // set clicked reply as read
-  //   if (unreadReplyIdSet.has(reply.Id)) {
-  //     dispatch(actions.setAnnotationReadState({ isRead: true, annotationId: reply.Id }));
-  //     core.getAnnotationManager(documentViewerKey).selectAnnotation(reply);
-  //   }
-  // };
+  const handleReplyClicked = (reply) => {
+    // set clicked reply as read
+    if (unreadReplyIdSet.has(reply.Id)) {
+      dispatch(actions.setAnnotationReadState({ isRead: true, annotationId: reply.Id }));
+      core.getAnnotationManager(documentViewerKey).selectAnnotation(reply);
+    }
+  };
 
   const markAllRepliesRead = () => {
     // set all replies to read state if user starts to type in reply textarea
@@ -264,45 +315,46 @@ const Note = ({
     }
   };
 
-  const setIsEditing = useCallback(
-    (isEditing, index) => {
-      setIsEditingMap((map) => ({
-        ...map,
-        [index]: isEditing,
-      }));
-    },
-    [setIsEditingMap],
-  );
-
   const groupAnnotations = core.getGroupAnnotations(annotation, documentViewerKey);
   const isGroup = groupAnnotations.length > 1;
-  const isTrackedChange = mapAnnotationToKey(annotation) === annotationMapKeys.TRACKED_CHANGE;
+  const annotationKey = mapAnnotationToKey(annotation);
+  const isTrackedChange = annotationKey === annotationMapKeys.TRACKED_CHANGE;
+  const isOfficeEditorComment = annotationKey === annotationMapKeys.OFFICE_EDITOR_COMMENT;
+  const shouldShowGroupSection = isGroup && !isTrackedChange && !isOfficeEditorComment;
   // apply unread reply style to replyArea if the last reply is unread
-  // const lastReplyId = replies.length > 0 ? replies[replies.length - 1].Id : null;
+  const lastReplyId = replies.length > 0 ? replies[replies.length - 1].Id : null;
+  void lastReplyId;
+  const isRenderableInCurrentDisplayMode =  isAnnotationRenderedInDisplayMode(core, annotation);
+  const isRenderingConnectorLine = isSelected && (isInNotesPanel || isCustomPanelOpen) && !shouldHideConnectorLine && isRenderableInCurrentDisplayMode;
 
   return (
     <div
-      role="button"
-      tabIndex={0}
       ref={containerRef}
       className={noteClass}
-      onClick={handleNoteClick}
-      onKeyDown={handleNoteKeydown}
       id={`note_${annotation.Id}`}
       style={
         showShareType
           ? {
-              borderBottom: `4px solid ${getAnnotationStatusColor()}`,
-              borderTop: `4px solid ${getAnnotationStatusColor()}`,
-            }
+            borderBottom: `4px solid ${getAnnotationStatusColor()}`,
+            borderTop: `4px solid ${getAnnotationStatusColor()}`,
+          }
           : undefined
       }
     >
+      <Button
+        className='note-button'
+        onClick={(e) => handleNoteClick(e)}
+        onKeyDown={handleNoteKeydown}
+        ariaLabelledby={`note_${annotation.Id}`}
+        ariaCurrent={isSelected}
+        dataElement="expandNoteButton"
+      />
       <NoteContent
-        noteIndex={0}
+        editingKey={annotation.Id}
         annotation={annotation}
         setIsEditing={setIsEditing}
-        isEditing={isEditingMap[0]}
+        handleNoteClick={handleNoteClick}
+        isEditing={isEditingMap[annotation.Id]}
         isNonReplyNoteRead={!unreadAnnotationIdSet.has(annotation.Id)}
         isUnread={unreadAnnotationIdSet.has(annotation.Id) || hasUnreadReplies}
         handleMultiSelect={(e) => {
@@ -324,25 +376,26 @@ const Note = ({
                   onClick={markAllRepliesRead}
                 />
               )}
-              {/* {replies.map((reply, i) => (
+              {replies.map((reply) => (
                 <div className="reply" id={`note_reply_${reply.Id}`} key={`note_reply_${reply.Id}`}>
                   <NoteContent
-                    noteIndex={i + 1}
+                    editingKey={reply.Id}
                     key={reply.Id}
                     annotation={reply}
                     setIsEditing={setIsEditing}
-                    isEditing={isEditingMap[i + 1]}
+                    isEditing={isEditingMap[reply.Id]}
                     onReplyClicked={handleReplyClicked}
                     isUnread={unreadAnnotationIdSet.has(reply.Id)}
                     handleMultiSelect={handleMultiSelect}
                     isMultiSelected={isMultiSelected}
                     isMultiSelectMode={isMultiSelectMode}
+                    handleNoteClick={handleNoteClick}
                   />
                 </div>
-              ))} */}
+              ))}
             </div>
           )}
-          {isGroup &&
+          {shouldShowGroupSection &&
             <NoteGroupSection
               groupAnnotations={groupAnnotations}
               isMultiSelectMode={isMultiSelectMode}
@@ -356,7 +409,7 @@ const Note = ({
           )} */}
         </>
       )}
-      {isSelected && (isInNotesPanel || isCustomPanelOpen) && !shouldHideConnectorLine && (
+      {isRenderingConnectorLine && (
         <AnnotationNoteConnectorLine
           annotation={annotation}
           noteContainerRef={containerRef}

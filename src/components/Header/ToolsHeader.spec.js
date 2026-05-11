@@ -29,13 +29,4 @@ describe('ToolsHeaderToolActive', () => {
       render(<ToolsHeaderToolActiveComp />);
     }).not.toThrow();
   });
-
-  it('Check aria-extended tag', () => {
-    const { container } = render(<ToolsHeaderToolActiveComp />);
-    const btn = container.querySelector('[data-element="shapeToolGroupButton"]');
-    expect(btn.firstChild.getAttribute('aria-expanded')).toBe('false');
-
-    const btn2 = container.querySelector('[data-element="freeHandToolGroupButton"]');
-    expect(btn2.firstChild.getAttribute('aria-expanded')).toBe('true');
-  });
 });

@@ -2,10 +2,9 @@
 @import '../../constants/overlay';
 
 .RedactionSearchOverlay {
-  
   @include mobile {
-    margin-left: 16px;
-    margin-right: 16px;
+    margin-inline-start: 16px;
+    margin-inline-end: 16px;
   }
 
   input {
@@ -16,6 +15,16 @@
   .creatable-multi-select-label {
     @include mobile {
       font-size: 13px;
+    }
+  }
+
+  .redactionOption {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    .Icon {
+      padding: 2px;
     }
   }
 }

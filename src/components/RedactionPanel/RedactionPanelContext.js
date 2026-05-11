@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import core from 'core';
+import useCore from 'hooks/useCore';
 
 
 const RedactionPanelContext = React.createContext();
 
 const RedactionPanelProvider = ({ children }) => {
+  const { core } = useCore();
   const [selectedRedactionItemId, setSelectedRedactionItemId] = useState(null);
   const [isRedactionSearchActive, setIsRedactionSearchActive] = useState(false);
   const [activeSearchResultIndex, setActiveSearchResultIndex] = useState(-1);
@@ -39,7 +40,7 @@ const RedactionPanelProvider = ({ children }) => {
       core.removeEventListener('annotationSelected', onAnnotationSelected);
       core.removeEventListener('activeSearchResultChanged', activeSearchResultChanged);
     };
-  }, []);
+  }, [core]);
 
   const value = {
     selectedRedactionItemId,

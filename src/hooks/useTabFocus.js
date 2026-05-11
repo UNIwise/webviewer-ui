@@ -1,14 +1,12 @@
 import { useEffect } from 'react';
 import selectors from 'selectors';
 import { useSelector } from 'react-redux';
-import { focusableElementDomString } from '@pdftron/webviewer-react-toolkit';
+import { focusableElementDomString } from 'constants/focusableElementDomString';
 import getRootNode from 'helpers/getRootNode';
 import core from 'core';
 
 export default function useTabFocus() {
-  const [pageNumber] = useSelector((state) => [
-    selectors.getCurrentPage(state),
-  ]);
+  const pageNumber = useSelector(selectors.getCurrentPage);
 
   useEffect(() => {
     const getNextFocusableElement = (currentElement, direction) => {
@@ -37,6 +35,12 @@ export default function useTabFocus() {
 
     const keydownListener = (e) => {
       if (e.key === 'Tab') {
+        const documentViewer = core.getDocumentViewer();
+        const viewerElement = documentViewer.getViewerElement();
+        if (!viewerElement || !viewerElement.isConnected) {
+          return;
+        }
+
         const activeElement = getRootNode().activeElement;
         let nextElement;
         if (e.shiftKey) {
@@ -44,7 +48,8 @@ export default function useTabFocus() {
         } else {
           nextElement = getNextFocusableElement(activeElement, 1);
         }
-        const visiblePages = core.getDocumentViewer().getDisplayModeManager().getVisiblePages();
+        const displayMode = documentViewer.getDisplayModeManager().getDisplayMode();
+        const visiblePages = displayMode.getVisiblePages();
         const currentPageContainers = visiblePages.map((page) => getRootNode().querySelector(`#pageContainer${page}`));
         const isActiveElementInContainers = currentPageContainers.some((container) => container.contains(document.activeElement));
         // get the correct page if the last selected element was outside of the visible page containers or if the active element is the document

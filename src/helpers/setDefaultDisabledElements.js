@@ -7,7 +7,7 @@ import Feature from 'constants/feature';
 import actions from 'actions';
 import selectors from 'selectors';
 
-const getIsCustomUIEnabled = (store) => getHashParameters('ui', 'default') === 'beta' || selectors.getFeatureFlags(store.getState()).customizableUI;
+const getIsCustomUIEnabled = (store) => selectors.getIsCustomUIEnabled(store.getState());
 
 export default (store) => {
   const { dispatch, getState } = store;
@@ -130,9 +130,6 @@ export default (store) => {
         'signatureOptionsDropdown',
         'savedSignatureAndInitialsTabs',
       ] : [
-        // disable layersPanel by default, it will be enabled in onDocumentLoaded.js
-        'layersPanel',
-        'layersPanelButton',
         'bookmarksPanel',
         'bookmarksPanelButton',
         'wildCardSearchOption',
@@ -149,8 +146,6 @@ export default (store) => {
 
   disableFeatures([
     Feature.InlineComment,
-    Feature.WatermarkPanel,
-    Feature.WatermarkPanelImageTab,
     Feature.Portfolio,
   ], PRIORITY_ONE);
 

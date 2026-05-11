@@ -2,6 +2,8 @@ import React from 'react';
 import { createStore } from 'redux';
 import { Provider } from 'react-redux';
 import StatefulButtonComponent from './StatefulButton';
+import { expect, within } from 'storybook/test';
+import { disableRtlModeParameters } from 'helpers/storybookParams';
 
 const initialState = {
   viewer: {
@@ -27,9 +29,6 @@ const BasicComponent = (props) => {
 export default {
   title: 'ModularComponents/StatefulButton',
   component: StatefulButtonComponent,
-  parameters: {
-    customizableUI: true,
-  },
 };
 
 
@@ -52,6 +51,8 @@ StatefulButtonCounter.args = {
   },
   mount: () => {},
 };
+
+StatefulButtonCounter.parameters = disableRtlModeParameters;
 
 export const StatefulButtonStates = BasicComponent.bind({});
 StatefulButtonStates.args = {
@@ -76,3 +77,44 @@ StatefulButtonStates.args = {
   },
   mount: () => {},
 };
+
+StatefulButtonStates.parameters = disableRtlModeParameters;
+
+
+export const StatefulButtonWithStyleAndClass = BasicComponent.bind({});
+StatefulButtonWithStyleAndClass.args = {
+  type: 'statefulButton',
+  dataElement: 'clockwisePageBtn',
+  initialState: 'Clockwise',
+  states: {
+    Clockwise: {
+      img: 'icon-header-page-manipulation-page-rotation-clockwise-line',
+      onClick: (update) => {
+        update('CounterClockwise');
+      },
+      title: 'Clockwise',
+    },
+    CounterClockwise: {
+      img: 'icon-header-page-manipulation-page-rotation-counterclockwise-line',
+      onClick: (update) => {
+        update('Clockwise');
+      },
+      title: 'CounterClockwise',
+    },
+  },
+  mount: () => {},
+  style: {
+    background: 'pink',
+    color: 'darkblue',
+    border: '2px solid green',
+  },
+  className: 'custom-class',
+};
+
+StatefulButtonWithStyleAndClass.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+  const button = canvas.getByRole('button', { name: /Clockwise/i });
+  expect(button.classList.contains('custom-class')).toBe(true);
+};
+
+StatefulButtonWithStyleAndClass.parameters = disableRtlModeParameters;

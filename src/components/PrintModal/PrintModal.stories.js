@@ -1,18 +1,16 @@
 import React from 'react';
 import PrintModalComponent from './PrintModal';
+import PrintModalContainer from './PrintModalContainer';
 import { configureStore } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
-import { userEvent, within, expect } from '@storybook/test';
+import { userEvent, within, expect } from 'storybook/test';
 import { copyMapWithDataProperties } from 'constants/map';
-
+import { getTranslatedText } from 'src/helpers/testTranslationHelper';
 const NOOP = () => { };
 
 export default {
   title: 'Components/PrintModal',
-  component: PrintModal,
-  parameters: {
-    customizableUI: true,
-  }
+  component: PrintModalComponent,
 };
 
 const initialState = {
@@ -47,6 +45,7 @@ const props = {
   isApplyWatermarkDisabled: false,
   existingWatermarksRef: { current: null },
   currentPage: 1,
+  pageRange: 'all',
   setIsGrayscale: NOOP,
   setIsCurrentView: NOOP,
   setShouldFlatten: NOOP,
@@ -65,11 +64,13 @@ const props = {
 export const PrintModal = () => (
   <Provider store={store}>
     <div>
-      <PrintModalComponent
-        {...props}
-        isFullAPIEnabled={false}
-        useEmbeddedPrint={false}
-      />
+      <PrintModalContainer>
+        <PrintModalComponent
+          {...props}
+          isFullAPIEnabled={false}
+          useEmbeddedPrint={false}
+        />
+      </PrintModalContainer>
     </div>
   </Provider>
 );
@@ -77,13 +78,13 @@ export const PrintModal = () => (
 // Testing if we show an error when the user types a page number that is greater than the total number of pages
 PrintModal.play = async ({ canvasElement }) => {
   const canvas = within(canvasElement);
-  const customPagesButton = await canvas.getByLabelText('Specify Pages');
+  const customPagesButton = canvas.getByLabelText(getTranslatedText('option.print.specifyPages'));
   await userEvent.click(customPagesButton);
-  const customPagesInput = await document.getElementById('specifyPagesInput');
+  const customPagesInput = document.getElementById('specifyPagesInput');
   expect(customPagesInput).toBeInTheDocument();
   await userEvent.click(customPagesInput);
   await userEvent.type(customPagesInput, '11', { delay: 100 });
-  const testError = await canvas.getByText('Invalid page number. Limit is 9');
+  const testError = canvas.getByText(`${getTranslatedText('message.errorPageNumberPart1')}${getTranslatedText('message.errorPageNumberPart2')}9.`);
   expect(testError).toBeInTheDocument();
 };
 
@@ -98,3 +99,55 @@ export const EmbeddedPrintModal = () => (
     </div>
   </Provider>
 );
+
+export const DisabledRasterPrintModal = () => (
+  <Provider store={store}>
+    <div>
+      <PrintModalComponent
+        {...props}
+        isFullAPIEnabled={true}
+        useEmbeddedPrint={false}
+        isPrinting={true}
+      />
+    </div>
+  </Provider>
+);
+
+export const DisabledEmbeddedPrintModal = () => (
+  <Provider store={store}>
+    <div>
+      <PrintModalComponent
+        {...props}
+        isFullAPIEnabled={true}
+        useEmbeddedPrint={true}
+        isPrinting={true}
+      />
+    </div>
+  </Provider>
+);
+
+DisabledEmbeddedPrintModal.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+
+  const printRadioButtons = canvas.queryAllByRole('radio');
+  expect(printRadioButtons.length).toEqual(0);
+
+  const printCheckBoxes = canvas.queryAllByRole('checkbox');
+  expect(printCheckBoxes.length).toEqual(0);
+
+  const printButton = canvas.getByLabelText(getTranslatedText('action.print'));
+  expect(printButton).toBeDisabled();
+};
+
+DisabledRasterPrintModal.play = async ({ canvasElement }) => {
+  const canvas = within(canvasElement);
+
+  const printRadioButtons = canvas.queryAllByRole('radio');
+  expect(printRadioButtons.length).toEqual(0);
+
+  const printCheckBoxes = canvas.queryAllByRole('checkbox');
+  expect(printCheckBoxes.length).toEqual(0);
+
+  const printButton = canvas.getByLabelText(getTranslatedText('action.print'));
+  expect(printButton).toBeDisabled();
+};

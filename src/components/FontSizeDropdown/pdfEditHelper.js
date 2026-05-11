@@ -2,20 +2,22 @@ const SELECTION_BACKGROUND = '#50A5F5FE';
 let range;
 let docViewer;
 let inputElement;
+import getRootNode from 'helpers/getRootNode';
 
 /**
  * @ignore
  * Helper function to keep the highlight of the selected text in the text edit box before the elemnt focus is changed.
  */
 export function keepTextEditSelectionOnInputFocus(core) {
-  inputElement = document.activeElement;
+  const rootNode = getRootNode();
+  inputElement = rootNode.activeElement;
   docViewer = core.getDocumentViewer();
   // When the input is still in focus but we changed page, we need to un-focus the input.
   docViewer.addEventListener('pageNumberUpdated', handlePageChange, { once: true });
   // When we click anywhere other than the input field itself, it should unfocus.
   document.addEventListener('mousedown', handleClick);
 
-  const selection = window.getSelection();
+  const selection = rootNode.getSelection();
   if (selection.rangeCount === 0) {
     return;
   }

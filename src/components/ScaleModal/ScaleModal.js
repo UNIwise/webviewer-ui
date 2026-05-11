@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
-import { Choice } from '@pdftron/webviewer-react-toolkit';
+import Choice from 'components/Choice';
 import classNames from 'classnames';
 import {
   precisionOptions,
@@ -12,7 +12,7 @@ import {
   ifFractionalPrecision,
   initialScale
 } from 'constants/measurementScale';
-import core from 'core';
+import useCore from 'hooks/useCore';
 import actions from 'actions';
 import selectors from 'selectors';
 import ScaleCustom from './ScaleCustom';
@@ -27,6 +27,7 @@ import './ScaleModal.scss';
 import '../Choice/Choice.scss';
 
 const Scale = window.Core.Scale;
+const { ToolNames } = window.Core.Tools;
 
 export const scaleOptions = {
   CUSTOM: 'custom',
@@ -34,6 +35,7 @@ export const scaleOptions = {
 };
 
 const ScaleModal = ({ annotations, selectedTool }) => {
+  const { core } = useCore();
   const dispatch = useDispatch();
   const [t] = useTranslation();
 
@@ -41,24 +43,22 @@ const ScaleModal = ({ annotations, selectedTool }) => {
     isDisabled,
     isOpen,
     isHidden,
-    currentToolbarGroup,
     selectedScale,
     activeToolName,
     isAddingNewScale,
     measurementScalePreset,
     { tempScale, isFractionalUnit },
-    isMultipleScalesMode
+    isMultipleScalesMode,
   ] = useSelector((state) => [
     selectors.isElementDisabled(state, DataElements.SCALE_MODAL),
     selectors.isElementOpen(state, DataElements.SCALE_MODAL),
     selectors.isElementHidden(state, DataElements.SCALE_MODAL),
-    selectors.getCurrentToolbarGroup(state),
     selectors.getSelectedScale(state),
     selectors.getActiveToolName(state),
     selectors.getIsAddingNewScale(state),
     selectors.getMeasurementScalePreset(state),
     selectors.getCalibrationInfo(state),
-    selectors.getIsMultipleScalesMode(state)
+    selectors.getIsMultipleScalesMode(state),
   ]);
 
   const [isFractionalPrecision, setIsFractionalPrecision] = useState(false);
@@ -109,11 +109,17 @@ const ScaleModal = ({ annotations, selectedTool }) => {
     }
   }, [scaleOption]);
 
-  useDidUpdate(() => {
-    if (currentToolbarGroup === 'toolbarGroup-Measure') {
-      closeModal();
-    }
-  }, [currentToolbarGroup]);
+  useEffect(() => {
+    // Close modal when switching tools outside of calibration flow
+    const onToolModeUpdated = (newTool) => {
+      const isNewToolCalibration = newTool.name === ToolNames.CALIBRATION_MEASUREMENT;
+      if (!isNewToolCalibration && isOpen && !isHidden) {
+        closeModal();
+      }
+    };
+    core.addEventListener('toolModeUpdated', onToolModeUpdated);
+    return () => core.removeEventListener('toolModeUpdated', onToolModeUpdated);
+  }, [isOpen, isHidden]);
 
   useEffect(() => {
     const newPrecisionOption = scalePresetPrecision[presetScale[0]];
@@ -147,6 +153,7 @@ const ScaleModal = ({ annotations, selectedTool }) => {
 
   const closeModal = () => {
     dispatch(actions.closeElement(DataElements.SCALE_MODAL));
+    dispatch(actions.setIsAddingNewScale(false));
   };
 
   const createAndApplyScale = (scale, applyTo) => {
@@ -247,7 +254,7 @@ const ScaleModal = ({ annotations, selectedTool }) => {
                 />
               </div>
               {isCustomOption && (
-                <button data-element="calibrate" className="calibrate-btn" onMouseDown={openCalibrationTool}>
+                <button data-element="calibrate" className="calibrate-btn" onClick={openCalibrationTool}>
                   {t('option.measurement.scaleModal.calibrate')}
                 </button>
               )}
@@ -276,6 +283,7 @@ const ScaleModal = ({ annotations, selectedTool }) => {
               <div className="scaleModal__preset-container">
                 <div className="selector">
                   <Dropdown
+                    id="preset-scale-dropdown"
                     dataElement="presetScales"
                     items={measurementScalePreset[presetMeasurementSystem].map((item) => item[0])}
                     currentSelectionKey={presetScale[0]}
@@ -291,9 +299,11 @@ const ScaleModal = ({ annotations, selectedTool }) => {
           </div>
           <div className="precision-container">
             <div className="precision-selector">
-              <div className="precision-title">{t('option.shared.precision')}:</div>
+              <div className="precision-title" id="scale-precision-dropdown-label">{t('option.shared.precision')}:</div>
               <div className="selector">
                 <Dropdown
+                  id="scale-precision-dropdown"
+                  labelledById='scale-precision-dropdown-label'
                   dataElement="scalePrecisions"
                   items={precisionOptions[precisionType].map((item) => item[0])}
                   currentSelectionKey={precisionOption[0]}

@@ -14,8 +14,8 @@
   &.padding {
     padding-top: 4px;
     padding-bottom: 8px;
-    padding-left: 12px;
-    padding-right: 12px;
+    padding-inline-start: 12px;
+    padding-inline-end: 12px;
   }
 
   @include mobile {
@@ -28,7 +28,9 @@
   }
 
   .cell-container {
-    @include button-reset;
+    padding: 0;
+    border: none;
+    background-color: transparent;
     flex: 1 0 14%; // fallback for ie11, grid not available
 
     cursor: pointer;
@@ -38,6 +40,12 @@
     align-items: center;
     justify-content: center;
     border-radius: 4px;
+
+    &[disabled],
+    &.disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
 
     @include mobile {
       width: 28px;
@@ -79,6 +87,5 @@
     &:focus-visible {
       outline: var(--focus-visible-outline);
     }
-
   }
 }
