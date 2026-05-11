@@ -201,7 +201,8 @@ const OfficeEditorToolsHeader = () => {
     availableFontFaces,
     activeTheme,
     cssFontValues,
-    enableNonPrintingCharacters
+    enableNonPrintingCharacters,
+    isCursorInTable
   ] = useSelector(
     (state) => [
       selectors.isElementOpen(state, DataElement.OFFICE_EDITOR_TOOLS_HEADER),
@@ -211,6 +212,7 @@ const OfficeEditorToolsHeader = () => {
       selectors.getActiveTheme(state),
       selectors.getCSSFontValues(state),
       selectors.isNonPrintingCharactersEnabled(state),
+      selectors.isCursorInTable(state),
     ],
     shallowEqual
   );

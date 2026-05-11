@@ -13,7 +13,6 @@ import { getAnnotationShareType, setAnnotationShareType } from 'src/helpers/anno
 import getAnnotationManager from 'src/core/getAnnotationManager';
 
 import './NoteShareType.scss';
-import Button from '../Button';
 
 /**
  * Multi control button and popup menu

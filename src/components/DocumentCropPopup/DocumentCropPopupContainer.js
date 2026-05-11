@@ -20,16 +20,18 @@ export function focusActiveIcon(e) {
   }
 }
 
+const CROP_TOOL_NAME = () => window.Core?.Tools?.ToolNames?.['CROP'] ?? 'CropPage';
+
 function DocumentCropPopupContainer() {
   const { core, documentViewer } = useCore();
-  const cropCreateTool = core.getTool(window.Core.Tools.ToolNames['CROP']);
+  const cropCreateTool = core.getTool(CROP_TOOL_NAME());
   const activeToolName = useSelector(selectors.getActiveToolName);
   const isDocumentCropPopupOpen = useSelector((state) => selectors.isElementOpen(state, DataElements.DOCUMENT_CROP_POPUP));
   const isInDesktopOnlyMode = useSelector(selectors.isInDesktopOnlyMode);
   const shouldShowApplyCropWarning = useSelector(selectors.shouldShowApplyCropWarning);
   const presetCropDimensions = useSelector(selectors.getPresetCropDimensions);
 
-  const isOpen = activeToolName === window.Core.Tools.ToolNames['CROP'] && isDocumentCropPopupOpen;
+  const isOpen = activeToolName === CROP_TOOL_NAME() && isDocumentCropPopupOpen;
   const dispatch = useDispatch();
   const [isCropping, setIsCropping] = useState(cropCreateTool.getIsCropping());
 
@@ -142,7 +144,7 @@ function DocumentCropPopupContainer() {
     }
     dispatch(actions.closeElement(DataElements.DOCUMENT_CROP_POPUP));
     reenableHeader();
-    core.setToolMode(window.Core.Tools.ToolNames.CROP);
+    core.setToolMode(CROP_TOOL_NAME());
   };
 
   const closeDocumentCropPopup = useCallback(
@@ -196,7 +198,7 @@ function DocumentCropPopupContainer() {
       .getAnnotationManager()
       .getAnnotationsList()
       .filter((annot) => {
-        return annot.ToolName === window.Core.Tools.ToolNames['CROP'];
+        return annot.ToolName === CROP_TOOL_NAME();
       });
     cropAnnotations.forEach((annot) => {
       annot.setRect(rect);

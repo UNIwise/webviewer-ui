@@ -36,12 +36,9 @@ const FormFieldEditPopup = ({
   flags,
   closeFormFieldEditPopup,
   isValid,
-  setIsValid,
   validationMessage,
-  setValidationMessage,
   radioButtonGroups,
   options,
-  confirmFieldOptionsChange,
   annotation,
   selectedRadioGroup,
   getPageHeight,
@@ -111,13 +108,6 @@ const FormFieldEditPopup = ({
     }
     if (field.type === 'select') {
       return renderSelectInput(field);
-    }
-  }
-
-  function handleTextChange(event, field) {
-    field.setValue(event.target.value);
-    if (event.target.value.trim().length > 0) {
-      setIsValid(true);
     }
   }
 

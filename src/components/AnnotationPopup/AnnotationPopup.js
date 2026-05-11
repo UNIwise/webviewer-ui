@@ -151,10 +151,6 @@ const AnnotationPopup = ({
   showDeleteButton,
   onDeleteAnnotation,
 
-  showLinkButton,
-  hasAssociatedLink,
-  linkAnnotationToURL,
-
   showFileDownloadButton,
   downloadFileAttachment,
 

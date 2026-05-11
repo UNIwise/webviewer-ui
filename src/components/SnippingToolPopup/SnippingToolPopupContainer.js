@@ -13,9 +13,11 @@ import DataElements from 'constants/dataElement';
 import { focusActiveIcon } from 'components/DocumentCropPopup/DocumentCropPopupContainer';
 import useDraggablePosition from '../../hooks/useDraggablePosition';
 
+const SNIPPING_TOOL_NAME = () => window.Core?.Tools?.ToolNames?.['SNIPPING'] ?? 'SnippingTool';
+
 function SnippingToolPopupContainer() {
   const { core } = useCore();
-  const snippingToolName = window.Core.Tools.ToolNames['SNIPPING'];
+  const snippingToolName = SNIPPING_TOOL_NAME();
   const snippingCreateTool = core.getTool(snippingToolName);
   const activeToolName = useSelector(selectors.getActiveToolName);
   const isSnippingPopupOpen = useSelector((state) => selectors.isElementOpen(state, DataElements.SNIPPING_TOOL_POPUP));
@@ -40,10 +42,10 @@ function SnippingToolPopupContainer() {
 
     const handleToolModeChange = (newTool, oldTool) => {
       if (newTool instanceof Core.Tools.SnippingCreateTool) { // eslint-disable-line no-undef
-        newTool.addEventListener(window.Core.Tools.SnippingCreateTool.Events['SNIPPING_CANCELLED'], handleSnippingCancellation);
+        newTool.addEventListener(window.Core?.Tools?.SnippingCreateTool?.Events?.['SNIPPING_CANCELLED'], handleSnippingCancellation);
         openSnippingPopup();
       } else if (oldTool instanceof Core.Tools.SnippingCreateTool) { // eslint-disable-line no-undef
-        oldTool.removeEventListener(window.Core.Tools.SnippingCreateTool.Events['SNIPPING_CANCELLED'], handleSnippingCancellation);
+        oldTool.removeEventListener(window.Core?.Tools?.SnippingCreateTool?.Events?.['SNIPPING_CANCELLED'], handleSnippingCancellation);
         setIsSnipping(false);
         snippingCreateTool.reset();
         reenableHeader();
@@ -116,7 +118,7 @@ function SnippingToolPopupContainer() {
     snippingCreateTool.reset();
     dispatch(actions.closeElement(DataElements.SNIPPING_TOOL_POPUP));
     reenableHeader();
-    core.setToolMode(window.Core.Tools.ToolNames.SNIPPING);
+    core.setToolMode(SNIPPING_TOOL_NAME());
   };
 
   const closeSnippingPopup = useCallback((e) => {
