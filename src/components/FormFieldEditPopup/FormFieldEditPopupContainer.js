@@ -79,9 +79,7 @@ function FormFieldEditPopupContainer({ annotation }) {
     setShowIndicator(false);
     setIndicatorText('');
     const isTempDataPlaceholder = !isEditingPlaceHolder;
-    if (isConfirmingChanges) {
-      handleFieldConfirmation();
-    } else if (isTempDataPlaceholder) {
+    if (isTempDataPlaceholder) {
       core.getAnnotationManager().deleteAnnotations([annotation]);
     }
   }
@@ -257,8 +255,8 @@ function FormFieldEditPopupContainer({ annotation }) {
     formFieldCreationManager.setIndicatorText(annotation, indicatorText);
   }, [annotation]);
 
-  const closeFormFieldEditPopup = useCallback((isConfirmingChanges) => {
-    closeAndReset(isConfirmingChanges);
+  const closeFormFieldEditPopup = useCallback(() => {
+    closeAndReset();
   }, []);
 
   const onCloseRadioButtonPopup = useCallback(() => {
@@ -266,7 +264,7 @@ function FormFieldEditPopupContainer({ annotation }) {
     if (isValid && radioButtonGroups.indexOf(fieldName) === -1 && fieldName !== '') {
       setRadioButtonGroups([fieldName, ...radioButtonGroups]);
     }
-    closeAndReset(isConfirmingChanges);
+    closeAndReset();
   }, [fieldName, radioButtonGroups]);
 
   const redrawAnnotation = useCallback((annotation) => {
@@ -321,25 +319,25 @@ function FormFieldEditPopupContainer({ annotation }) {
   const flags = {
     READ_ONLY: {
       label: 'formField.formFieldPopup.readOnly',
-      confirmChange: confirmReadOnlyChange,
+      confirmChange: onReadOnlyChange,
       isChecked: isReadOnly,
       setIsChecked: setReadOnly,
     },
     MULTI_LINE: {
       label: 'formField.formFieldPopup.multiLine',
-      confirmChange: confirmMultiLineChange,
+      confirmChange: onMultiLineChange,
       isChecked: isMultiLine,
       setIsChecked: setMultiLine,
     },
     REQUIRED: {
       label: 'formField.formFieldPopup.required',
-      confirmChange: confirmRequiredChange,
+      confirmChange: onRequiredChange,
       isChecked: isRequired,
       setIsChecked: setIsRequired
     },
     MULTI_SELECT: {
       label: 'formField.formFieldPopup.multiSelect',
-      confirmChange: confirmMultiSelectChange,
+      confirmChange: onMultiSelectChange,
       isChecked: isMultiSelect,
       setIsChecked: setIsMultiSelect
     },
@@ -403,6 +401,7 @@ function FormFieldEditPopupContainer({ annotation }) {
       getPageHeight={getPageHeight}
       getPageWidth={getPageWidth}
       getSignatureOptionHandler={getSignatureOption}
+      onSignatureOptionChange={onSignatureOptionChange}
       indicator={indicator}
     />
   );
@@ -451,7 +450,7 @@ function FormFieldEditPopupContainer({ annotation }) {
         fields={listBoxFields}
         flags={listBoxFlags}
         options={fieldOptions}
-        confirmFieldOptionsChange={confirmFieldOptionsChange}
+        confirmFieldOptionsChange={onFieldOptionsChange}
         closeFormFieldEditPopup={closeFormFieldEditPopup}
         isValid={isValid}
         setIsValid={setIsValid}
@@ -474,7 +473,7 @@ function FormFieldEditPopupContainer({ annotation }) {
         fields={comboBoxFields}
         flags={comboBoxFlags}
         options={fieldOptions}
-        confirmFieldOptionsChange={confirmFieldOptionsChange}
+        confirmFieldOptionsChange={onFieldOptionsChange}
         closeFormFieldEditPopup={closeFormFieldEditPopup}
         isValid={isValid}
         setIsValid={setIsValid}

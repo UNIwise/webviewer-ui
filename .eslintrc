@@ -192,7 +192,7 @@
     "@typescript-eslint/no-var-requires": "off",
     "react/prop-types": "off",
     "react/no-danger": "error",
-    "react/no-unknown-property": ["error", { "ignore": ["css"] }],
+    "react/no-unknown-property": ["error", { "ignore": ["css", "dataElement"] }],
     "custom/no-hex-colors": "error"
   },
   "overrides": [

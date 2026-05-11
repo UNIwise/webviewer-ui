@@ -57,7 +57,6 @@ const PrintModal = ({
   isPrinting,
   layoutMode,
   useEmbeddedPrint,
-  pageLabels
 }) => {
   const { core } = useCore();
   PrintModal.propTypes = {

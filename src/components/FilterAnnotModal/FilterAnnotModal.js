@@ -20,7 +20,6 @@ import Choice from 'components/Choice';
 import Button from 'components/Button';
 import { Tabs, Tab, TabPanel } from 'components/Tabs';
 import Tooltip from 'components/Tooltip';
-import { COMMON_COLORS } from 'constants/commonColors';
 import ModalWrapper from 'components/ModalWrapper';
 
 import './FilterAnnotModal.scss';
@@ -29,12 +28,11 @@ const TABS_ID = 'filterAnnotModal';
 
 const FilterAnnotModal = ({ isInFormBuilderMode }) => {
   const { core } = useCore();
-  const [isDisabled, isOpen, colorMap, selectedTab, annotationFilters,
+  const [isDisabled, isOpen, colorMap, annotationFilters,
     isMeasurementAnnotationFilterEnabled, customNoteFilter] = useSelector((state) => [
     selectors.isElementDisabled(state, DataElements.FILTER_MODAL),
     selectors.isElementOpen(state, DataElements.FILTER_MODAL),
     selectors.getColorMap(state),
-    selectors.getSelectedTab(state, TABS_ID),
     selectors.getAnnotationFilters(state),
     selectors.getIsMeasurementAnnotationFilterEnabled(state),
     selectors.getCustomNoteFilter(state),
@@ -54,7 +52,6 @@ const FilterAnnotModal = ({ isInFormBuilderMode }) => {
   const [colorFilter, setColorFilter] = useState([]);
   // const [checkRepliesForAuthorFilter, setCheckRepliesForAuthorFilter] = useState(true);
   const [isDocumentFilterActive, setIsDocumentFilterActive] = useState(false);
-  const [statusFilter, setStatusFilter] = useState([]);
   const [filterCount, setFilterCount] = useState(0);
 
   // const [ifShowAnnotationStatus, setIfShowAnnotationStatus] = useState(false);
@@ -122,6 +119,7 @@ const FilterAnnotModal = ({ isInFormBuilderMode }) => {
           color = similarColorExist(colorFilter, iconColor);
         } else {
         // check for default color if no color is available
+          // eslint-disable-next-line custom/no-hex-colors
           color = colorFilter.includes('#485056');
         }
       }

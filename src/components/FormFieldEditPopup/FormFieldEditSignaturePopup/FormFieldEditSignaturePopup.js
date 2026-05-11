@@ -83,6 +83,8 @@ const FormFieldEditSignaturePopup = ({
     setIndicatorPlaceholder(t(`formField.formFieldPopup.indicatorPlaceHolders.SignatureFormField.${value}`));
   };
 
+  const onConfirm = closeFormFieldEditPopup;
+
   return (
     <div className={className}>
       <SignatureOptionsDropdown onChangeHandler={onOptionChange} initialOption={getSignatureOptionHandler(annotation)} />

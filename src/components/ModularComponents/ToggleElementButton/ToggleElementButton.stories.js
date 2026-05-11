@@ -31,9 +31,6 @@ const initialState = {
   },
   featureFlags: {
     customizableUI: true
-  },
-  featureFlags: {
-    customizableUI: true
   }
 };
 const initialStateActive = {
