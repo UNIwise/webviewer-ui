@@ -2,7 +2,7 @@ import { panelNames } from 'constants/panel';
 import { PRESET_BUTTON_TYPES, ROTATE_DOCUMENT_BUTTONS, CHANGE_DISPLAY_BUTTONS } from 'constants/customizationVariables';
 import DataElements from 'constants/dataElement';
 
-const { ToolNames } = window.Core.Tools;
+const { ToolNames } = window.Core?.Tools ?? {};
 
 export default {
   dataElement: [],
