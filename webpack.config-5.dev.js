@@ -33,6 +33,11 @@ module.exports = {
       },
       {
         test: /\.js$/,
+        include: /react-quill-new/,
+        resolve: { fullySpecified: false },
+      },
+      {
+        test: /\.js$/,
         use: {
           loader: 'babel-loader',
           options: {

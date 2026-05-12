@@ -1,4 +1,4 @@
-const Scale = window.Core.Scale;
+const Scale = window.Core?.Scale;
 
 export const PresetMeasurementSystems = {
   METRIC: 'metric',

@@ -25,9 +25,12 @@ export const LIST_OPTIONS = {
 };
 
 export const DEFAULT_POINT_SIZE = 11;
-export const DEFAULT_COLOR = new window.Core.Annotations.Color(0, 0, 0, 1);
+export const DEFAULT_COLOR = (() => {
+  const ColorClass = window.Core?.Annotations?.Color;
+  return ColorClass ? new ColorClass(0, 0, 0, 1) : null;
+})();
 
-const OfficeEditorListStylePresets = window.Core.Document.OfficeEditor.ListStylePresets;
+const OfficeEditorListStylePresets = window.Core?.Document?.OfficeEditor?.ListStylePresets ?? {};
 export const OFFICE_BULLET_OPTIONS = [
   { enum: OfficeEditorListStylePresets.BULLET, img: 'icon-office-editor-list-style-bullet' },
   { enum: OfficeEditorListStylePresets.BULLET_SQUARE, img: 'icon-office-editor-list-style-square' },
@@ -48,13 +51,13 @@ export const OFFICE_NUMBER_OPTIONS = [
 export const OFFICE_EDITOR_TRACKED_CHANGE_KEY = 'officeEditorTrackedChangeUID';
 export const OFFICE_EDITOR_COMMENT_KEY = 'officeEditorCommentUID';
 
-export const OfficeEditorEditMode = window.Core.Document.OfficeEditor.EditMode;
+export const OfficeEditorEditMode = window.Core?.Document?.OfficeEditor?.EditMode;
 
-export const EditingStreamType = window.Core.Document.OfficeEditor.EditingStreamType;
+export const EditingStreamType = window.Core?.Document?.OfficeEditor?.EditingStreamType;
 
-export const EditOperationSource = window.Core.Document.OfficeEditor.EditOperationSource;
+export const EditOperationSource = window.Core?.Document?.OfficeEditor?.EditOperationSource;
 
-export const DocElementType = window.Core.Document.OfficeEditor.DocumentElementType;
+export const DocElementType = window.Core?.Document?.OfficeEditor?.DocumentElementType;
 
 export const OFFICE_EDITOR_SCOPE = 'office-editor';
 
@@ -122,9 +125,9 @@ export const AVAILABLE_STYLE_PRESET_MAP = {
 
 export const HEADER_FOOTER_BAR_DEFAULT_POSITION = 100;
 
-export const LAYOUT_UNITS = window.Core.Document.OfficeEditor.LayoutUnits;
+export const LAYOUT_UNITS = window.Core?.Document?.OfficeEditor?.LayoutUnits;
 
-export const EDIT_OPERATION_SOURCE = window.Core.Document.OfficeEditor.EditOperationSource;
+export const EDIT_OPERATION_SOURCE = window.Core?.Document?.OfficeEditor?.EditOperationSource;
 
 export const MARGIN_UNIT_LABELS = {
   CM: 'cm',
@@ -158,11 +161,11 @@ export const PAGE_LAYOUT_WARNING_TYPE = {
   MARGIN: 'margin',
 };
 
-export const VERTICAL_MARGIN_LIMIT = window.Core.Document.OfficeEditor.VERTICAL_MARGIN_LIMIT; // 0.4
+export const VERTICAL_MARGIN_LIMIT = window.Core?.Document?.OfficeEditor?.VERTICAL_MARGIN_LIMIT; // 0.4
 
-export const DEFAULT_COLUMN_SPACING_IN_POINTS = window.Core.Document.OfficeEditor.DEFAULT_COLUMN_SPACING_IN_POINTS; // 36
+export const DEFAULT_COLUMN_SPACING_IN_POINTS = window.Core?.Document?.OfficeEditor?.DEFAULT_COLUMN_SPACING_IN_POINTS; // 36
 
-export const MINIMUM_COLUMN_WIDTH_IN_POINTS = window.Core.Document.OfficeEditor.MINIMUM_COLUMN_WIDTH_IN_POINTS; // 36
+export const MINIMUM_COLUMN_WIDTH_IN_POINTS = window.Core?.Document?.OfficeEditor?.MINIMUM_COLUMN_WIDTH_IN_POINTS; // 36
 
 export const OFFICE_EDITOR_TRANSLATION_PREFIX = 'officeEditor.';
 

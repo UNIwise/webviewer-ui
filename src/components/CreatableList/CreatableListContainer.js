@@ -7,7 +7,7 @@ import CreatableListItem from './CreatableListItem';
 import './CreatableList.scss';
 
 const propTypes = {
-  options: PropTypes.object,
+  options: PropTypes.array,
   onOptionsUpdated: PropTypes.func,
   popupRef: PropTypes.object
 };
@@ -34,7 +34,7 @@ const CreatableListContainer = ({
 
   // In order to be draggable, each item needs a unique Id
   // These are managed internally in this component and not exposed to the user
-  const draggableItems = options.map((option, index) => {
+  const draggableItems = (options ?? []).map((option, index) => {
     return {
       id: index,
       displayValue: option.displayValue,
@@ -43,6 +43,11 @@ const CreatableListContainer = ({
   });
   const [items, setItems] = useState(draggableItems);
   const [nextId, setNextId] = useState(draggableItems.length);
+  // When fieldSelectionOptions/setFieldSelectionOptions are not provided by the
+  // parent (e.g. FormFieldPanel), fall back to the internal items state so the
+  // component works standalone without lifted state.
+  const activeOptions = fieldSelectionOptions ?? items;
+  const setActiveOptions = setFieldSelectionOptions ?? setItems;
   const [invalidInputList, setInvalidInputList] = useState([]);
   const [inputListHasEmptyValue, setInputListHasEmptyValue] = useState(false);
   const [inputListDuplicateValues, setInputListDuplicateValues] = useState([]);
@@ -111,20 +116,20 @@ const CreatableListContainer = ({
   }, [nextId, items]);
 
   const handleDeleteItem = (id) => () => {
-    const updatedItems = fieldSelectionOptions.filter((item) => {
+    const updatedItems = activeOptions.filter((item) => {
       return id !== item.id;
     });
-    setItems(updatedItems);
+    setActiveOptions(updatedItems);
   };
 
   const handleItemValueChange = (id) => (value) => {
-    const updatedItems = fieldSelectionOptions.map((item) => {
+    const updatedItems = activeOptions.map((item) => {
       if (item.id !== id) {
         return item;
       }
       return { ...item, value, displayValue: value };
     });
-    setItems(updatedItems);
+    setActiveOptions(updatedItems);
   };
 
   // We add this helper function that doesn't mutate the original array
@@ -137,17 +142,17 @@ const CreatableListContainer = ({
 
   const moveListItem = useCallback(
     (dragIndex, hoverIndex) => {
-      const dragItem = fieldSelectionOptions[dragIndex];
+      const dragItem = activeOptions[dragIndex];
 
       // Update items array without mutating original items array for perf reasons
       // First we remove the element being dragged
-      const itemsWithoutDraggedElement = fieldSelectionOptions.filter((_item, index) => index !== dragIndex);
+      const itemsWithoutDraggedElement = activeOptions.filter((_item, index) => index !== dragIndex);
       // Now we add the dragged element at the index it's currently hovering
       const itemsWithDraggedElementAtNewPosition = addItemAtIndex(itemsWithoutDraggedElement, hoverIndex, dragItem);
 
-      setFieldSelectionOptions(itemsWithDraggedElementAtNewPosition);
+      setActiveOptions(itemsWithDraggedElementAtNewPosition);
     },
-    [fieldSelectionOptions],
+    [activeOptions, setActiveOptions],
   );
 
   const validatePopupHeight = () => {
@@ -169,7 +174,7 @@ const CreatableListContainer = ({
   return (
     <div>
       <div className="creatable-list" ref={containerRef}>
-        {fieldSelectionOptions.map((item, index) => (
+        {activeOptions.map((item, index) => (
           <CreatableListItem
             key={item.id}
             index={index}

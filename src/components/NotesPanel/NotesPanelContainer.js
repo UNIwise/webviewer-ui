@@ -76,7 +76,7 @@ function NotesPanelContainer(props) {
       !annot.isReply() &&
       !annot.Hidden &&
       !annot.isGrouped() &&
-      annot.ToolName !== window.Core.Tools.ToolNames.CROP &&
+      annot.ToolName !== window.Core?.Tools?.ToolNames?.CROP &&
       !annot.isContentEditPlaceholder() &&
       isValidForOfficeEditor
     );
