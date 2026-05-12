@@ -46,7 +46,7 @@ import {
 import { addDataElementFromKey } from 'helpers/modularComponentsHelper';
 import viewOnlyWhitelist from './viewOnlyWhitelist';
 
-const { ToolNames } = window.Core.Tools;
+const { ToolNames } = window.Core?.Tools ?? {};
 const instanceId = getInstanceID();
 
 export default {

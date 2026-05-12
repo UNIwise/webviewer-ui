@@ -332,7 +332,7 @@ const NotesPanel = ({
       documentViewerKey: activeDocumentViewerKey,
     };
 
-    if (index === singleSelectedNoteIndex) {
+    if (index === singleSelectedNoteIndex && scrollToSelectedAnnot) {
       setTimeout(() => {
         setScrollToSelectedAnnot(false);
         // open the 'annotationNoteConnectorLine' since the note it's pointing to is being rendered

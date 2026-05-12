@@ -174,20 +174,13 @@ const Note = ({
   });
 
   useEffect(() => {
-    // If this is not a new one, rebuild the isEditing map
+    // On mount (or annotation identity change), restore editing state from any pending draft text
     const pendingText = pendingEditTextMap[annotation.Id];
-    if (pendingText !== '' && isContentEditable && !isDocumentReadOnly) {
+    if (typeof pendingText !== 'undefined' && pendingText !== '' && isContentEditable && !isDocumentReadOnly) {
       setIsEditing(true, annotation.Id);
     }
-  }, [isDocumentReadOnly, isContentEditable, setIsEditing, annotation, isMultiSelectMode, pendingEditTextMap]);
-
-  // Auto-enter edit mode whenever this note becomes selected (handles both panel
-  // clicks via handleNoteClick AND annotation canvas clicks that bypass handleNoteClick)
-  useEffect(() => {
-    if (isSelected && isContentEditable && !isDocumentReadOnly && !isMultiSelectMode) {
-      setIsEditing(true, annotation.Id);
-    }
-  }, [isSelected, isContentEditable, isDocumentReadOnly, isMultiSelectMode, setIsEditing, annotation.Id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [annotation.Id]);
 
   useDidUpdate(() => {
     if (isDocumentReadOnly || !isContentEditable) {
