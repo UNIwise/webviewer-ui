@@ -131,7 +131,7 @@ const CommentTextarea = React.forwardRef(
           theme="snow"
           defaultValue={transformTextForQuill(value)}
           placeholder={`${isReply ? t('action.reply') : t('action.comment')}...`}
-          onChange={onchange}
+          onChange={onChange}
           onKeyDown={onKeyDown}
           formats={formats}
         />
