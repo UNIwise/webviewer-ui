@@ -213,7 +213,7 @@ function NoteHeader(props) {
     core.getOfficeEditor().rejectTrackedChange(trackedChangeId);
   };
 
-  const showNotePopup = !isEditing && isSelected && !isMultiSelectMode && !isGroupMember && !isTrackedChange && !isOfficeEditorViewOnly;
+  const showNotePopup = isSelected && !isMultiSelectMode && !isGroupMember && !isTrackedChange && !isOfficeEditorViewOnly;
   const flyoutId = flyoutIdSuffix ? `${annotation.Id}-${flyoutIdSuffix}` : annotation.Id;
 
   const pageNumber = annotation.getPageNumber();

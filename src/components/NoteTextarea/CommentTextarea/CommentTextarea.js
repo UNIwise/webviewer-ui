@@ -112,7 +112,6 @@ const CommentTextarea = React.forwardRef(
       e.stopPropagation();
     };
 
-    value = transformTextForQuill(value);
     const baseModule = { blurInput: {} };
 
     // onBlur and onFocus have to be outside in the div because of quill bug
@@ -130,9 +129,9 @@ const CommentTextarea = React.forwardRef(
           }}
           modules={userData && userData.length > 0 ? { ...baseModule, ...mentionModule } : baseModule }
           theme="snow"
-          value={value}
+          defaultValue={transformTextForQuill(value)}
           placeholder={`${isReply ? t('action.reply') : t('action.comment')}...`}
-          onChange={onChange}
+          onChange={onchange}
           onKeyDown={onKeyDown}
           formats={formats}
         />
