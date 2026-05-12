@@ -18,21 +18,6 @@ const propTypes = {
   onKeyDownHandler: PropTypes.func,
 };
 
-const items = [
-  {
-    key: OfficeEditorEditMode.EDITING,
-    description: 'editingDescription',
-  },
-  {
-    key: OfficeEditorEditMode.REVIEWING,
-    description: 'reviewingDescription',
-  },
-  {
-    key: OfficeEditorEditMode.VIEW_ONLY,
-    description: 'viewOnlyDescription',
-  }
-];
-
 const TrackChangeOverlay = ({
   isFlyoutItem = false,
   onKeyDownHandler = null,
@@ -51,6 +36,21 @@ const TrackChangeOverlay = ({
     ],
     shallowEqual
   );
+
+  const items = [
+    {
+      key: OfficeEditorEditMode?.EDITING,
+      description: 'editingDescription',
+    },
+    {
+      key: OfficeEditorEditMode?.REVIEWING,
+      description: 'reviewingDescription',
+    },
+    {
+      key: OfficeEditorEditMode?.VIEW_ONLY,
+      description: 'viewOnlyDescription',
+    }
+  ];
 
   const renderDropdownItem = (item) => (
     <div className='Dropdown__item-vertical'>
