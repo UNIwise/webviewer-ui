@@ -3,7 +3,6 @@
   "author": "Apryse Software Inc.",
   "version": "11.12.0",
   "description": "WebViewer UI built in React",
-  "packageManager": "pnpm@10.24.0",
   "files": [
     "./build"
   ],
