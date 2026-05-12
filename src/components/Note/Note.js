@@ -179,7 +179,8 @@ const Note = ({
     if (typeof pendingText !== 'undefined' && pendingText !== '' && isContentEditable && !isDocumentReadOnly) {
       setIsEditing(true, annotation.Id);
     }
-  }, [isDocumentReadOnly, isContentEditable, setIsEditing, annotation, isMultiSelectMode, pendingEditTextMap]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDocumentReadOnly, isContentEditable, setIsEditing, annotation.Id, pendingEditTextMap]);
 
   // Auto-enter edit mode whenever this note becomes selected (handles both panel
   // clicks via handleNoteClick AND annotation canvas clicks that bypass handleNoteClick)
