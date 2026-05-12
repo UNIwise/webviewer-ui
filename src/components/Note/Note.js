@@ -97,10 +97,10 @@ const Note = ({
 
   const setIsEditing = useCallback(
     (isEditing, editingKey) => {
-      setIsEditingMap((map) => ({
-        ...map,
-        [editingKey]: isEditing,
-      }));
+      setIsEditingMap((map) => {
+        if (map[editingKey] === isEditing) return map;
+        return { ...map, [editingKey]: isEditing };
+      });
     },
     [setIsEditingMap],
   );
@@ -277,7 +277,8 @@ const Note = ({
         }
       });
     }
-  }, [isSelected, isMultiSelectMode, pendingEditTextMap, setIsEditing, replies]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSelected, isMultiSelectMode, pendingEditTextMap, setIsEditing]);
 
   useEffect(() => {
     if (isMultiSelectMode) {
