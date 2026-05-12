@@ -68,6 +68,11 @@ const NoteTextarea = React.forwardRef((props, forwardedRef) => {
   };
 
   const handleChange = (content, delta, source, editor) => {
+    // Ignore programmatic (API) changes to avoid feedback loops where updating
+    // the value prop causes Quill to fire onChange again.
+    if (source !== 'user') {
+      return;
+    }
     // Removes Non-breaking Space and replaces with regular space
     content = content.replace(/&nbsp;/g, ' ');
 
