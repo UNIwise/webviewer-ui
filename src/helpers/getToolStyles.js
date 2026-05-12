@@ -2,7 +2,10 @@ import core from 'core';
 
 export default (toolName) => {
   const tool = core.getTool(toolName);
-  const ToolNames = window.Core.Tools.ToolNames;
+  const ToolNames = window.Core?.Tools?.ToolNames;
+  if (!ToolNames) {
+    return tool?.defaults;
+  }
 
 
   const isHighlightTool =
