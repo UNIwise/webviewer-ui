@@ -71,7 +71,7 @@ module.exports = (env = {}) => {
         },
         {
           test: /\.js$/,
-          include: /node_modules[\\/]react-quill-new[\\/]/,
+          include: /react-quill-new/,
           resolve: { fullySpecified: false },
         },
         {
