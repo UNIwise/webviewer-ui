@@ -665,6 +665,8 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
   const setContents = async (e) => {
     e.preventDefault();
 
+    setSavedState(AnnotationSavedState.SAVING);
+
     const editor = textareaRef.current.getEditor();
     textAreaValue = mentionsManager.getFormattedTextFromDeltas(editor.getContents());
     if (typeof textAreaValue === 'string' && textAreaValue.replace(/<br\s*\/?>(\s*)?/gi, '').trim() === '') {
@@ -682,58 +684,71 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
       annotation.disableSkipAutoLink();
     }
 
-    if (isOfficeEditorCommentAnnotation) {
-      const didUpdate = await updateOfficeEditorCommentMessage({
-        annotation,
-        text: textAreaValue,
-        core,
-      });
-      if (!didUpdate) {
-        return;
-      }
-    }
-
-    if (isMentionEnabled && !isOfficeEditorCommentAnnotation) {
-      const { plainTextValue, ids } = mentionsManager.extractMentionDataFromStr(textAreaValue);
-
-      // If modified, double check for ids
-      const annotMentionData = mentionsManager.extractMentionDataFromAnnot(annotation);
-      annotMentionData.mentions.forEach((mention) => {
-        if (plainTextValue.includes(mention.value)) {
-          ids.push(mention.id);
+    try {
+      if (isOfficeEditorCommentAnnotation) {
+        const didUpdate = await updateOfficeEditorCommentMessage({
+          annotation,
+          text: textAreaValue,
+          core,
+        });
+        if (!didUpdate) {
+          setSavedState(AnnotationSavedState.ERROR);
+          return;
         }
-      });
-
-      annotation.setCustomData(
-        'trn-mention',
-        JSON.stringify({
-          contents: textAreaValue,
-          ids,
-        }),
-      );
-      annotation.setContents(plainTextValue ?? '');
-    } else {
-      annotation.setContents(textAreaValue ?? '');
-    }
-
-    await setAnnotationAttachments(annotation, pendingAttachmentMap[annotation.Id]);
-
-    const source = annotation instanceof window.Core.Annotations.FreeTextAnnotation ? 'textChanged' : 'noteChanged';
-    core
-      .getAnnotationManager(activeDocumentViewerKey)
-      .trigger('annotationChanged', [[annotation], 'modify', { source }]);
-
-    if (annotation instanceof window.Core.Annotations.FreeTextAnnotation) {
-      core.drawAnnotationsFromList([annotation]);
-    }
-
-    hasUnsavedEditsRef.current = false;
-
-    if (e && e.type === 'blur') {
-      if (textAreaValue !== '') {
-        onTextAreaValueChange(undefined, annotation.Id);
       }
-      clearAttachments(annotation.Id);
+
+      if (isMentionEnabled && !isOfficeEditorCommentAnnotation) {
+        const { plainTextValue, ids } = mentionsManager.extractMentionDataFromStr(textAreaValue);
+
+        // If modified, double check for ids
+        const annotMentionData = mentionsManager.extractMentionDataFromAnnot(annotation);
+        annotMentionData.mentions.forEach((mention) => {
+          if (plainTextValue.includes(mention.value)) {
+            ids.push(mention.id);
+          }
+        });
+
+        annotation.setCustomData(
+          'trn-mention',
+          JSON.stringify({
+            contents: textAreaValue,
+            ids,
+          }),
+        );
+        annotation.setContents(plainTextValue ?? '');
+      } else {
+        annotation.setContents(textAreaValue ?? '');
+      }
+
+      await setAnnotationAttachments(annotation, pendingAttachmentMap[annotation.Id]);
+
+      const source = annotation instanceof window.Core.Annotations.FreeTextAnnotation ? 'textChanged' : 'noteChanged';
+      core
+        .getAnnotationManager(activeDocumentViewerKey)
+        .trigger('annotationChanged', [[annotation], 'modify', { source }]);
+
+      if (annotation instanceof window.Core.Annotations.FreeTextAnnotation) {
+        core.drawAnnotationsFromList([annotation]);
+      }
+
+      hasUnsavedEditsRef.current = false;
+      setSavedState(AnnotationSavedState.SAVED);
+
+      try {
+        localStorage.removeItem(`annotation_draft_${annotation.Id}`);
+      } catch (storageError) {
+        console.error('Failed to clear localStorage draft:', storageError);
+      }
+
+      if (e && e.type === 'blur') {
+        if (textAreaValue !== '') {
+          onTextAreaValueChange(undefined, annotation.Id);
+        }
+        clearAttachments(annotation.Id);
+      }
+    } catch (err) {
+      console.error('Failed to save annotation:', err);
+      setSavedState(AnnotationSavedState.ERROR);
     }
   };
 
