@@ -7,7 +7,7 @@ import CreatableListItem from './CreatableListItem';
 import './CreatableList.scss';
 
 const propTypes = {
-  options: PropTypes.object,
+  options: PropTypes.array,
   onOptionsUpdated: PropTypes.func,
   popupRef: PropTypes.object
 };
