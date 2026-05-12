@@ -176,7 +176,7 @@ const Note = ({
   useEffect(() => {
     // If this is not a new one, rebuild the isEditing map
     const pendingText = pendingEditTextMap[annotation.Id];
-    if (pendingText !== '' && isContentEditable && !isDocumentReadOnly) {
+    if (typeof pendingText !== 'undefined' && pendingText !== '' && isContentEditable && !isDocumentReadOnly) {
       setIsEditing(true, annotation.Id);
     }
   }, [isDocumentReadOnly, isContentEditable, setIsEditing, annotation, isMultiSelectMode, pendingEditTextMap]);
