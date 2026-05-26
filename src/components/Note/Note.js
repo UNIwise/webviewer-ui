@@ -270,6 +270,15 @@ const Note = ({
         }
       });
     }
+
+    // When a new annotation (with no content) is selected, automatically enter edit mode
+    if (isSelected && isContentEditable && !isDocumentReadOnly && !isMultiSelectMode) {
+      const hasContent = !!annotation.getContents();
+      const hasPendingText = typeof pendingEditTextMap[annotation.Id] !== 'undefined';
+      if (!hasContent && !hasPendingText) {
+        setIsEditing(true, annotation.Id);
+      }
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSelected, isMultiSelectMode, pendingEditTextMap, setIsEditing]);
 
