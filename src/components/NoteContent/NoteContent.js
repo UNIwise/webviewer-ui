@@ -605,7 +605,15 @@ const ContentArea = ({ annotation, noteIndex, setIsEditing, textAreaValue, onTex
     if (isAnyCustomPanelOpen || ((isNotesPanelOpen || isInlineCommentOpen) && textareaRef.current)) {
       const editor = textareaRef.current.getEditor();
       const isFreeTextAnnnotation = annotation && annotation instanceof window.Core.Annotations.FreeTextAnnotation;
-      isFreeTextAnnnotation && editor.setText('');
+      // Clear the default placeholder text ("Insert text here") on first edit so
+      // the user can start typing immediately.
+      if (isFreeTextAnnnotation && !pendingText) {
+        const defaultPlaceholder = t('message.insertTextHere');
+        const currentText = editor.getText().replace(/\n+$/, '');
+        if (currentText === defaultPlaceholder) {
+          editor.setText('', 'silent');
+        }
+      }
 
       /**
        * If there is a pending text we should update the annotation rich text style
