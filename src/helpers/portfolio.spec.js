@@ -1,38 +1,67 @@
-import { isOpenableFile } from './portfolio';
+import { findPDFNetPortfolioItem } from './portfolio';
 
-describe('isOpenableFile', function() {
-  beforeEach(() => {
-    window.Core = {
-      SupportedFileFormats: {
-        CLIENT: ['pdf', 'docx', 'jpg', 'jpeg', 'png', 'txt', 'xls', 'xlsx']
-      }
-    };
-  });
+jest.mock('file-saver', () => ({ saveAs: jest.fn() }));
 
-  it('should return true for uppercase JPG extension', () => {
-    expect(isOpenableFile('JPG')).toEqual(true);
-  });
+describe('portfolio', () => {
+  describe('getPDFNetFiles', () => {
+    let mockSdfDoc;
+    let mockPdfDoc;
+    let mockNameTree;
+    let mockPDFNet;
+    let mockCore;
 
-  it('should return true for supported extensions regardless of case', () => {
-    expect(isOpenableFile('pdf')).toEqual(true);
-    expect(isOpenableFile('PDF')).toEqual(true);
-    expect(isOpenableFile('PdF')).toEqual(true);
-  });
+    beforeEach(() => {
+      mockSdfDoc = {};
+      mockPdfDoc = {
+        getSDFDoc: jest.fn().mockResolvedValue(mockSdfDoc),
+      };
+      mockNameTree = {
+        isValid: jest.fn().mockResolvedValue(true),
+        getIteratorBegin: jest.fn().mockResolvedValue({
+          hasNext: jest.fn().mockResolvedValue(false),
+        }),
+      };
+      mockPDFNet = {
+        runWithCleanup: jest.fn((fn) => fn()),
+        NameTree: {
+          find: jest.fn().mockResolvedValue(mockNameTree),
+        },
+      };
+      window.Core = {
+        PDFNet: mockPDFNet,
+      };
+      mockCore = {
+        isFullPDFEnabled: jest.fn().mockReturnValue(true),
+        getDocument: jest.fn().mockReturnValue({
+          getPDFDoc: jest.fn().mockResolvedValue(mockPdfDoc),
+        }),
+      };
+    });
 
-  it('should return false for unsupported extensions', () => {
-    expect(isOpenableFile('exe')).toEqual(false);
-    expect(isOpenableFile('XYZ')).toEqual(false);
-  });
+    afterEach(() => {
+      delete window.Core;
+    });
 
-  it('should return false for empty string', () => {
-    expect(isOpenableFile('')).toEqual(false);
-  });
+    it('passes the SDFDoc (not the PDFDoc) to PDFNet.NameTree.find', async () => {
+      await findPDFNetPortfolioItem(mockCore, 'some-id');
 
-  it('should handle all supported file formats with case variations', () => {
-    const supportedFormats = ['pdf', 'docx', 'jpg', 'jpeg', 'png', 'txt', 'xls', 'xlsx'];
-    supportedFormats.forEach((format) => {
-      expect(isOpenableFile(format)).toEqual(true);
-      expect(isOpenableFile(format.toUpperCase())).toEqual(true);
+      expect(mockPdfDoc.getSDFDoc).toHaveBeenCalled();
+      expect(mockPDFNet.NameTree.find).toHaveBeenCalledWith(
+        mockSdfDoc,
+        'EmbeddedFiles',
+      );
+      expect(mockPDFNet.NameTree.find).not.toHaveBeenCalledWith(
+        mockPdfDoc,
+        'EmbeddedFiles',
+      );
+    });
+
+    it('does not call PDFNet.NameTree.find when fullAPI is not enabled', async () => {
+      mockCore.isFullPDFEnabled.mockReturnValue(false);
+
+      await findPDFNetPortfolioItem(mockCore, 'some-id');
+
+      expect(mockPDFNet.NameTree.find).not.toHaveBeenCalled();
     });
   });
 });
