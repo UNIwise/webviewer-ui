@@ -198,7 +198,8 @@ const getPDFNetFiles = async (core) => {
     // doc will be undefined for non-pdf files
     if (doc) {
       await PDFNet.runWithCleanup(async () => {
-        files = await PDFNet.NameTree.find(doc, 'EmbeddedFiles');
+        const sdfDoc = await doc.getSDFDoc();
+        files = await PDFNet.NameTree.find(sdfDoc, 'EmbeddedFiles');
       });
     }
     if (files && (await files.isValid())) {

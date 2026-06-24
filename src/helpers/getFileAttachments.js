@@ -14,7 +14,8 @@ export async function getFileAttachments(core) {
       doc = await doc.getPDFDoc();
     }
     const main = async () => {
-      const files = await PDFNet.NameTree.find(doc, 'EmbeddedFiles');
+      const sdfDoc = await doc.getSDFDoc();
+      const files = await PDFNet.NameTree.find(sdfDoc, 'EmbeddedFiles');
       if (files && (await files.isValid())) {
         // Traverse the list of embedded files.
         const fileItr = await files.getIteratorBegin();
@@ -29,7 +30,7 @@ export async function getFileAttachments(core) {
           // Assume order is -1 for files without an order instead of getting the next largest value. Files will be displayed at the top of the list
           let order = -1;
           try {
-            // After being created with Adobe, the nested files don’t have an internal order (the ones at root level will always have an internal order), so they won't always have 'CI'
+            // After being created with Adobe, the nested files don't have an internal order (the ones at root level will always have an internal order), so they won't always have 'CI'
             const ciValue = await (await filesIteratorValue.get(PORTFOLIO_CONSTANTS.CI)).value();
             const adobeOrderValue = await (await ciValue.get(PORTFOLIO_CONSTANTS.ADOBE_ORDER)).value();
             order = await adobeOrderValue.getNumber();
