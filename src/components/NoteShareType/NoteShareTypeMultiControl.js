@@ -6,6 +6,7 @@ import useOverflowContainer from 'hooks/useOverflowContainer';
 import useOnClickOutside from 'hooks/useOnClickOutside';
 
 import DataElements from 'constants/dataElement';
+import DataElementWrapper from 'components/DataElementWrapper';
 import NoteShareTypeDialog from './NoteShareTypeDialog';
 import ShareTypeIcon from '../NoteShareType/ShareTypeIcon';
 
@@ -73,7 +74,8 @@ const NoteShareTypeMultiControl = ({ multiSelectedAnnotations }) => {
 
   return (
     <div style={{ position: 'relative', display: 'flex' }}>
-      <button
+      <DataElementWrapper
+        type="button"
         style={{ padding: '0 3px', opacity: isDisabled ? 0.6 : 1 }}
         dataElement={DataElements.NOTE_MULTI_SHARE_TYPE_BUTTON}
         onClick={togglePopup}
@@ -83,7 +85,7 @@ const NoteShareTypeMultiControl = ({ multiSelectedAnnotations }) => {
         disabled={isDisabled}
       >
         <ShareTypeIcon shareType={collectiveShareType} label={t('action.shareType')} />
-      </button>
+      </DataElementWrapper>
 
       <NoteShareTypeDialog onClose={onClose} selectedShareType={collectiveShareType} ref={dialogRef} positionStyle={style} onSelect={handleSelect} />
     </div >
