@@ -46,29 +46,66 @@ const store = configureStore({ reducer: () => initialState });
 
 jest.mock('core', () => ({
   getNumberOfGroups: () => 0,
+  getGroupAnnotations: () => [],
   addEventListener: jest.fn(),
+  removeEventListener: jest.fn(),
   getDocumentViewer: jest.fn(),
+  canModify: () => true,
+  getCurrentUser: () => 'user1',
 }));
+
+const makeAnnotation = (id, author) => ({
+  Id: id,
+  Author: author,
+  isGrouped: () => false,
+  getCustomData: () => 'NONE',
+  setCustomData: noop,
+});
+
+const renderMultiSelectControls = (multiSelectedAnnotations) => render(
+  <Provider store={store}>
+    <MultiSelectControls
+      showMultiReply={false}
+      setShowMultiReply={noop}
+      setShowMultiState={noop}
+      showMultiStyle={true}
+      setShowMultiStyle={noop}
+      setMultiSelectMode={noop}
+      multiSelectedMap={{}}
+      setMultiSelectedMap={noop}
+      multiSelectedAnnotations={multiSelectedAnnotations}
+    />
+  </Provider>
+);
+
 describe('MultiSelectControls', () => {
 
   it('MultiSelectControls close button is role button', () => {
-    render(
-      <Provider store={store}>
-        <MultiSelectControls
-          showMultiReply={false}
-          setShowMultiReply={noop}
-          setShowMultiState={noop}
-          showMultiStyle={true}
-          setShowMultiStyle={noop}
-          setMultiSelectMode={noop}
-          multiSelectedMap={{}}
-          setMultiSelectedMap={noop}
-          multiSelectedAnnotations={[]}
-        />
-      </Provider>
-    );
+    renderMultiSelectControls([]);
 
     const button = screen.getByRole('button', { name: 'Close multiselect' });
     expect(button).toBeInTheDocument();
+  });
+
+  it('shows an enabled bulk share type button when the current user owns the selected annotations', () => {
+    const { container } = renderMultiSelectControls([
+      makeAnnotation('1', 'user1'),
+      makeAnnotation('2', 'user1'),
+    ]);
+
+    const shareTypeButton = container.querySelector('[data-element="multiShareTypeButton"]');
+    expect(shareTypeButton).toBeInTheDocument();
+    expect(shareTypeButton).not.toBeDisabled();
+  });
+
+  it('disables the bulk share type button when none of the selected annotations are owned by the current user', () => {
+    const { container } = renderMultiSelectControls([
+      makeAnnotation('1', 'user2'),
+      makeAnnotation('2', 'user2'),
+    ]);
+
+    const shareTypeButton = container.querySelector('[data-element="multiShareTypeButton"]');
+    expect(shareTypeButton).toBeInTheDocument();
+    expect(shareTypeButton).toBeDisabled();
   });
 });

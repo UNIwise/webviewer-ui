@@ -7,12 +7,14 @@ import ReplyAreaMultiSelect from 'components/Note/ReplyArea/ReplyAreaMultiSelect
 import MultiStylePopup from 'components/MultiSelectControls/MultiStylePopup';
 import NoteContext from 'components/Note/Context';
 import ToggleElementButton from 'components/ModularComponents/ToggleElementButton';
+import NoteShareTypeMultiControl from 'components/NoteShareType/NoteShareTypeMultiControl';
 
 import DataElements from 'constants/dataElement';
 import PropTypes from 'prop-types';
 import actions from 'actions';
 import useCore from 'hooks/useCore';
 import selectors from 'selectors';
+import getWiseflowCustomValues from 'helpers/getWiseflowCustomValues';
 
 import './MultiSelectControls.scss';
 
@@ -129,6 +131,12 @@ const MultiSelectControls = ({
     setModifiableMultiSelectAnnotations(_modifiableMultiSelectAnnotations);
   }, [multiSelectedAnnotations, core]);
 
+  const showShareType = getWiseflowCustomValues().showShareType;
+  const currentUser = core.getCurrentUser();
+  const ownedMultiSelectAnnotations = multiSelectedAnnotations.filter(
+    (annotation) => annotation.Author === currentUser
+  );
+
   const numberOfGroups = core.getNumberOfGroups(modifiableMultiSelectAnnotations);
   const canGroup = numberOfGroups > 1;
   const canUngroup = !canGroup && (modifiableMultiSelectAnnotations.length > 2 ||
@@ -188,6 +196,11 @@ const MultiSelectControls = ({
           isMultiSelectMode={true}
           handleStateChange={handleStateChange}
         />*/}
+        {showShareType &&
+          <NoteShareTypeMultiControl
+            multiSelectedAnnotations={ownedMultiSelectAnnotations}
+          />
+        }
         {customizableUI
           ? <ToggleElementButton
             {...multiStyleButtonProps}
