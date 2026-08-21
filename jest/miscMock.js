@@ -15,3 +15,8 @@ Object.defineProperty(window, 'matchMedia', {
 if (typeof CSSStyleSheet !== 'undefined' && !CSSStyleSheet.prototype.replaceSync) {
   CSSStyleSheet.prototype.replaceSync = function replaceSync() {};
 }
+
+// jsdom doesn't implement adoptedStyleSheets, used by webviewer-core alongside replaceSync above
+if (typeof document !== 'undefined' && !document.adoptedStyleSheets) {
+  document.adoptedStyleSheets = [];
+}
