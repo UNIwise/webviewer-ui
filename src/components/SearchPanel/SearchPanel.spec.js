@@ -224,9 +224,7 @@ describe('SearchPanel', () => {
 
 describe('SearchPanelContainer', () => {
   beforeEach(async () => {
-    // flush any pending passive effect cleanups from a previously unmounted component
-    // (e.g. RTL's auto cleanup between tests) before resetting mocks, otherwise a stray
-    // call from that cleanup can land after this test's assertions run
+    // flush the previous test's unmount effect cleanup before resetting mocks
     await new Promise((resolve) => setTimeout(resolve, 0));
     jest.resetAllMocks();
     // test would break if we don't make default return from useSearch as code is trying to destruct undefined value
